@@ -1,0 +1,95 @@
+#!/usr/bin/env perl
+#
+# SlimRat 
+# v0.9 (2008-09-08)
+# Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
+# public domain
+#
+
+BEGIN {
+    require lib;
+    my($dir) = $0 =~ /(.*)\//;
+    lib->import($dir);
+}
+
+use strict;
+use Getopt::Long;
+use Term::ANSIColor qw(:constants);
+use Plugin;
+use warnings;
+
+my ($list, $link, @links, $check, @failedlinks, @oklinks);
+
+sub usage { print "
+SlimRat 
+
+Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
+
+USAGE:
+   $0 [options] [link [link [...]]]
+
+OPTIONS:
+   -h | --help              this help
+   -l | --list   filename   load links from file (one per line)
+   -c | --check             check links instead of downloading them
+	
+"; exit; }
+
+&usage if(scalar @ARGV==0);
+
+GetOptions (
+	"help!"		=> \&usage,
+	"check!"	=> \$check,
+	"list=s"	=> \$list,
+	);
+
+if($list){ # load links from file
+	if(open (LIST, $list)){
+		m/^\s*(\S+)\s*/ and push @links, $1 while(<LIST>);
+		close LIST;
+	} else {warn "Can't open '$list'\n";}
+}
+
+push @links, $link while($link = shift); # read links from command line
+
+
+
+if($check){ # check links
+	while($link = shift @links){
+		my $pluginname = Plugin::get_name($link);
+		my $check = eval $pluginname."::check('$link')";
+		$check ||=0;
+		if($check>0) {print GREEN, "[OK]", RESET;}
+		elsif($check<0) {print RED, "[DEAD]", RESET;}
+		else {print "[?]";}
+		print "\t", YELLOW, $link, RESET, " (", $pluginname, ")\n";
+	}
+
+} else { # download
+	while($link = shift @links){
+		my $pluginname = Plugin::get_name($link);
+		print "\nDownloading '", YELLOW, $link, RESET, "' using '", YELLOW, $pluginname, RESET, "' plugin.\n";
+		if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
+			if(!system("wget '$fileurl'")){ #success
+				print GREEN "OK", RESET, "\n\n";
+				push @oklinks, $link;
+			} else { # wget failed
+				print RED "Download failed\n\n";
+				push @failedlinks, $link;
+			}
+		} else { # get fileurl failed
+			print RED "Plugin failed\n\n";
+			push @failedlinks, $link;
+		}
+	}
+
+	if(scalar @oklinks){
+		print GREEN, "\nDOWNLOADED:\n", RESET;
+		print $_,"\n" foreach @oklinks;
+	}
+	if(scalar @failedlinks){
+		print RED, "\nFAILED:\n", RESET;
+		print $_,"\n" foreach @failedlinks;
+	}
+
+}
