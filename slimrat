@@ -18,7 +18,7 @@ use Term::ANSIColor qw(:constants);
 use Plugin;
 use warnings;
 
-my ($list, $link, @links, $check, @failedlinks, @oklinks);
+my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to);
 
 sub usage { print "
 SlimRat 
@@ -32,6 +32,7 @@ OPTIONS:
    -h | --help              this help
    -l | --list   filename   load links from file (one per line)
    -c | --check             check links instead of downloading them
+   -t | --to     directory  destination directory (where to download)
 	
 "; exit; }
 
@@ -41,6 +42,7 @@ GetOptions (
 	"help!"		=> \&usage,
 	"check!"	=> \$check,
 	"list=s"	=> \$list,
+	"to=s"		=> \$download_to,
 	);
 
 if($list){ # load links from file
@@ -54,42 +56,51 @@ push @links, $link while($link = shift); # read links from command line
 
 
 
-if($check){ # check links
-	while($link = shift @links){
-		my $pluginname = Plugin::get_name($link);
-		my $check = eval $pluginname."::check('$link')";
-		$check ||=0;
-		if($check>0) {print GREEN, "[OK]", RESET;}
-		elsif($check<0) {print RED, "[DEAD]", RESET;}
-		else {print "[?]";}
-		print "\t", YELLOW, $link, RESET, " (", $pluginname, ")\n";
-	}
+my $return = 0; # navratova hodnota
 
-} else { # download
-	while($link = shift @links){
-		my $pluginname = Plugin::get_name($link);
-		print "\nDownloading '", YELLOW, $link, RESET, "' using '", YELLOW, $pluginname, RESET, "' plugin.\n";
-		if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
-			if(!system("wget '$fileurl'")){ #success
-				print GREEN "OK", RESET, "\n\n";
-				push @oklinks, $link;
-			} else { # wget failed
-				print RED "Download failed\n\n";
-				push @failedlinks, $link;
-			}
-		} else { # get fileurl failed
-			print RED "Plugin failed\n\n";
-			push @failedlinks, $link;
-		}
-	}
-
+if($check){ check($_) foreach @links;}
+else {
+	download($_) foreach @links;
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
 		print $_,"\n" foreach @oklinks;
+		print "to '",YELLOW, $download_to, RESET, "'\n" if ($download_to);
 	}
 	if(scalar @failedlinks){
 		print RED, "\nFAILED:\n", RESET;
 		print $_,"\n" foreach @failedlinks;
 	}
-
 }
+
+
+sub check{
+	$link = shift;
+	my $pluginname = Plugin::get_name($link);
+	my $check = eval $pluginname."::check('$link')";
+	$check ||=0;
+	if($check>0) {print GREEN, "[OK]", RESET;}
+	elsif($check<0) {print RED, "[DEAD]", RESET; $return++}
+	else {print "[?]";}
+	print "\t", YELLOW, $link, RESET, " (", $pluginname, ")\n";
+}
+sub download{
+	$link = shift;
+	my $pluginname = Plugin::get_name($link);
+	print "\nDownloading '", YELLOW, $link, RESET, "' using '", YELLOW, $pluginname, RESET, "' plugin.\n";
+	if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
+		if(!system("wget ".($download_to?"-P '$download_to' ":"")."'$fileurl'")){ #success
+			print GREEN "OK", RESET, "\n\n";
+			push @oklinks, $link;
+		} else { # wget failed
+			print RED "Download failed\n\n";
+			push @failedlinks, $link;
+		}
+	} else { # get fileurl failed
+		print RED "Plugin failed\n\n";
+		push @failedlinks, $link;
+	}
+}
+
+
+
+exit($return);

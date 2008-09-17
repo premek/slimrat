@@ -209,15 +209,19 @@ sub on_btnEnd1_clicked{
 }
 
 
+# download to
+my $download_to=".";
+sub on_downto_selection_changed{
+	$download_to = shift->get_filename();
+}
+
+
 
 # DOWNLOAD
-#$SIG{'CHLD'} = sub {print "DONE";}
-# start
-# TODO nepředávat soubor ale jen odkazy
-# protože z toho soubor
+# vol. xterm 
 sub on_btnStart1_clicked {
 	&saveque; 
-	system("xterm -e '".$INC[0]."/slimrat -l $quefile; bash'&"); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
+	system("xterm -T SlimRat -e \"".$INC[0]."/slimrat -l '$quefile' -t '$download_to'; bash\"&"); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
 	&quit;
 }
 
