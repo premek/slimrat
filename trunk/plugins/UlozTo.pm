@@ -21,6 +21,7 @@ sub check {
 }
 
 sub download {
+# nefunguje
 	my $file = shift;
 	$mech->get($file);
 	@links = $mech->find_all_links();

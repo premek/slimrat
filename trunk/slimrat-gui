@@ -1,34 +1,28 @@
 #!/usr/bin/env perl
 #
 # SlimRat
-# v0.9 (2008-09-08)
+# v0.9.1 (2008-09-20)
 # GTK GUI
 # Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
 # public domain
 #
 
-BEGIN {
-    require lib;
-    my($dir) = $0 =~ /(.*)\//;
-    lib->import($dir);
-}
 
+use FindBin qw($RealBin);
+use lib $RealBin;
 use warnings;
+use strict;
 use locale;
-#use Getopt::Long;
 use Gtk2 -init;
 use Gtk2::GladeXML;
 use Glib qw(TRUE FALSE);
 use Gtk2::SimpleList;
-#use Gtk2::Ex::Simple::List; # libgtk2-ex-simple-list-perl
-#use Gtk2::TrayIcon;
-use warnings;
-
+use File::Basename;
 use Plugin;
 
-
-$quefile = $ENV{HOME}.'/.slimrat';
-$gladefile = $INC[0].'/slimrat.glade';
+my $quefile = $ENV{HOME}.'/.slimrat';
+my ($root) = dirname($INC{'Plugin.pm'});
+my $gladefile = $root.'/slimrat.glade';
 
 $SIG{'INT'} = 'quit';
 
@@ -43,61 +37,54 @@ $gui->signal_autoconnect_from_package('main');
 
 # treeview
 
+use constant { # pořadí sloupečků
+	COL_STATUS	=> 0,
+#	COL_UNPACK	=> 1,
+	COL_TYPE	=> 1,
+	COL_LINK	=> 2,
+};
 my $slist = Gtk2::SimpleList->new (
-		'Status'		=> 'pixbuf',
-		'Type'			=> 'text',
-#		'Progress'		=> 'text',
-		'Link'			=> 'text',
-#               'Markup Field'  => 'markup',
-#               'Int Field'     => 'int',
-#                'Bool Field'    => 'bool',
+		''			=> 'pixbuf',
+#		'U'		=> 'bool',
+		'Type'		=> 'text',
+		'Link'		=> 'text',
 		);
 
 
-
-
 $slist->get_selection->set_mode ('multiple');
-#$slist->get_column(0)->set_alignment(0.5); # tohle centruje záhlaví. jak centrovat obsah sloupce?
-$slist->get_column(0)->set_resizable(1);
-$slist->get_column(1)->set_resizable(1);
-$slist->get_column(2)->set_resizable(1);
-$slist->set_column_editable (2, TRUE);
-$slist->get_column(0)->set_reorderable(1);
-$slist->get_column(1)->set_reorderable(1);
-$slist->get_column(2)->set_reorderable(1);
-$slist->set_search_column(2);
+$slist->get_column($_)->set_resizable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK);#, COL_UNPACK);
+$slist->get_column($_)->set_reorderable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK);#, COL_UNPACK);
+$slist->set_column_editable (COL_LINK, TRUE);
+$slist->set_search_column(COL_LINK);
 $slist->set_search_equal_func(sub # vyhledávání i podle shody uprostřed řetězce (ne jen na začátku)
 		{   my($store,$col,$pat,$iter)=@_;
-			return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # ošetřit!
-		    return $store->get($iter,$col)!~m/$pat/i;
+		return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # ošetřit!
+		return $store->get($iter,$col)!~m/$pat/i;
 		});
 $slist->signal_connect("key-press-event", \&key_pressed);
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
 #$gui->get_widget('statusbar')->push(0,"AAAA");
 
+
+
 # load from file
 open (QUE, "+<$quefile");
-chomp and push @{$slist->{data}},  [$slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_ ] while (<QUE>);
+while (<QUE>){
+	chomp;
+	my @newRow;
+	$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
+	$newRow[COL_TYPE] = Plugin::get_name($_);
+	$newRow[COL_LINK] = $_;
+	push @{$slist->{data}},[@newRow];
+}
 close (QUE);
 
 
 
-# # tray icon
-# my $eventbox = Gtk2::EventBox->new;
-# $eventbox->add(Gtk2::Image->new_from_stock('gtk-go-down', 'button'));
-# my $icon= Gtk2::TrayIcon->new('trayicon');
-# $icon->add($eventbox);
-# my $tooltip = Gtk2::Tooltips->new;
-# $tooltip->set_tip($icon, "SlimRat"); # ..is downloading $file
-# $eventbox->signal_connect('button_release_event', \&on_btnHide1_clicked);
-# $icon->show_all;
-
-
-#Glib::Timeout->add(1000*60*2, sub {&check;}); #(?)
-
-#my $mainwinvisible = 1;
 Gtk2->main;
+
+
 
 
 #######################
@@ -107,8 +94,8 @@ Gtk2->main;
 sub key_pressed {
 	my ($cmdbox, $event)=@_;
 	&on_btnRemove1_clicked if($event->keyval==65535); # Delete
-	&on_btnAdd1_clicked if($event->keyval==65293); # Enter
-	#print	$event->keyval;
+		&on_btnAdd1_clicked if($event->keyval==65293); # Enter
+#print	$event->keyval;
 }
 
 
@@ -123,17 +110,17 @@ sub quit {
 }
 sub saveque {
 	open (QUE, "> $quefile");
-	print QUE @{$_}[2]."\n" foreach @{$slist->{data}};
+	print QUE @{$_}[COL_LINK]."\n" foreach @{$slist->{data}};
 	close (QUE);
 }
 
-# show/hide
-#sub on_btnHide1_clicked{
-#	if($mainwinvisible) {$mainwinvisible--; $gui->get_widget('mainWindow')->hide();}
-#	else {$mainwinvisible++; $gui->get_widget('mainWindow')->show();}
-#}
+
+
+
+### toolbar buttons ###
 
 # add
+my ($addDialog, $addDialogBuff);
 sub on_btnAdd1_clicked {
 	my $gui = Gtk2::GladeXML->new($gladefile, 'addDialog');
 	$gui->signal_autoconnect_from_package('main');
@@ -152,6 +139,7 @@ sub on_addOkBtn_clicked {
 
 
 #remove
+my $confirmDialog;
 sub on_btnRemove1_clicked{
 	if(scalar $slist->get_selected_indices > 0){
 #confirm
@@ -209,47 +197,65 @@ sub on_btnEnd1_clicked{
 }
 
 
-# download to
-my $download_to=".";
-sub on_downto_selection_changed{
-	$download_to = shift->get_filename();
-}
-
-
 
 # DOWNLOAD
 # vol. xterm 
 sub on_btnStart1_clicked {
 	&saveque; 
-	system("xterm -T SlimRat -e \"".$INC[0]."/slimrat -l '$quefile' -t '$download_to'; bash\"&"); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
+	my $download_to = $gui->get_widget('downto')->get_filename();
+	my $command = "xterm -T SlimRat -e \"$root/slimrat -l '$quefile' -t '$download_to'; bash\"&"; 
+#print $command;
+	system($command); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
+# slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.
 	&quit;
 }
 
 
-# stop
-sub on_btnStop1_clicked{
-#confirm
-}
-
 
 sub on_btnCheck_clicked{
-	my $row;
-	my $rownum=0;
-	foreach $row (@{$slist->{data}}) {
-		my $link = @{$row}[2];
-		my $pluginname = Plugin::get_name($link);
-		my $check = eval $pluginname."::check('$link')";
-		my $ico;
-		if($check>0) { #live
-			$ico="gtk-yes";
-		} elsif($check<0) { # dead
-			$ico="gtk-no";
-			$slist->select($rownum);
-		} else { #?
-			$ico="gtk-dialog-question";
+# kontrola vybranych radku - oznaceny zustanou jen mrtve (chceme to? nechceme radsi zachovat vyber?)
+	if(scalar $slist->get_selected_indices > 0){
+		foreach my $rownum ($slist->get_selected_indices){
+			my $row = @{$slist->{data}}[$rownum];
+			my $link = @{$row}[COL_LINK];
+			my $pluginname = Plugin::get_name($link);
+			my $check = eval $pluginname."::check('$link')";
+			my $ico;
+			if($check>0) { #live
+				$ico="gtk-yes";
+				$slist->unselect($rownum);
+			} elsif($check<0) { # dead
+				$ico="gtk-no";
+				$slist->select($rownum);
+			} else { #?
+				$ico="gtk-dialog-question";
+				$slist->unselect($rownum);
+			}
+			$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
+			$rownum++;
 		}
-		$row->[0] = $slist->render_icon ($ico, 'menu');
-		$rownum++;
 	}
 
+
+
+# varianta kde se kontroluje vsechno bez ohledu na vyber a dead linky se potom vyberou
+# doplnit odvybrani vsecho
+#    my $row;
+#    my $rownum=0;
+#    foreach $row (@{$slist->{data}}) {
+#        my $link = @{$row}[2];
+#        my $pluginname = Plugin::get_name($link);
+#        my $check = eval $pluginname."::check('$link')";
+#        my $ico;
+#        if($check>0) { #live
+#            $ico="gtk-yes";
+#        } elsif($check<0) { # dead
+#            $ico="gtk-no";
+#            $slist->select($rownum);
+#        } else { #?
+#            $ico="gtk-dialog-question";
+#        }
+#        $row->[0] = $slist->render_icon ($ico, 'menu');
+#        $rownum++;
+#    }
 }

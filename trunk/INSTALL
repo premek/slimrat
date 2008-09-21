@@ -1,0 +1,29 @@
+celý adresář s programem a všemi jeho soubory někam nakopírujte/rozbalte
+třeba do někam /home/.../ nebo do /opt 
+a v $PATH vytvořte symlinky na spustitelné soubory slimrat a slimrat-gui.
+
+ln -s /kam/jsem/nakopiroval/slimrat/slimrat /usr/local/bin/slimrat
+ln -s /kam/jsem/nakopiroval/slimrat/slimrat-gui /usr/local/bin/slimrat-gui
+
+
+závislosti:
+	wget
+	perl
+
+Potřebné moduly perlu:
+	Getopt::Long
+	Gtk2::GladeXML
+	Gtk2::SimpleList
+	LWP::UserAgent
+	Term::ANSIColor
+	WWW::Mechanize
+
+v debianu (lenny) by možná mohlo stačit doinstalovat tyto balíčky:
+	libwww-mechanize-perl
+	libgtk2-gladexml-perl
+v ubuntu to asi bude stejně, jinde se to bude třeba jmenovat jinak
+FreeBSD (díky: http://www.abclinuxu.cz/lide/abr)
+	portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined # plus nově navíc WWW::Mechanize
+
+taky by to možná mohlo jít nainstalovat tímto:
+	perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';

@@ -24,6 +24,7 @@ sub download {
 	else {	
 		$_ = $mech->content();
 		if(m#slots for your country are busy#){print "All downloading slots for your country are busy.\n"; return 0;}
+		if(my($err) = m#<strong>(Attention! You used up your limit[^<]*)</strong>#){$err=~s/\s+/ /g; print "$err\n"; return 0;}
 		$re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
 		if(!m#$re#) {
 			$mech->form_number(2);
