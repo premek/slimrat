@@ -5,7 +5,10 @@ Loaded plugins: Rapidshare, YouTube, DepositFiles, Leteckaposta
 
 SlimRat 
 
-Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
+Downloads files from rapidshare and other servers to your working directory. 
+Files to download are specified by download links like 'http://rapidshare.com/files
+/012345678/somefile.xxx' as arguments on command line or one per line in file 
+given as --list option ('-' for stdin works too).
 
 USAGE:
    ./slimrat [options] [link [link [...]]]
