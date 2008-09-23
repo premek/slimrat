@@ -1,0 +1,16 @@
+#labels Featured
+=GUI=
+http://www.abclinuxu.cz/images/screenshots/0/4/122540-slimrat-podruhe-48535.png
+http://www.abclinuxu.cz/images/screenshots/1/5/122251-slimrat-rapidshare-downloader-54072.png
+
+
+=CLI=
+http://www.abclinuxu.cz/images/screenshots/1/5/122251-slimrat-rapidshare-downloader-54075.png
+{{{
+$ slimrat -c -l list.txt 
+Loaded plugins: Rapidshare, YouTube, DepositFiles, Leteckaposta
+[OK]    http://depositfiles.com/files/8110795 (DepositFiles)
+[DEAD]  http://depositfiles.com/files/811 (DepositFiles)
+[?]     http://leteckaposta.cz/185036736 (Leteckaposta)
+[OK]    http://rapidshare.com/files/146955194/screenshot-20080911_122625.png.html (Rapidshare)
+}}}
