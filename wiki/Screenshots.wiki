@@ -1,10 +1,10 @@
 #labels Featured
-=GUI=
+==GUI==
 http://www.abclinuxu.cz/images/screenshots/0/4/122540-slimrat-podruhe-48535.png
 http://www.abclinuxu.cz/images/screenshots/1/5/122251-slimrat-rapidshare-downloader-54072.png
 
 
-=CLI=
+==CLI==
 http://www.abclinuxu.cz/images/screenshots/1/5/122251-slimrat-rapidshare-downloader-54075.png
 {{{
 $ slimrat -c -l list.txt 
