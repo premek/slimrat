@@ -14,8 +14,9 @@ use Getopt::Long;
 use Term::ANSIColor qw(:constants);
 use Plugin;
 use warnings;
+use Data::Dumper;
 
-my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to);
+my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $unpack, @pass);
 
 sub usage { print "
 SlimRat 
@@ -30,18 +31,22 @@ OPTIONS:
    -l | --list   filename   load links from file (one per line)
    -c | --check             check links instead of downloading them
    -t | --to     directory  destination directory (where to download)
-   -u | --unpack			unpack downloaded archives (TODO - aunpack, password)
+   -u | --unpack            unpack downloaded archives
+   -p | --password          archive password
 	
 "; exit; }
 
-&usage if(scalar @ARGV==0);
 
 GetOptions (
 	"help!"		=> \&usage,
 	"check!"	=> \$check,
 	"list=s"	=> \$list,
 	"to=s"		=> \$download_to,
+	"unpack!"	=> \$unpack,
+	"pass=s@"	=> \@pass,
 	);
+
+&usage if(!scalar @ARGV && !$list); 
 
 if($list){ # load links from file
 	if(open (LIST, $list)){
@@ -80,13 +85,23 @@ sub check{
 	elsif($check<0) {print RED, "[DEAD]", RESET; $return++}
 	else {print "[?]";}
 	print "\t", YELLOW, $link, RESET, " (", $pluginname, ")\n";
+	return $check;
 }
 sub download{
 	$link = shift;
+
 	my $pluginname = Plugin::get_name($link);
 	print "\nDownloading '", YELLOW, $link, RESET, "' using '", YELLOW, $pluginname, RESET, "' plugin.\n";
+
+	print "Status: ";
+	if (check($link) < 0){
+		push @failedlinks, $link;
+		return;
+	}
 	if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
-		if(!system("wget ".($download_to?"-P '$download_to' ":"")."'$fileurl'")){ #success
+		my $command = "wget ".($download_to?"-P '$download_to' ":"")."'$fileurl'";
+		print $command;
+		if(!system($command)){ #success
 			print GREEN "OK", RESET, "\n\n";
 			push @oklinks, $link;
 		} else { # wget failed

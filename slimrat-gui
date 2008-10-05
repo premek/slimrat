@@ -20,6 +20,8 @@ use Gtk2::SimpleList;
 use File::Basename;
 use Plugin;
 
+use Data::Dumper;
+
 my $quefile = $ENV{HOME}.'/.slimrat';
 my ($root) = dirname($INC{'Plugin.pm'});
 my $gladefile = $root.'/slimrat.glade';
@@ -39,22 +41,23 @@ $gui->signal_autoconnect_from_package('main');
 
 use constant { # pořadí sloupečků
 	COL_STATUS	=> 0,
-#	COL_UNPACK	=> 1,
+	COL_PASS	=> 3,
 	COL_TYPE	=> 1,
 	COL_LINK	=> 2,
 };
 my $slist = Gtk2::SimpleList->new (
 		''			=> 'pixbuf',
-#		'U'		=> 'bool',
 		'Type'		=> 'text',
 		'Link'		=> 'text',
+		'Pass'		=> 'text',
 		);
 
 
 $slist->get_selection->set_mode ('multiple');
-$slist->get_column($_)->set_resizable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK);#, COL_UNPACK);
-$slist->get_column($_)->set_reorderable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK);#, COL_UNPACK);
-$slist->set_column_editable (COL_LINK, TRUE);
+$slist->get_column($_)->set_resizable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK, COL_PASS);
+$slist->get_column($_)->set_reorderable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK, COL_PASS);
+$slist->set_column_editable ($_, TRUE) foreach (COL_LINK, COL_PASS);
+
 $slist->set_search_column(COL_LINK);
 $slist->set_search_equal_func(sub # vyhledávání i podle shody uprostřed řetězce (ne jen na začátku)
 		{   my($store,$col,$pat,$iter)=@_;
@@ -197,15 +200,26 @@ sub on_btnEnd1_clicked{
 }
 
 
+# unpack - show/hide pass col
+sub on_unpack_toggled{
+	$slist->get_column(COL_PASS)->set_visible($gui->get_widget('unpack')->get_active());
+}
+
+
 
 # DOWNLOAD
 # vol. xterm 
 sub on_btnStart1_clicked {
 	&saveque; 
 	my $download_to = $gui->get_widget('downto')->get_filename();
-	my $command = "xterm -T SlimRat -e \"$root/slimrat -l '$quefile' -t '$download_to'; bash\"&"; 
-#print $command;
-	system($command); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
+	my $unpack = "";
+	if($gui->get_widget('unpack')->get_active()) { # unpack
+		$unpack = "-u";
+		@{$_}[COL_PASS] and $unpack.=" -p ".@{$_}[COL_PASS] foreach @{$slist->{data}};
+	}
+	my $command = "xterm -T SlimRat -e \"$root/slimrat -l '$quefile' -t '$download_to' $unpack; bash\"&"; 
+print $command;
+#system($command); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
 # slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.
 	&quit;
 }
