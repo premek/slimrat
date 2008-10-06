@@ -1,14 +1,35 @@
 #summary How to install & run slimrat
 #labels Featured,Phase-Deploy
 
-==Unix==
+=Unix=
+==Arch Linux==
+Slimrat is in AUR: http://aur.archlinux.org/packages.php?ID=20499
 
- * make sure you have `perl` and `wget` installed
- * needed perl modules:
-  * `Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize`
-  * *Debian/Ubuntu*: `aptitude install libwww-mechanize-perl libgtk2-gladexml-perl`
-  * *FreeBSD*: `portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize`
- * Unpack the archive somewhere
+==Other==
+If SlimRat is not in the repository of your distribution (and it isn't in repository of any distribution ;-) 
+
+===Needed sowtware:===
+ * `wget`
+ * `perl`
+ * perl modules:
+  * `Getopt::Long`
+  * `Gtk2::GladeXML` (only for GUI)
+  * `Gtk2::SimpleList` (only for GUI)
+  * `LWP::UserAgent`
+  * `Term::ANSIColor`
+  * `WWW::Mechanize`
+
+===Installation:===
+ * install perl modules:
+  * *Debian/Ubuntu*:
+{{{
+aptitude install libwww-mechanize-perl libgtk2-gladexml-perl
+}}}
+  * *FreeBSD*:
+{{{
+portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+}}}
+ * Download the archive and unpack it somewhere (svn code may not work)
  * Make symlinks in `$PATH`
 {{{
 ln -s /path/to/slimrat/slimrat /usr/local/bin/slimrat
@@ -17,6 +38,6 @@ ln -s /path/to/slimrat/slimrat-gui /usr/local/bin/slimrat-gui
  * Run `slimrat --help` (CLI)
  * Run `slimrat-gui` (GUI)
 
-==Windows==
+=Windows=
 
 _to be written_
