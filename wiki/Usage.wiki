@@ -40,5 +40,5 @@ Loaded plugins: Rapidshare, YouTube, DepositFiles, Leteckaposta
 $ echo $?
 1
 
-$ slimrat -c -l list.txt && $ slimrat -l list.txt 
+$ slimrat -c -l list.txt && slimrat -l list.txt 
 }}}
