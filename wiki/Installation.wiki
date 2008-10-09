@@ -6,9 +6,9 @@
 Slimrat is in AUR: http://aur.archlinux.org/packages.php?ID=20499
 
 ==Other==
-If SlimRat is not in the repository of your distribution (and it isn't in repository of any distribution ;-) 
+If slimrat is not in the repository of your distribution (and it isn't ;-) 
 
-===Needed sowtware:===
+===Needed software:===
  * `wget`
  * `perl`
  * perl modules:
