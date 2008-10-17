@@ -27,3 +27,5 @@ FreeBSD (díky: http://www.abclinuxu.cz/lide/abr)
 
 taky by to možná mohlo jít nainstalovat tímto:
 	perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
+sudo perl -MCPAN -e install Clipboard
+sudo aptitude install xclip

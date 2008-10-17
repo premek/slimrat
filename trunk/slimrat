@@ -100,7 +100,7 @@ sub download{
 	}
 	if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
 		my $command = "wget ".($download_to?"-P '$download_to' ":"")."'$fileurl'";
-		print $command;
+#print $command;
 		if(!system($command)){ #success
 			print GREEN "OK", RESET, "\n\n";
 			push @oklinks, $link;
@@ -114,6 +114,19 @@ sub download{
 	}
 }
 
+
+sub dwait{
+	my $wait = shift or return;
+	my ($sec,$min);
+	$|++;
+	print "Waiting $wait seconds.\n";
+	while ($wait--){
+		sleep 1;
+		($sec,$min) = localtime($wait);
+		printf "\r%02d:%02d ",$min,$sec;
+	}
+	print "\n\n";
+}
 
 
 exit($return);

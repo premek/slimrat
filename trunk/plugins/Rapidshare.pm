@@ -35,15 +35,14 @@ sub download {
 			if(m/reached the download limit for free-users/) {
 				(my $wait) = m/Or try again in about (\d+) minutes/sm;
 				print "Waiting $wait minutes before next download.\n";
-				sleep $wait*60;
+				main::dwait($wait*60);
 				$res = $mech->reload();
 				$_ = $res->decoded_content."\n"; 
 			}
 
 			if(m/already downloading a file/) {print RED "Already downloading a file\n\n"; return 0;}
 			($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
-
-			$wait and print "Waiting $wait seconds before downloading.\n\n" and sleep $wait;
+			main::dwait($wait);
 
 			return $download;
 		}
