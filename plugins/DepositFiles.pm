@@ -32,7 +32,8 @@ sub download {
 			$_ = $mech->content();
 			($wait) = m#show_url\((\d+)\)#;
 			print "Sleeping for $wait seconds\n";
-			sleep $wait;
+			main::dwait($wait);
+
 		}
 		($download) = m#$re#;
 		return $download;
