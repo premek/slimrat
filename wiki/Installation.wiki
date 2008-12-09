@@ -43,5 +43,21 @@ ln -s /path/to/slimrat/slimrat-gui /usr/local/bin/slimrat-gui
  * Run `slimrat-gui` (GUI)
 
 =Windows=
+(No gui)
 
-_to be written_
+ * Install [http://strawberryperl.com/ perl]
+ * Download [http://www.christopherlewis.com/WGet/WGetFiles.htm wget]
+ * Download & unpack slimrat archive
+ * Unpack wget.zip to the slimrat folder
+ * Edit the 'slimrat' perl script - replace 'wget' with 'wget.exe'
+ * Install CPAN modules
+{{{
+perl -MCPAN -e "install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize"
+}}} 
+ * Create 'slimrat.bat' file:
+{{{
+perl slimrat -l slimrat-download-list.txt
+}}}
+ * Create 'slimrat-download-list.txt' text file, paste links into this file and run slimrat.bat
+
+Thanks to abr
