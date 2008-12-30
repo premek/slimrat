@@ -65,3 +65,8 @@ perl slimrat -l slimrat-download-list.txt
  * Create 'slimrat-download-list.txt' text file, paste links into this file and run slimrat.bat
 
 Thanks to abr
+
+= Other = 
+Is your platform not listed (or is this info wrong)? Do you run SlimRat on something whats not here? Please tell me how you did it. Send me howto or something.
+
+thanks very much!
