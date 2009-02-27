@@ -23,6 +23,8 @@ If slimrat is not in the repository of your distribution (and it isn't ;-)
   * `LWP::UserAgent`
   * `Term::ANSIColor`
   * `WWW::Mechanize`
+   * `HTTP::Response::Encoding` (newer versions of `WWW::Mechanize` depends on this)
+
 
 ===Installation:===
  * install perl modules:
