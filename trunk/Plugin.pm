@@ -6,18 +6,21 @@ package Plugin;
 use Exporter;
 @ISA=qw(Exporter);
 @EXPORT=qw();
+
+use strict;
+use warnings;
 use File::Basename;
 my ($root) = dirname($INC{'Plugin.pm'});
 
 
 my %plugins;
 sub register {
-	($name,$re) = @_;
+	my ($name,$re) = @_;
 	$plugins{$re}=$name;
 }
 sub get_name {
 	(my $link) = @_;
-	foreach $re (keys %plugins){
+	foreach my $re (keys %plugins){
 		if($link =~ m#$re#i){
 			return $plugins{$re};
 		}
