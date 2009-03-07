@@ -2,21 +2,26 @@
 #
 # SlimRat 
 # v0.9.1 (2008-09-20)
-# Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
+# Přemek Vyhnal <premysl.vyhnal gmail com> 2009 
 # public domain
 #
+# Thanks:
+# hasant.di.kampung.edan - wget options
+#
 
- use FindBin qw($RealBin);
- use lib $RealBin;
 
-use strict;
+use FindBin qw($RealBin);
+use lib $RealBin;
+
 use Getopt::Long;
 use Term::ANSIColor qw(:constants);
 use Plugin;
+use Toolbox;
+use strict;
 use warnings;
 use Data::Dumper;
 
-my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $unpack, @pass);
+my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $wget_opts, $unpack, @pass);
 
 sub usage { print "
 SlimRat 
@@ -24,27 +29,30 @@ SlimRat
 Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
 
 USAGE:
-   $0 [options] [link [link [...]]]
-
+  $0 [options] [link [link [...]]]
+		
 OPTIONS:
-   -h | --help              this help
-   -l | --list   filename   load links from file (one per line)
-   -c | --check             check links instead of downloading them
-   -t | --to     directory  destination directory (where to download)
-   -u | --unpack            unpack downloaded archives
-   -p | --password          archive password
-	
+  -h | --help              this help
+  -l | --list   filename   load links from file (one per line)
+  -c | --check             only check links, don't download them
+  -t | --to     directory  destination directory (where to download)
+  -w | --wget              wget options, enclosed in quotes
+                           slimrat -w '--limit-rate=20k' -l file-list
 "; exit; }
 
+#  -u | --unpack            unpack downloaded archives
+#  -p | --password          archive password
 
-GetOptions (
-	"help!"		=> \&usage,
-	"check!"	=> \$check,
-	"list=s"	=> \$list,
-	"to=s"		=> \$download_to,
-	"unpack!"	=> \$unpack,
-	"pass=s@"	=> \@pass,
-	);
+
+	GetOptions (
+			"help!"		=> \&usage,
+			"check!"	=> \$check,
+			"list=s"	=> \$list,
+			"to=s"		=> \$download_to,
+			"wget=s"    => \$wget_opts,
+			"unpack!"	=> \$unpack,
+			"pass=s@"	=> \@pass,
+			);
 
 &usage if(!scalar @ARGV && !$list); 
 
@@ -61,9 +69,26 @@ push @links, $link while($link = shift); # read links from command line
 
 my $return = 0; # navratova hodnota
 
-if($check){ check($_) foreach @links;}
-else {
+print &ptime."Slimrat started\n";
+
+if($check){
+	foreach $link (@links) {
+		check($link);
+		print YELLOW, $link, RESET, " (", Plugin::get_name($link), ")\n";
+	}
+} else {
+	$SIG{'INT'} = 'quit';
 	download($_) foreach @links;
+	&quit;
+}
+
+print &ptime."\nSlimrat finished\n";
+
+
+
+
+
+sub quit {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
 		print $_,"\n" foreach @oklinks;
@@ -76,56 +101,48 @@ else {
 }
 
 
+
 sub check{
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
 	my $check = eval $pluginname."::check('$link')";
 	$check ||=0;
-	if($check>0) {print GREEN, "[OK]", RESET;}
-	elsif($check<0) {print RED, "[DEAD]", RESET; $return++}
-	else {print "[?]";}
-	print "\t", YELLOW, $link, RESET, " (", $pluginname, ")\n";
+	if($check>0) {print GREEN,  "[ALIVE] ", RESET;}
+	elsif($check<0) {print RED, "[DEAD]  ", RESET; $return++}
+	else {print GREEN, "[?]     ";}
 	return $check;
 }
+
 sub download{
 	$link = shift;
 
 	my $pluginname = Plugin::get_name($link);
-	print "\nDownloading '", YELLOW, $link, RESET, "' using '", YELLOW, $pluginname, RESET, "' plugin.\n";
+	print &ptime."Downloading ", YELLOW, $link, RESET, " ($pluginname) ";
 
-	print "Status: ";
 	if (check($link) < 0){
 		push @failedlinks, $link;
+		print RED "\n".&ptime."Download failed (dead link)\n";
 		return;
 	}
-	if(my $fileurl = eval $pluginname."::download('$link')"){ # rename download to get_link????
-		my $command = "wget ".($download_to?"-P '$download_to' ":"")."'$fileurl'";
-#print $command;
+	print "\n";
+	if((my $fileurl) = eval $pluginname."::download('$link')"){ # rename download to get_link????
+		my $command = 'wget ' .
+			"-U '$useragent' ".
+			($wget_opts ? qq($wget_opts ) : '') .
+			($download_to? " -P '$download_to' " : "") .
+			" '$fileurl'";
+
 		if(!system($command)){ #success
-			print GREEN "OK", RESET, "\n\n";
+			print GREEN &ptime."File downloaded", RESET, "\n\n";
 			push @oklinks, $link;
 		} else { # wget failed
-			print RED "Download failed\n\n";
+			print RED &ptime."Download failed\n\n";
 			push @failedlinks, $link;
 		}
 	} else { # get fileurl failed
-		print RED "Plugin failed\n\n";
+		print RED &ptime."Plugin failed\n\n";
 		push @failedlinks, $link;
 	}
-}
-
-
-sub dwait{
-	my $wait = shift or return;
-	my ($sec,$min);
-	$|++;
-	print "Waiting $wait seconds.\n";
-	while ($wait--){
-		sleep 1;
-		($sec,$min) = localtime($wait);
-		printf "\r%02d:%02d ",$min,$sec;
-	}
-	print "\n\n";
 }
 
 

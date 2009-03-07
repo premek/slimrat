@@ -1,12 +1,17 @@
 # SlimRat 
-# Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
+# Přemek Vyhnal <premysl.vyhnal gmail com> 2009 
 # public domain
 
 package Rapidshare;
+use Toolbox;
+
 use Term::ANSIColor qw(:constants);
 $Term::ANSIColor::AUTORESET = 1;
 use WWW::Mechanize;
-my $mech = WWW::Mechanize->new(agent => 'SlimRat' ); ##############
+use strict;
+use warnings;
+
+my $mech = WWW::Mechanize->new('agent'=>$useragent);
 
 # return
 #   1: ok
@@ -23,30 +28,50 @@ sub check {
 sub download {
 	my $file = shift;
 
-	$res = $mech->get($file);
+	my $res = $mech->get($file);
 	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
-	else {
-		$mech->form_number(1); # free (premium=2)
-		$res = $mech->submit_form();
-		if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
-		else {
+
+	$mech->form_number(1); # free;
+	$res = $mech->submit_form();
+	if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
+
+	$_ = $res->decoded_content."\n"; 
+	my $ok = 0;
+	while(!$ok){
+		my $wait;
+
+		if(m/reached the download limit for free-users/) {
+			$ok=0;
+			($wait) = m/Or try again in about (\d+) minutes/sm; # somebody said we don't have to wait that much (??);
+			print CYAN &ptime."Reached the download limit for free-users\n";
+			dwait($wait*60);
+			$res = $mech->reload();
 			$_ = $res->decoded_content."\n"; 
-
-			if(m/reached the download limit for free-users/) {
-				(my $wait) = m/Or try again in about (\d+) minutes/sm;
-				print "Waiting $wait minutes before next download.\n";
-				main::dwait($wait*60);
-				$res = $mech->reload();
-				$_ = $res->decoded_content."\n"; 
-			}
-
-			if(m/already downloading a file/) {print RED "Already downloading a file\n\n"; return 0;}
-			($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
-			main::dwait($wait);
-
-			return $download;
+		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+			$ok=0;
+			print CYAN &ptime."Currently a lot of users are downloading files\n";
+			dwait($wait*60);
+			$res = $mech->reload();
+			$_ = $res->decoded_content."\n"; 
+		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+			$ok=0;
+			print CYAN &ptime."No available slots for free users\n";
+			dwait($wait*60);
+			$res = $mech->reload();
+			$_ = $res->decoded_content."\n"; 
+		} elsif(m/already downloading a file/) {
+			$ok=0;
+			print CYAN &ptime."Already downloading a file\n"; 
+			dwait(60);
+		} else {
+			$ok=1;
 		}
 	}
+
+	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
+	dwait($wait);
+
+	return $download;
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?rapidshare.com");
+Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?rapidshare.com");

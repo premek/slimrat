@@ -1,3 +1,33 @@
+SlimRat installation
+***********************
+
+Actual and better instructions: http://code.google.com/p/slimrat/wiki/Installation
+
+
+EN
+----
+Unpack the archive somewhere, and make symlinks in $PATH. For example
+	ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
+	ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
+Install dependencies:
+	wget
+	perl
+and needed perl modules:
+	Getopt::Long
+	LWP::UserAgent
+	Term::ANSIColor
+	WWW::Mechanize
+	Gtk2::GladeXML (gui)
+	Gtk2::SimpleList (gui)
+
+
+	perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
+
+
+
+CS
+----
+
 celý adresář s programem a všemi jeho soubory někam nakopírujte/rozbalte
 třeba do někam /home/.../ nebo do /opt 
 a v $PATH vytvořte symlinky na spustitelné soubory slimrat a slimrat-gui.
@@ -17,8 +47,9 @@ Potřebné moduly perlu:
 	LWP::UserAgent
 	Term::ANSIColor
 	WWW::Mechanize
+	
 
-v debianu (lenny) by možná mohlo stačit doinstalovat tyto balíčky:
+v debianu by mělo stačit doinstalovat tyto balíčky:
 	libwww-mechanize-perl
 	libgtk2-gladexml-perl
 v ubuntu to asi bude stejně, jinde se to bude třeba jmenovat jinak
@@ -27,5 +58,4 @@ FreeBSD (díky: http://www.abclinuxu.cz/lide/abr)
 
 taky by to možná mohlo jít nainstalovat tímto:
 	perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
-sudo perl -MCPAN -e install Clipboard
-sudo aptitude install xclip
+

@@ -3,10 +3,9 @@
 # SlimRat
 # v0.9.1 (2008-09-20)
 # GTK GUI
-# Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
+# Přemek Vyhnal <premysl.vyhnal gmail com> 2009 
 # public domain
 #
-
 
 use FindBin qw($RealBin);
 use lib $RealBin;
@@ -19,12 +18,13 @@ use Glib qw(TRUE FALSE);
 use Gtk2::SimpleList;
 use File::Basename;
 use Plugin;
+use Toolbox;
 
 use Data::Dumper;
 
+
 my $quefile = $ENV{HOME}.'/.slimrat';
-my ($root) = dirname($INC{'Plugin.pm'});
-my $gladefile = $root.'/slimrat.glade';
+my $gladefile = $RealBin.'/slimrat.glade';
 
 $SIG{'INT'} = 'quit';
 
@@ -39,11 +39,11 @@ $gui->signal_autoconnect_from_package('main');
 
 # treeview
 
-use constant { # pořadí sloupečků
+use constant { # pořadí sloupečků;
 	COL_STATUS	=> 0,
-	COL_PASS	=> 3,
-	COL_TYPE	=> 1,
-	COL_LINK	=> 2,
+				COL_PASS	=> 3,
+				COL_TYPE	=> 1,
+				COL_LINK	=> 2,
 };
 my $slist = Gtk2::SimpleList->new (
 		''			=> 'pixbuf',
@@ -51,6 +51,7 @@ my $slist = Gtk2::SimpleList->new (
 		'Link'		=> 'text',
 		'Pass'		=> 'text',
 		);
+$slist->get_column(COL_PASS)->set_visible(0); ## pak dat pryc;
 
 
 $slist->get_selection->set_mode ('multiple');
@@ -83,6 +84,9 @@ while (<QUE>){
 }
 close (QUE);
 
+# config
+our ($gui_xterm);
+do "config";
 
 
 Gtk2->main;
@@ -208,7 +212,6 @@ sub on_unpack_toggled{
 
 
 # DOWNLOAD
-# vol. xterm 
 sub on_btnStart1_clicked {
 	&saveque; 
 	my $download_to = $gui->get_widget('downto')->get_filename();
@@ -217,16 +220,19 @@ sub on_btnStart1_clicked {
 		$unpack = "-u";
 		@{$_}[COL_PASS] and $unpack.=" -p ".@{$_}[COL_PASS] foreach @{$slist->{data}};
 	}
-	my $command = "xterm -T SlimRat -e \"$root/slimrat -l '$quefile' -t '$download_to' $unpack; bash\"&"; 
-print $command;
-#system($command); # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam
-# slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.
+	my $command = sprintf $gui_xterm, "$RealBin/slimrat -l '$quefile' -t '$download_to' $unpack";
+	print $command;
+	system($command); 
+# spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam;
+# slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.;
 	&quit;
 }
 
 
 
-sub on_btnCheck_clicked{
+
+sub on_btnCheck_clicked {
+
 # kontrola vybranych radku - oznaceny zustanou jen mrtve (chceme to? nechceme radsi zachovat vyber?)
 	if(scalar $slist->get_selected_indices > 0){
 		foreach my $rownum ($slist->get_selected_indices){
