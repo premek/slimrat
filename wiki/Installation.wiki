@@ -15,7 +15,7 @@ If slimrat is not in the repository of your distribution (and it isn't ;-)
 ===Needed software:===
  * `wget`
  * `perl`
- * `xterm` (terminal emulator started from GUI - not needed for CLI version)
+ * `xterm` or any other (gnome-terminal for example), It is started from GUI - not needed for CLI version.
  * perl modules:
   * `Getopt::Long`
   * `Gtk2::GladeXML` (only for GUI)
@@ -45,6 +45,7 @@ portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolki
 ln -s /path/to/slimrat/slimrat /usr/local/bin/slimrat
 ln -s /path/to/slimrat/slimrat-gui /usr/local/bin/slimrat-gui
 }}}	
+ * edit `config` file and select your terminal emulator
  * Run `slimrat --help` (CLI)
  * Run `slimrat-gui` (GUI)
 
