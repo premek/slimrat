@@ -54,3 +54,9 @@ $ echo $?
 1
 
 }}}
+
+==GUI hotkeys==
+|| Ctrl-V || Insert links from clipboard||
+|| Insert || Add links dialog ||
+|| Ctrl-Enter || OK in "add links dialog" ||
+|| .. || ? ||
