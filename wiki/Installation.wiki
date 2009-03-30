@@ -28,6 +28,7 @@ For GUI (not needed for CLI):
  * perl modules:
   * `Gtk2::GladeXML`
   * `Gtk2::SimpleList`
+  * `Spiffy`
  
 
 ===Installation:===
@@ -35,16 +36,17 @@ For GUI (not needed for CLI):
   * *Debian/Ubuntu*:
 {{{
 aptitude install libwww-mechanize-perl
-aptitude install libgtk2-gladexml-perl xclip # for GUI
+aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # for GUI
 }}}
   * *Fedora* (package names):
    * perl-WWW-Mechanize
    * perl-Gtk2-GladeXML (GUI)
    * xclip ? (GUI)
+   * perl-Spiffy ? (GUI)
   * *FreeBSD*:
 {{{
 portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
-# + xclip
+# + xclip, Spiffy
 }}}
  * Download the archive and unpack it somewhere (svn code may not work)
  * Make symlinks in `$PATH`
