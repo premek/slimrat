@@ -22,7 +22,14 @@ use warnings;
 use Data::Dumper;
 use POSIX 'setsid';
 
+
+# config
+our ($ccf, $ccs, $ccg);
+do $RealBin."/config";
+
+
 my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $unpack, @pass, $daemon);
+
 
 sub usage { print "
 SlimRat 
@@ -105,7 +112,6 @@ if($check){
 	foreach $link (@links) {
 		if (download($link)) {
 			push @oklinks, $link;
-			# after-one-download command from config file
 			
 			# update file: comment out link
 			if ($list){
@@ -121,11 +127,21 @@ if($check){
 					rename("$list.temp", $list);
 				}
 			}
+
+			# custom command on successful download
+			system($ccs);
+
 		} else {
 			push @failedlinks, $link;
+
+			# custom command on failed download
+			system($ccf);
 		}
 	}
-	# after-all-downloads command from config file
+
+	# custom command after all downloads
+	system($ccg);
+
 	&quit;
 }
 
