@@ -20,8 +20,9 @@ use Toolbox;
 use strict;
 use warnings;
 use Data::Dumper;
+use POSIX 'setsid';
 
-my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $wget_opts, $unpack, @pass);
+my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $wget_opts, $unpack, @pass, $daemon);
 
 sub usage { print "
 SlimRat 
@@ -33,6 +34,7 @@ USAGE:
 		
 OPTIONS:
   -h | --help              this help
+  -d | --daemon            start as a daemon
   -l | --list   filename   load links from file (one per line)
   -c | --check             only check links, don't download them
   -t | --to     directory  destination directory (where to download)
@@ -49,9 +51,10 @@ OPTIONS:
 			"check!"	=> \$check,
 			"list=s"	=> \$list,
 			"to=s"		=> \$download_to,
-			"wget=s"    => \$wget_opts,
+			"wget=s"    	=> \$wget_opts,
 			"unpack!"	=> \$unpack,
 			"pass=s@"	=> \@pass,
+			"daemon!"	=> \$daemon,
 			);
 
 &usage if(!scalar @ARGV && !$list); 
@@ -68,6 +71,18 @@ push @links, $link while($link = shift); # read links from command line
 
 
 my $return = 0; # navratova hodnota
+
+if ($daemon){
+	print &ptime."Becoming a daemon\n";
+	daemonize();
+	print "\n\n";
+	$wget_opts .= " -q";	# avoid log file spam
+	$wget_opts .= " -c";	# make wget continue if file exists
+				# this is a temporary fix, because when slimrat receives a sig{int}
+				# when downloading, wget will continue to download the file without
+				# updating the urls-file. this can cause a file in the list to be
+				# already downloaded, and to avoid wget redownload it we use this -c flag
+}
 
 print &ptime."Slimrat started\n";
 
@@ -121,7 +136,11 @@ sub quit {
 		print RED, "\nFAILED:\n", RESET;
 		print $_,"\n" foreach @failedlinks;
 	}
-	exit;
+	
+	# todo: kill any active wget instance
+	
+	# hard exit, for when &quit gets called out of sig{int}
+	exit(0);
 }
 
 
@@ -168,5 +187,17 @@ sub download{
 	}
 }
 
+sub daemonize{
+	chdir '/' or die "Can't chdir to /: $!";
+	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
+	if (! open STDOUT, '>>/var/log/slimrat.log'){ 
+		print YELLOW &ptime."Could not redirect output to /var/log/slimrat.log, silencing slimrat.\n";
+		open STDOUT, '>>/dev/null';
+	}
+	defined(my $pid = fork) or die "Can't fork: $!";
+	exit if $pid;
+	setsid or die "Can't start a new session: $!";
+	open STDERR, '>&STDOUT' or die "Can't dup stdout: $!";
+}
 
 exit($return);
