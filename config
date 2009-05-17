@@ -11,7 +11,25 @@
 # konsole
 # $gui_xterm = 'konsole --noclose -e %1$s;';
 # $gui_xterm = 'konsole --noclose -p ShowMenuBar=false -p TabBarMode=0 -e %1$s;';
+# $gui_xterm = 'konsole --noclose -p TabTitle=SlimRat -e %1$s;';
+# $gui_xterm = 'konsole --noclose -p TabTitle=SlimRat -p ShowMenuBar=false -p TabBarMode=0 -e %1$s;';
+ 
+
+
 
 # xterm
 $gui_xterm = 'xterm -T SlimRat -e "%1$s; bash"&';
+
+
+ 
+# custom commands - use with caution!!!
+
+# after successful download
+$ccs = '';
+
+# after failed download
+$ccf = '';
+
+# after all downloads are complete 
+$ccg = '';
 
