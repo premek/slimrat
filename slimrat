@@ -58,7 +58,7 @@ OPTIONS:
 
 if($list){ # load links from file
 	if(open (LIST, $list)){
-		m/^\s*(\S+)\s*/ and push @links, $1 while(<LIST>);
+		!m/^#/ and m/^\s*(\S+)\s*/ and push @links, $1 while(<LIST>);	# ignore comments
 		close LIST;
 	} else {warn "Can't open '$list'\n";}
 }
