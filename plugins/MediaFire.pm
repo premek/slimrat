@@ -18,7 +18,7 @@ sub check {
 	$mech->get($file);
 	$_ = $mech->content();
 	return 1 if(m#break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu#);
-	return -1;
+#return -1;
 }
 
 sub download {

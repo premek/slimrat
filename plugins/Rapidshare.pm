@@ -35,30 +35,28 @@ sub download {
 	$res = $mech->submit_form();
 	if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
 
-	$_ = $res->decoded_content."\n"; 
+#$_ = $res->decoded_content."\n"; 
 	my $ok = 0;
 	while(!$ok){
 		my $wait;
+
+		$res = $mech->reload();
+		$_ = $res->decoded_content."\n"; 
 
 		if(m/reached the download limit for free-users/) {
 			$ok=0;
 			($wait) = m/Or try again in about (\d+) minutes/sm; # somebody said we don't have to wait that much (??);
 			print CYAN &ptime."Reached the download limit for free-users\n";
 			dwait($wait*60);
-			$res = $mech->reload();
-			$_ = $res->decoded_content."\n"; 
+
 		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
 			$ok=0;
 			print CYAN &ptime."Currently a lot of users are downloading files\n";
 			dwait($wait*60);
-			$res = $mech->reload();
-			$_ = $res->decoded_content."\n"; 
 		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
 			$ok=0;
 			print CYAN &ptime."No available slots for free users\n";
 			dwait($wait*60);
-			$res = $mech->reload();
-			$_ = $res->decoded_content."\n"; 
 		} elsif(m/already downloading a file/) {
 			$ok=0;
 			print CYAN &ptime."Already downloading a file\n"; 

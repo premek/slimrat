@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
 # SlimRat
-# v0.9.1 (2008-09-20)
+# v0.9.4 (2009-03-23) Nhung
 # GTK GUI
 # Přemek Vyhnal <premysl.vyhnal gmail com> 2009 
 # public domain
@@ -19,6 +19,7 @@ use Gtk2::SimpleList;
 use File::Basename;
 use Plugin;
 use Toolbox;
+use Clipboard;
 
 use Data::Dumper;
 
@@ -65,10 +66,10 @@ $slist->set_search_equal_func(sub # vyhledávání i podle shody uprostřed řet
 		return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # ošetřit!
 		return $store->get($iter,$col)!~m/$pat/i;
 		});
-$slist->signal_connect("key-press-event", \&key_pressed);
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
 #$gui->get_widget('statusbar')->push(0,"AAAA");
+
 
 
 
@@ -98,12 +99,33 @@ Gtk2->main;
 
 
 # key 
-sub key_pressed {
+use constant KEY_CTRL	=> 65507;
+use constant KEY_v		=> 118;
+use constant KEY_V		=> 86;
+use constant KEY_DELETE	=> 65535;
+use constant KEY_INSERT	=> 65379;
+use constant KEY_ENTER	=> 65293;
+
+my $ctrl;
+sub key_press {
 	my ($cmdbox, $event)=@_;
-	&on_btnRemove1_clicked if($event->keyval==65535); # Delete
-		&on_btnAdd1_clicked if($event->keyval==65293); # Enter
-#print	$event->keyval;
+	if($event->keyval==KEY_CTRL){$ctrl = 1;}
+	elsif($ctrl && ($event->keyval==KEY_v || $event->keyval==KEY_V)){&on_btnAddClip_clicked;}
+	elsif($event->keyval==KEY_DELETE){&on_btnRemove1_clicked;}
+	elsif($event->keyval==KEY_INSERT){&on_btnAdd1_clicked;}
+#	print	$event->keyval."\n";
 }
+sub key_release {
+	my ($cmdbox, $event)=@_;
+	if($event->keyval==KEY_CTRL) {$ctrl = 0;}
+}
+sub on_addDialog_key_press_event {
+	my ($cmdbox, $event)=@_;
+	if($event->keyval==KEY_CTRL){$ctrl = 1;}
+	&on_addOkBtn_clicked if($ctrl && $event->keyval==KEY_ENTER);
+}
+sub on_addDialog_key_release_event {goto &key_release;}
+
 
 
 # quit
@@ -140,10 +162,21 @@ sub on_addCancelBtn_clicked {
 }
 # add ok
 sub on_addOkBtn_clicked {
-	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_] foreach split /\s+/, $addDialogBuff->get_text($addDialogBuff->get_start_iter, $addDialogBuff->get_end_iter, FALSE); # TODO mezery na začátku
-		$addDialog->destroy();	
+	links_parse_add($addDialogBuff->get_text($addDialogBuff->get_start_iter, $addDialogBuff->get_end_iter, FALSE));
+	$addDialog->destroy();	
 }
 
+# add from clipboard
+sub on_btnAddClip_clicked {
+	links_parse_add(Clipboard->paste);
+}
+
+# parse links from text input or clipboard and add them
+sub links_parse_add {
+	my $links = shift;
+	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_] foreach split /\s+/, $links; # TODO mezery na začátku;
+
+}
 
 #remove
 my $confirmDialog;
@@ -221,7 +254,7 @@ sub on_btnStart1_clicked {
 		@{$_}[COL_PASS] and $unpack.=" -p ".@{$_}[COL_PASS] foreach @{$slist->{data}};
 	}
 	my $command = sprintf $gui_xterm, "$RealBin/slimrat -l '$quefile' -t '$download_to' $unpack";
-	print $command;
+#print $command;
 	system($command); 
 # spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam;
 # slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.;
