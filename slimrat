@@ -169,10 +169,10 @@ sub download{
 	print "\n";
 	if((my $fileurl) = eval $pluginname."::download('$link')"){ # rename download to get_link????
 		my $command = 'wget ' .
-			"-U '$useragent' ".
+			"-U \"$useragent\" ".
 			($wget_opts ? qq($wget_opts ) : '') .
-			($download_to? " -P '$download_to' " : "") .
-			" '$fileurl'";
+			($download_to? " -P \"$download_to\" " : "") .
+			" \"$fileurl\"";
 
 		if(!system($command)){ #success
 			print GREEN &ptime."File downloaded", RESET, "\n\n";
