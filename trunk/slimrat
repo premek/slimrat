@@ -82,6 +82,21 @@ if($check){
 		if (download($link)) {
 			push @oklinks, $link;
 			# after-one-download command from config file
+			
+			# update file: comment out link
+			if ($list){
+				if(open (LIST, $list)){
+					open (LIST2, ">$list.temp");
+					while(<LIST>){
+						m/$link/ and print LIST2 "# DONE: ";
+						print LIST2 $_;
+					}
+					close LIST;
+					close LIST2;
+					unlink $list;
+					rename("$list.temp", $list);
+				}
+			}
 		} else {
 			push @failedlinks, $link;
 		}
