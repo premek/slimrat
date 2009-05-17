@@ -87,7 +87,7 @@ close (QUE);
 
 # config
 our ($gui_xterm);
-do "config";
+do $RealBin."/config";
 
 
 Gtk2->main;
