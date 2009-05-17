@@ -11,6 +11,9 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
+# Maximum wait interval (in minutes)
+my $wait_max = 2;
+
 my $mech = WWW::Mechanize->new('agent'=>$useragent);
 
 # return
@@ -28,42 +31,42 @@ sub check {
 sub download {
 	my $file = shift;
 
+	# Get the primary page
 	my $res = $mech->get($file);
 	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
-
-	$mech->form_number(1); # free;
+	
+	# Click the "Free" button
+	$mech->form_number(1);
 	$res = $mech->submit_form();
 	if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
-
-#$_ = $res->decoded_content."\n"; 
-	my $ok = 0;
-	while(!$ok){
+	
+	# Process the resulting page
+	while(1) {
 		my $wait;
-
-		$res = $mech->reload();
 		$_ = $res->decoded_content."\n"; 
 
 		if(m/reached the download limit for free-users/) {
-			$ok=0;
-			($wait) = m/Or try again in about (\d+) minutes/sm; # somebody said we don't have to wait that much (??);
+			($wait) = m/Or try again in about (\d+) minutes/sm;
 			print CYAN &ptime."Reached the download limit for free-users\n";
-			dwait($wait*60);
-
+			
 		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			$ok=0;
 			print CYAN &ptime."Currently a lot of users are downloading files\n";
-			dwait($wait*60);
 		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			$ok=0;
 			print CYAN &ptime."No available slots for free users\n";
-			dwait($wait*60);
+
 		} elsif(m/already downloading a file/) {
-			$ok=0;
 			print CYAN &ptime."Already downloading a file\n"; 
-			dwait(60);
+			$wait = 60;
 		} else {
-			$ok=1;
+			last;
 		}
+		
+		if ($wait > $wait_max) {
+			print &ptime."Should wait $wait minutes, interval-check in $wait_max minutes\n";
+			$wait = $wait_max;
+		}
+		dwait($wait*60);
+		$res = $mech->reload();
 	}
 
 	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
