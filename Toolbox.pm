@@ -19,13 +19,7 @@ sub dwait{
 	$|++; # unbuffered output;
 	($sec,$min) = localtime($wait);
 	printf(&ptime."Waiting %02d:%02d\n",$min,$sec);
-	while ($rem){
-		($sec,$min) = localtime($rem);
-		printf "\r%02d:%02d remaining ",$min,$sec;
-		sleep 1;
-		$rem--;
-	}
-	print "\r".&ptime."Continuing\n";
+	sleep ($rem);
 }
 
 sub ptime {
