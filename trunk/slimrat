@@ -77,12 +77,20 @@ if($check){
 		print YELLOW, $link, RESET, " (", Plugin::get_name($link), ")\n";
 	}
 } else {
-	$SIG{'INT'} = 'quit';
-	download($_) foreach @links;
+ #	$SIG{'INT'} = 'quit';
+	foreach $link (@links) {
+		if (download($link)) {
+			push @oklinks, $link;
+			# after-one-download command from config file
+		} else {
+			push @failedlinks, $link;
+		}
+	}
+	# after-all-downloads command from config file
 	&quit;
 }
 
-print &ptime."\nSlimrat finished\n";
+print "\n".&ptime."Slimrat finished\n";
 
 
 
@@ -98,6 +106,7 @@ sub quit {
 		print RED, "\nFAILED:\n", RESET;
 		print $_,"\n" foreach @failedlinks;
 	}
+	exit;
 }
 
 
@@ -109,7 +118,7 @@ sub check{
 	$check ||=0;
 	if($check>0) {print GREEN,  "[ALIVE] ", RESET;}
 	elsif($check<0) {print RED, "[DEAD]  ", RESET; $return++}
-	else {print GREEN, "[?]     ";}
+	else {print GREEN, "[?]     ", RESET;}
 	return $check;
 }
 
@@ -120,9 +129,8 @@ sub download{
 	print &ptime."Downloading ", YELLOW, $link, RESET, " ($pluginname) ";
 
 	if (check($link) < 0){
-		push @failedlinks, $link;
 		print RED "\n".&ptime."Download failed (dead link)\n";
-		return;
+		return 0;
 	}
 	print "\n";
 	if((my $fileurl) = eval $pluginname."::download('$link')"){ # rename download to get_link????
@@ -134,14 +142,14 @@ sub download{
 
 		if(!system($command)){ #success
 			print GREEN &ptime."File downloaded", RESET, "\n\n";
-			push @oklinks, $link;
+			return 1;
 		} else { # wget failed
 			print RED &ptime."Download failed\n\n";
-			push @failedlinks, $link;
+			return 0;
 		}
 	} else { # get fileurl failed
 		print RED &ptime."Plugin failed\n\n";
-		push @failedlinks, $link;
+		return 0;
 	}
 }
 

@@ -12,6 +12,7 @@ Unpack the archive somewhere, and make symlinks in $PATH. For example
 Install dependencies:
 	wget
 	perl
+	xclip (for GUI)
 and needed perl modules:
 	Getopt::Long
 	LWP::UserAgent
