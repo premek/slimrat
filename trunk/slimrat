@@ -192,7 +192,9 @@ sub download{
 		return 0;
 	}
 	print "\n";
-	if((my $fileurl) = eval $pluginname."::download('$link')"){ # rename download to get_link????
+
+	my $fileurl = eval $pluginname."::download('$link')";
+	if($fileurl){ 
 		my $command = 'wget ' .
 			"-U \"$useragent\" ".
 			($wget_opts ? qq($wget_opts ) : '') .
