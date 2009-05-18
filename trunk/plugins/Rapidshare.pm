@@ -21,11 +21,15 @@ my $mech = WWW::Mechanize->new('agent'=>$useragent);
 #  -1: dead
 #   0: don't know
 sub check {
-	my $file = shift;
-	$mech->get($file);
-	$_ = $mech->content();
-	return 1 if(m#form id="ff" action#);
-	return -1;
+	my $res = $mech->get(shift);
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/form id="ff" action/) {
+			return 1;
+		} else {
+			return -1;
+		}
+	}
+	return 0;
 }
 
 sub download {
