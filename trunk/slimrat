@@ -6,55 +6,39 @@
 # public domain
 #
 # hasant.di.kampung.edan - wget options
-# tim.besard
+# Tim Besard <tim.besard gmail com> 2009 
 #
 
 
+#
+# Configuration
+#
+
+# Packages
+use Getopt::Long;
+use Term::ANSIColor qw(:constants);
+use Data::Dumper;
+use POSIX 'setsid';
+
+# Find root for custom packages
 use FindBin qw($RealBin);
 use lib $RealBin;
 
-use Getopt::Long;
-use Term::ANSIColor qw(:constants);
+# Custom packages
 use Plugin;
 use Toolbox;
-use strict;
-use warnings;
-use Data::Dumper;
-use POSIX 'setsid';
 use Queue;
 
+# Write nicely
+use strict;
+use warnings;
 
-# config
+# Execute configuration
 our ($ccf, $ccs, $ccg);
 do $RealBin."/config";
 
-
+# Process command-line options
 my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $unpack, @pass, $daemon);
-
-
-sub usage { print "
-SlimRat 
-
-Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
-
-USAGE:
-  $0 [options] [link [link [...]]]
-		
-OPTIONS:
-  -h | --help              this help
-  -d | --daemon            start as a daemon
-  -l | --list   filename   load links from file (one per line)
-  -c | --check             only check links, don't download them
-  -t | --to     directory  destination directory (where to download)
-  -a | --address host|ip   bind to specified address for download
-  -w | --wget              wget options, enclosed in quotes
-                           slimrat -w '--limit-rate=20k' -l file-list
-"; exit; }
-
-#  -u | --unpack            unpack downloaded archives
-#  -p | --password          archive password
-
-
 GetOptions (
 		"help!"		=> \&usage,
 		"check!"	=> \$check,
@@ -65,8 +49,7 @@ GetOptions (
 		"unpack!"	=> \$unpack,
 		"pass=s@"	=> \@pass,
 		"daemon!"	=> \$daemon,
-		);
-
+);
 &usage if(!scalar @ARGV && !$list); 
 
 # Set socket local address if needed
@@ -81,10 +64,7 @@ my $queue = new Queue();
 $queue->file($list) if ($list);
 $queue->add($link) while ($link = shift);
 
-
-
-my $return = 0; # navratova hodnota
-
+# Fork in background
 if ($daemon){
 	print &ptime."Becoming a daemon\n";
 	daemonize();
@@ -98,6 +78,11 @@ if ($daemon){
 }
 
 print &ptime."Slimrat started\n";
+
+
+#
+# Main
+#
 
 # Check URL's
 if($check) {
@@ -151,8 +136,38 @@ else {
 	&quit;
 }
 
+
+#
+# Routines
+#
+
+# Print the usage
+sub usage {
+	print "
+SlimRat 
+
+Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
+
+USAGE:
+  $0 [options] [link [link [...]]]
+		
+OPTIONS:
+  -h | --help              this help
+  -d | --daemon            start as a daemon
+  -l | --list   filename   load links from file (one per line)
+  -c | --check             only check links, don't download them
+  -t | --to     directory  destination directory (where to download)
+  -a | --address host|ip   bind to specified address for download
+  -w | --wget              wget options, enclosed in quotes
+                           slimrat -w '--limit-rate=20k' -l file-list
+";
+#  -u | --unpack            unpack downloaded archives
+#  -p | --password          archive password
+	exit;
+}
+
 # Redirect check() call to the correct plugin
-sub check{
+sub check {
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
 	my $check = eval $pluginname."::check('$link')";
@@ -161,7 +176,7 @@ sub check{
 }
 
 # Redirect download() call to the correct plugin
-sub download{
+sub download {
 	$link = shift;
 
 	my $pluginname = Plugin::get_name($link);
@@ -207,7 +222,7 @@ sub quit {
 }
 
 # Fork into the background
-sub daemonize{
+sub daemonize {
 	chdir '/' or die "Can't chdir to /: $!";
 	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
 	if (! open STDOUT, '>>/var/log/slimrat.log'){ 
@@ -220,4 +235,6 @@ sub daemonize{
 	open STDERR, '>&STDOUT' or die "Can't dup stdout: $!";
 }
 
-exit($return);
+__END__
+
+Some documentation?
