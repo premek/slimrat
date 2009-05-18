@@ -1,10 +1,12 @@
 # SlimRat 
 # Přemek Vyhnal <premysl.vyhnal gmail com> 2008 
 # public domain
+# corrected by Yunnan - www.yunnan.tk 2009 v0.1
+# should work with waiting and catches the redownload possibilities without waiting
 
 package DepositFiles;
 use WWW::Mechanize;
-my $mech = WWW::Mechanize->new(agent => 'SlimRat' ); ##############
+my $mech = WWW::Mechanize->new(agent => $useragent ); 
 
 # return
 #   1: ok
@@ -24,18 +26,29 @@ sub download {
 	else {	
 		$_ = $mech->content();
 		if(m#slots for your country are busy#){print "All downloading slots for your country are busy.\n"; return 0;}
-		if(my($err) = m#<strong>(Attention! You used up your limit[^<]*)</strong>#){$err=~s/\s+/ /g; print "$err\n"; return 0;}
 		$re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
-		if(!m#$re#) {
+		if(!(($download) = m#$re#)) {
 			$mech->form_number(2);
 			$mech->submit_form();
 			$_ = $mech->content();
-			($wait) = m#show_url\((\d+)\)#;
-			print "Sleeping for $wait seconds\n";
-			main::dwait($wait);
-
+			if(my($wait) = m#Please try in\D*(\d+) min#) {
+				main::dwait($wait*60);
+				$mech->reload();
+				$_ = $mech->content();
+			}
+			elsif(my($wait) = m#Please try in\D*(\d+) sec#) {
+				main::dwait($wait);
+				$mech->reload();
+				$_ = $mech->content();
+			}
+			if(m#Try downloading this file again#) {
+				($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;
+			} else {
+				($wait) = m#show_url\((\d+)\)#;
+				main::dwait($wait);
+				($download) = m#$re#;
+			}
 		}
-		($download) = m#$re#;
 		return $download;
 	}
 }
