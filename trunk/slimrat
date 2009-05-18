@@ -21,6 +21,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use POSIX 'setsid';
+use Queue;
 
 
 # config
@@ -75,14 +76,10 @@ if($address){
 	$wget_opts .= " --bind-address='$address' ";
 }
 
-if($list){ # load links from file
-	if(open (LIST, $list)){
-		!m/^#/ and m/^\s*(\S+)\s*/ and push @links, $1 while(<LIST>);	# ignore comments
-		close LIST;
-	} else {warn "Can't open '$list'\n";}
-}
-
-push @links, $link while($link = shift); # read links from command line
+# Initialise a link queue
+my $queue = new Queue();
+$queue->file($list) if ($list);
+$queue->add($link) while ($link = shift);
 
 
 
@@ -102,31 +99,40 @@ if ($daemon){
 
 print &ptime."Slimrat started\n";
 
-if($check){
-	foreach $link (@links) {
-		check($link);
+# Check URL's
+if($check) {
+	my $urls_ref = $queue->dump();
+	my @urls = @$urls_ref;
+	foreach my $link (@urls) {
+		my $status = check($link);
+		if ($status>0) {print GREEN,  "[ALIVE] ", RESET;}
+		elsif ($status<0) {print RED, "[DEAD]  ", RESET; }
+		else {print GREEN, "[?]     ", RESET;}
 		print YELLOW, $link, RESET, " (", Plugin::get_name($link), ")\n";
 	}
-} else {
+}
+
+# Download URL's
+else {
  	$SIG{'INT'} = 'quit';
-	foreach $link (@links) {
+ 	while (my $link = $queue->get()) {
+ 		print &ptime, "Downloading $link\n";
+ 		
+ 		# Check the URL
+		my $status = check($link);
+		if ($status < 0){
+			print RED, &ptime."Download failed (dead link)\n", RESET;
+			$queue->update($link, "DEAD");
+			next;
+		} elsif ($status == 0) {
+			print YELLOW, &ptime."Download failed (unknown failure)\n", RESET;
+			next;
+		}
+ 		
+ 		# Download the URL
 		if (download($link)) {
 			push @oklinks, $link;
-			
-			# update file: comment out link
-			if ($list){
-				if(open (LIST, $list)){
-					open (LIST2, ">$list.temp");
-					while(<LIST>){
-						m/$link/ and print LIST2 "# DONE: ";
-						print LIST2 $_;
-					}
-					close LIST;
-					close LIST2;
-					unlink $list;
-					rename("$list.temp", $list);
-				}
-			}
+			$queue->update($link, "DONE");
 
 			# custom command on successful download
 			system($ccs);
@@ -145,57 +151,20 @@ if($check){
 	&quit;
 }
 
-
-
-
-
-
-sub quit {
-	if(scalar @oklinks){
-		print GREEN, "\nDOWNLOADED:\n", RESET;
-		print $_,"\n" foreach @oklinks;
-		print "to '",YELLOW, $download_to, RESET, "'\n" if ($download_to);
-	}
-	if(scalar @failedlinks){
-		print RED, "\nFAILED:\n", RESET;
-		print $_,"\n" foreach @failedlinks;
-	}
-	print "\n".&ptime."Slimrat finished\n";
-	
-	# todo: kill any active wget instance
-	
-	# hard exit, for when &quit gets called out of sig{int}
-	exit(0);
-}
-
-
-
+# Redirect check() call to the correct plugin
 sub check{
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
 	my $check = eval $pluginname."::check('$link')";
 	$check ||=0;
-	if($check>0) {print GREEN,  "[ALIVE] ", RESET;}
-	elsif($check<0) {print RED, "[DEAD]  ", RESET; $return++}
-	else {print GREEN, "[?]     ", RESET;}
 	return $check;
 }
 
+# Redirect download() call to the correct plugin
 sub download{
 	$link = shift;
 
 	my $pluginname = Plugin::get_name($link);
-	print &ptime."Downloading ", YELLOW, $link, RESET, " ($pluginname) ";
-	
-	my $status = check($link);
-	if ($status < 0){
-		print RED "\n".&ptime."Download failed (dead link)\n";
-		return 0;
-	} elsif ($status == 0) {
-		print YELLOW "\n".&ptime."Download failed (unknown failure)\n";
-		return 0;
-	}
-	print "\n";
 
 	my $fileurl = eval $pluginname."::download('$link')";
 	if($fileurl){ 
@@ -218,6 +187,26 @@ sub download{
 	}
 }
 
+# Quit the application
+sub quit {
+	if(scalar @oklinks){
+		print GREEN, "\nDOWNLOADED:\n", RESET;
+		print $_,"\n" foreach @oklinks;
+		print "to '",YELLOW, $download_to, RESET, "'\n" if ($download_to);
+	}
+	if(scalar @failedlinks){
+		print RED, "\nFAILED:\n", RESET;
+		print $_,"\n" foreach @failedlinks;
+	}
+	print "\n".&ptime."Slimrat finished\n";
+	
+	# todo: kill any active wget instance
+	
+	# hard exit, for when &quit gets called out of sig{int}
+	exit(0);
+}
+
+# Fork into the background
 sub daemonize{
 	chdir '/' or die "Can't chdir to /: $!";
 	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
