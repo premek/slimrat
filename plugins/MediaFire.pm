@@ -14,11 +14,15 @@ my $mech = WWW::Mechanize->new(agent => 'SlimRat' ); ##############
 #  -1: dead
 #   0: don't know
 sub check {
-	my $file = shift;
-	$mech->get($file);
-	$_ = $mech->content();
-	return 1 if(m#break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu#);
-#return -1;
+	my $res = $mech->get(shift);
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/) {
+			return 1;
+		} else {
+			return -1;
+		}
+	}
+	return 0;
 }
 
 sub download {

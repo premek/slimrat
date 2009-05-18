@@ -186,9 +186,13 @@ sub download{
 
 	my $pluginname = Plugin::get_name($link);
 	print &ptime."Downloading ", YELLOW, $link, RESET, " ($pluginname) ";
-
-	if (check($link) < 0){
+	
+	my $status = check($link);
+	if ($status < 0){
 		print RED "\n".&ptime."Download failed (dead link)\n";
+		return 0;
+	} elsif ($status == 0) {
+		print YELLOW "\n".&ptime."Download failed (unknown failure)\n";
 		return 0;
 	}
 	print "\n";
