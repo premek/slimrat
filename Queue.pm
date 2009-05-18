@@ -1,8 +1,20 @@
+# SlimRat 
+# Tim Besard <tim.besard gmail com> 2009 
+# public domain
 
+#
+# Configuration
+#
+
+package Queue;
+
+# Write nicely
 use strict;
 use warnings;
 
-package Queue;
+#
+# Routines
+#
 
 # Constructor
 sub new {
