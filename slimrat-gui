@@ -174,7 +174,7 @@ sub on_btnAddClip_clicked {
 # parse links from text input or clipboard and add them
 sub links_parse_add {
 	my $links = shift;
-	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_] foreach split /\s+/, $links; # TODO mezery na začátku;
+	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_] foreach split /\n+/, $links; # TODO mezery na začátku;
 
 }
 
