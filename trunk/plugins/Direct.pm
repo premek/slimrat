@@ -33,9 +33,19 @@
 #    Přemek Vyhnal <premysl.vyhnal gmail com> 
 #
 
+# Package name
 package Direct;
+
+# Modules
+use Toolbox;
 use LWP::UserAgent;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $ua = LWP::UserAgent->new;
+$ua->agent($useragent);
 
 sub download {
 	return shift;

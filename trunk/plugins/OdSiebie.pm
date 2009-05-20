@@ -33,14 +33,18 @@
 #    Yunnan <www.yunnan.tk>
 #
 
+# Package name
 package OdSiebie;
 
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+# Modules
+use Log;
 use Toolbox;
 use WWW::Mechanize;
 
-$useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Gecko/2009042316 Firefox/3.0.10";
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new('agent' => $useragent );
 
 # return - as usual
@@ -57,15 +61,15 @@ sub check {
 
 sub download {
 	my $file = shift;
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {
 	    $_ = $mech->content;
 	    $mech->follow_link( text => 'Pobierz plik' );
 	    $res = $mech->follow_link( text => 'kliknij tutaj' );
-	    if ($res->content_is_html) { print RED &ptime."Error - BURNED HDDs :), too much connections, banned IP, etc.\n\n"; return 0;}
-	    $dfilename = $mech->response()->filename;
-	    $download = $mech->uri()."\n";
+	    if ($res->content_is_html) { error("plugin failure (an unspecified error occured)"); return 0;}
+	    my $dfilename = $mech->response()->filename;
+	    my $download = $mech->uri()."\n";
 	    return $download."' -O '".$dfilename;
 	}
 }

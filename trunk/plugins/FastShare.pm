@@ -33,11 +33,18 @@
 #    Yunnan <www.yunnan.tk>
 #
 
+# Package name
 package FastShare;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
-#use Toolbox;
+
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new('agent' => $useragent );
 
 # return - as usual
@@ -54,13 +61,13 @@ sub check {
 
 sub download {
 	my $file = shift;
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Plugin error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {
 		$mech->form_number(0);
 		$mech->submit_form();
 		$_ = $mech->content;
-		($download) = m/<br>Link: <a href=([^>]+)><b>/s;
+		my ($download) = m/<br>Link: <a href=([^>]+)><b>/s;
 		return $download;
 	}
 }

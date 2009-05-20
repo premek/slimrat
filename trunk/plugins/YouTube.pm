@@ -38,9 +38,17 @@
 #    Bartłomiej Palmowski
 #
 
+# Package name
 package YouTube;
+
+# Modules
 use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new('agent'=>$useragent );
 
 # return
@@ -60,6 +68,7 @@ sub check {
 }
 
 sub download {
+	# Extract data from SWF loading script
 	my ($v, $t) = $mech->get(shift)->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
 	return "http://www.youtube.com/get_video?video_id=$v&t=$t";
 }

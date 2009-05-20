@@ -33,15 +33,17 @@
 #    Gabor Bognar <wade at wade dot hu>
 #
 
+# Package name
 package DataHu;
-use Toolbox;
 
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
 use strict;
 use warnings;
-use Data::Dumper;
 
 my $mech = WWW::Mechanize->new('agent'=>$useragent);
 
@@ -61,7 +63,7 @@ sub download {
 	my $file = shift;
 
 	my $res = $mech->get($file);
-	if (!$res->is_success) { print RED "Plugin error: ".$res->status_line."\n\n"; return 0;}
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 
 	$_ = $res->decoded_content."\n"; 
 	my $ok = 0;
