@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 #
-# slimrat - plugin infrastructure
+# slimrat - log messages infrastructure
 #
-# Copyright (c) 2008-2009 Přemek Vyhnal
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -30,7 +30,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 #
@@ -38,60 +38,71 @@
 #
 
 # Package name
-package Plugin;
-
-use File::Basename;
-my ($root) = dirname($INC{'Plugin.pm'});
+package Log;
 
 # Modules
-use Log;
+use Term::ANSIColor qw(:constants);
 
 # Export functionality
 use Exporter;
-@ISA=qw(Exporter);
-@EXPORT=qw();
+@ISA = qw(Exporter);
+@EXPORT = qw(timestamp debug info warning error fatal);
 
 # Write nicely
 use strict;
 use warnings;
 
-# Static hash for plugins
-my %plugins;
-
 
 #
-# Routines
+# Internal functions
 #
 
-# Register a plugin
-sub register {
-	my ($name,$re) = @_;
-	$plugins{$re}=$name;
+# Print a message
+sub output {
+	print shift, &timestamp, @_==2?uc(shift).": ":"";
+	print while ($_ = shift(@{$_[0]}));
+	print RESET, "\n";
 }
 
-# Get a plugin's name
-sub get_name {
-	(my $link) = @_;
-	foreach my $re (keys %plugins){
-		if($link =~ m#$re#i){
-			return $plugins{$re};
-		}
-	}
-	return "Direct";
+
+# Generate a timestamp
+sub timestamp {
+	my ($sec,$min,$hour) = localtime;
+	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
 }
 
 
 #
-# "Main"
+# Log routines
 #
 
-# Let all plugins register themselves
-my @pluginfiles = glob "$root/plugins/*.pm";
-do $_ || do{system("perl -c $_"); fatal("plugin $_ failed to load ($!)")} foreach @pluginfiles;
+# Debug message
+sub debug {
+	output(GREEN, "debug", \@_);
+}
 
-# Print some debug message (yeah the regular way, couldn't port existing print & $, madness to something Log::debug() worthy)
-my $string;
-$string .= $_.", " foreach (values %plugins);
-debug("loaded " . keys(%plugins) . " plugins (", substr($string, 0, length($string)-2), ")");
+# Informative message
+sub info {
+	output(RESET, \@_);
+}
 
-scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
+# Warning
+sub warning {
+	output(YELLOW, "warning", \@_);
+}
+
+# Non-fatal error
+sub error {
+	output(RED, "error", \@_);
+}
+
+# Fatal error
+sub fatal {
+	output(RED, "fatal", \@_);
+	# TODO: call slimrat::quit
+	die();
+}
+
+# Return
+1;
+
