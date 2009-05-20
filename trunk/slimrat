@@ -42,9 +42,9 @@
 
 # Packages
 use Getopt::Long;
-use Term::ANSIColor qw(:constants);
 use Data::Dumper;
 use POSIX 'setsid';
+use Term::ANSIColor qw(:constants);
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -54,16 +54,14 @@ use lib $RealBin;
 use Plugin;
 use Toolbox;
 use Queue;
+use Log;
 
 # Write nicely
 use strict;
 use warnings;
 
-# Execute configuration
-our ($ccf, $ccs, $ccg);
-do $RealBin."/config";
-
 # Process command-line options
+debug("processing command-line arguments");
 my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $unpack, @pass, $daemon);
 GetOptions (
 		"help!"		=> \&usage,
@@ -76,7 +74,16 @@ GetOptions (
 		"pass=s@"	=> \@pass,
 		"daemon!"	=> \$daemon,
 );
-&usage if(!scalar @ARGV && !$list); 
+if(!scalar @ARGV && !$list) {
+	error("no input URLs");
+	print "\n";
+	&usage;
+}
+
+# Execute configuration
+debug("executing configuration");
+our ($ccf, $ccs, $ccg);
+do $RealBin."/config";
 
 # Set socket local address if needed
 if($address){
@@ -92,7 +99,7 @@ $queue->add($link) while ($link = shift);
 
 # Fork in background
 if ($daemon){
-	print &ptime."Becoming a daemon\n";
+	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
 	$wget_opts .= " -q";	# avoid log file spam
@@ -103,12 +110,12 @@ if ($daemon){
 				# already downloaded, and to avoid wget redownload it we use this -c flag
 }
 
-print &ptime."Slimrat started\n";
-
 
 #
 # Main
 #
+
+info("Slimrat started");
 
 # Check URL's
 if($check) {
@@ -127,16 +134,16 @@ if($check) {
 else {
  	$SIG{'INT'} = 'quit';
  	while (my $link = $queue->get()) {
- 		print &ptime, "Downloading $link\n";
+ 		info("Downloading ", $link);
  		
  		# Check the URL
 		my $status = check($link);
 		if ($status < 0){
-			print RED, &ptime."Download failed (dead link)\n", RESET;
+			error("download failed (dead link)");
 			$queue->update($link, "DEAD");
 			next;
 		} elsif ($status == 0) {
-			print YELLOW, &ptime."Download failed (unknown failure)\n", RESET;
+			warning("download failed (unknow reason)");
 			next;
 		}
  		
@@ -169,13 +176,13 @@ else {
 
 # Print the usage
 sub usage {
-	print "
-SlimRat 
+	print 
+"Usage: $0 [OPTION...] [LINK]...
+Slimrat downloads files from several free download providers.
 
-Downloads files from rapidshare and other servers to your working directory. Files to download are specified by download links like 'http://rapidshare.com/files/012345678/somefile.xxx' as arguments on command line or one per line in file given as --list option ('-' for stdin works too).
-
-USAGE:
-  $0 [options] [link [link [...]]]
+EXAMPLES:
+   $0 http://rapidshare.com/files/012345678/somefile.xxx
+   $0 -l urls.dat -d
 		
 OPTIONS:
   -h | --help              this help
@@ -187,9 +194,7 @@ OPTIONS:
   -w | --wget              wget options, enclosed in quotes
                            slimrat -w '--limit-rate=20k' -l file-list
 ";
-#  -u | --unpack            unpack downloaded archives
-#  -p | --password          archive password
-	exit;
+	exit 0;
 }
 
 # Redirect check() call to the correct plugin
@@ -239,7 +244,7 @@ sub quit {
 		print RED, "\nFAILED:\n", RESET;
 		print $_,"\n" foreach @failedlinks;
 	}
-	print "\n".&ptime."Slimrat finished\n";
+	info("Slimrat finished");
 	
 	# todo: kill any active wget instance
 	
@@ -249,16 +254,16 @@ sub quit {
 
 # Fork into the background
 sub daemonize {
-	chdir '/' or die "Can't chdir to /: $!";
-	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
-	if (! open STDOUT, '>>/var/log/slimrat.log'){ 
-		print YELLOW &ptime."Could not redirect output to /var/log/slimrat.log, silencing slimrat.\n";
-		open STDOUT, '>>/dev/null';
+	chdir '/' or fatal("couldn't chdir to / ($!)");
+	open STDIN, '/dev/null' or fatal("couldn't redirect input from /dev/null ($!)");
+	if (! open STDOUT, '>>/var/log/slimrat.log') { 
+		warning("couldn't redirect output to /var/log/slimrat.log ($!), going silent");
+		open STDOUT, '>>/dev/null' or fatal("couldn't redirect output from /dev/null ($!)");;
 	}
-	defined(my $pid = fork) or die "Can't fork: $!";
+	defined(my $pid = fork) or fatal("couldn't fork ($!)");
 	exit if $pid;
-	setsid or die "Can't start a new session: $!";
-	open STDERR, '>&STDOUT' or die "Can't dup stdout: $!";
+	setsid or fatal("couldn't start a new session ($!)");
+	open STDERR, '>&STDOUT' or fatal("couldn't redirect STDERR to STDOUT ($!)");
 }
 
 __END__
