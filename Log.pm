@@ -79,21 +79,25 @@ sub timestamp {
 # Debug message
 sub debug {
 	output(GREEN, "debug", \@_);
+	return 0;
 }
 
 # Informative message
 sub info {
 	output(RESET, \@_);
+	return 0;
 }
 
 # Warning
 sub warning {
 	output(YELLOW, "warning", \@_);
+	return 0;
 }
 
 # Non-fatal error
 sub error {
 	output(RED, "error", \@_);
+	return 0;
 }
 
 # Fatal error

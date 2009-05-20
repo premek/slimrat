@@ -31,7 +31,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
@@ -73,12 +73,12 @@ sub download {
 
 	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
+	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Click the "Free" button
 	$mech->form_number(1);
 	$res = $mech->submit_form();
-	if (!$res->is_success) { error("plugin failure (page 2 error, ", $res->status_line, ")"); return 0;}
+	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Process the resulting page
 	while(1) {
@@ -108,7 +108,9 @@ sub download {
 		$res = $mech->reload();
 	}
 
+	# Extract the download URL
 	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
+	return error("plugin error (could not extract download link)") unless $download;
 	dwait($wait);
 
 	return $download;

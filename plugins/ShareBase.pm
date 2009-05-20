@@ -3,6 +3,7 @@
 # slimrat - ShareBase plugin
 #
 # Copyright (c) 2009 Yunnan
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Yunnan <www.yunnan.tk>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -63,38 +65,43 @@ sub check {
 
 sub download {
 	my $file = shift;
+	
+	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-	else {
-		$_ = $res->content."\n";
-		my ($asi) = m/name="asi" value="([^\"]+)">/s;
-		$res = $mech->post($file, [ 'asi' => $asi , $asi => 'Download Now !' ] );
-		$_ = $res->content."\n";
-		my $counter = 0;
-		my $ok = 0;
-		    while(!$ok) {
-			my $wait;
-			$counter = $counter + 1;
-			if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
-			    $ok=0;
-			    info("reached the download limit for free-users (300 MB)");
-			    dwait(($wait+1)*60);
-			    $res = $mech->reload();
-			    $_ = $res->content."\n";
-			} elsif( $mech->uri() =~ $file ) {
-			    $ok=0;
-			    info("something wrong, waiting 60 sec");
-			    dwait(60);
-			} else {
-			    $ok=1;
-			}
-			if($counter > 5) {
-				error("plugin failure (loop error)"); die();
-			}
-		    }
-		my $download = $mech->uri();
-		return $download;
+	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
+	
+	# Click the button
+	$_ = $res->content."\n";
+	my ($asi) = m/name="asi" value="([^\"]+)">/s;
+	
+	
+	$res = $mech->post($file, [ 'asi' => $asi , $asi => 'Download Now !' ] );
+	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+	$_ = $res->content."\n";
+	
+	# Process the secondary page
+	my $counter = 0;
+	while (1) {
+		my $wait;
+		$counter = $counter + 1;
+		if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
+		    info("reached the download limit for free-users (300 MB)");
+		    dwait(($wait+1)*60);
+		    $res = $mech->reload();
+		    $_ = $res->content."\n";
+		} elsif( $mech->uri() =~ $file ) {
+		    info("something wrong, waiting 60 sec");
+		    dwait(60);
+		} else {
+		    last;
+		}
+		if($counter > 5) {
+			error("plugin failure (loop error)"); die();
+		}
 	}
+	
+	my $download = $mech->uri();
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?sharebase.to");

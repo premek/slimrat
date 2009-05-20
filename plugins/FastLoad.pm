@@ -3,6 +3,7 @@
 # slimrat - FastLoad plugin
 #
 # Copyright (c) 2008 Tomasz Gągor
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Tomasz Gągor <timor o2 pl>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -67,17 +69,21 @@ sub download {
 	my $file = shift;
 
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
-	else {
-		$_ = $res->content."\n";
-		my ($fname) = m/<span style="font-color:grey; font-weight:normal; font-size:8pt;">(.+?)<\/span>/s;
-		if (!$fname) { error("plugin failure (could not find file name)"); return 0;}
-		my ($fid) = m/name="fid" value="(\w+)"/sm;
-		if (!$fid) { error("plugin failure (could not find FID number)"); return 0;}
-		my $download = "http://www.fast-load.net/download.php' --post-data 'fid=".$fid."' -O '".$fname;
-
-		return $download;
-	}
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	$_ = $res->content."\n";
+	
+	# Extract filename
+	my ($fname) = m/<span style="font-color:grey; font-weight:normal; font-size:8pt;">(.+?)<\/span>/s;
+	if (!$fname) { error("plugin failure (could not find file name)"); return 0;}
+	
+	# Extract file ID
+	my ($fid) = m/name="fid" value="(\w+)"/sm;
+	if (!$fid) { error("plugin failure (could not find file ID)"); return 0;}
+	
+	# Generate the download URL
+	my $download = "http://www.fast-load.net/download.php' --post-data 'fid=".$fid."' -O '".$fname;
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fast-load.net");

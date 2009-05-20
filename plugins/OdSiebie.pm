@@ -1,8 +1,9 @@
 #!/usr/bin/env perl
 #
-# slimrat - OdSibie plugin
+# slimrat - OdSiebie plugin
 #
 # Copyright (c) 2009 Yunnan
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Yunnan <www.yunnan.tk>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -61,17 +63,19 @@ sub check {
 
 sub download {
 	my $file = shift;
+	
+	# Get the page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-	else {
-	    $_ = $mech->content;
-	    $mech->follow_link( text => 'Pobierz plik' );
-	    $res = $mech->follow_link( text => 'kliknij tutaj' );
-	    if ($res->content_is_html) { error("plugin failure (an unspecified error occured)"); return 0;}
-	    my $dfilename = $mech->response()->filename;
-	    my $download = $mech->uri()."\n";
-	    return $download."' -O '".$dfilename;
-	}
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	$_ = $mech->content;
+	$mech->follow_link( text => 'Pobierz plik' );
+	$res = $mech->follow_link( text => 'kliknij tutaj' );
+	if ($res->content_is_html) { error("plugin failure (an unspecified error occured)"); return 0;}
+	my $dfilename = $mech->response()->filename;
+	
+	my $download = $mech->uri()."\n";
+	return $download."' -O '".$dfilename;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?odsiebie.com");

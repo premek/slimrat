@@ -3,6 +3,7 @@
 # slimrat - Leteckaposta plugin
 #
 # Copyright (c) 2008 Přemek Vyhnal
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -30,7 +31,8 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -52,11 +54,12 @@ sub download {
 	my $file = shift;
 
 	my $res = $ua->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-	else {
-		my ($download) = $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
-		return "http://leteckaposta.cz$download";
-	}
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	# Extract the download URL
+	my ($download) = $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+	return error("plugin error (could not extract download link)") unless $download;
+	return "http://leteckaposta.cz$download";
 }
 
 Plugin::register(__PACKAGE__, "^[^/]+//(?:www.)?leteckaposta.cz");

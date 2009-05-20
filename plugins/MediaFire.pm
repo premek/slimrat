@@ -3,6 +3,7 @@
 # slimrat - MediaFire plugin
 #
 # Copyright (c) 2008 Tomasz Gągor
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Tomasz Gągor <timor o2 pl>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -66,26 +68,32 @@ sub check {
 sub download {
 	my $file = shift;
 
+	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
-	else {
-		$_ = $res->decoded_content."\n";
-		my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
-		if(!$qk) {
-			error("plugin failure (page #1 failure, file doesn't exist or was removed)");
-			return 0;
-		}
-		$res = $mech->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
-		if (!$res->is_success) { error("plugin failure (page 2 error, ", $res->status_line, ")"); return 0;}
-		else {
-			$_ = $res->decoded_content."\n";
-			my ($mL,$mH,$mY) = m/var mL='(.+?)';var mH='(\w+)';var mY='(.+?)';.*/sm;
-			my ($varname) = m#href=\\"http://"\+mL\+'/'\+ (\w+) \+'g/'\+mH\+'/'\+mY\+'"#sm;
-			my ($var) = m#var $varname = '(\w+)';#sm;
-			my $download = "http://$mL/${var}g/$mH/$mY";
-			return $download;
-		}
+	return error("plugin failure (page 1 error", $res->status_line, ")") unless ($res->is_success);
+	
+	$_ = $res->decoded_content."\n";
+	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
+	if(!$qk) {
+		error("plugin failure (page 1 error, file doesn't exist or was removed)");
+		return 0;
 	}
+	
+	# Get the secondary page
+	$res = $mech->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
+	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+		
+	$_ = $res->decoded_content."\n";
+	
+	# Extract download parameters
+	my ($mL,$mH,$mY) = m/var mL='(.+?)';var mH='(\w+)';var mY='(.+?)';.*/sm;
+	my ($varname) = m#href=\\"http://"\+mL\+'/'\+ (\w+) \+'g/'\+mH\+'/'\+mY\+'"#sm;
+	my ($var) = m#var $varname = '(\w+)';#sm;
+	return error("plugin error (could not extract download parameters)") unless ($mL && $mH && $mY && $var);
+	
+	# Generate the download URL
+	my $download = "http://$mL/${var}g/$mH/$mY";
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?mediafire.com");
