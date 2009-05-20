@@ -66,59 +66,52 @@ sub check {
 sub download {
 	my $file = shift;
 
-	# Get the page
+	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	# Process the resulting page
-	while(1) {
-		my $wait;
-		$_ = $res->decoded_content."\n"; 
+	my $code;
+	while (1) {
+		$_ = $res->decoded_content."\n";
 		
-		# Wait if the site requests to (not yet implemented)
-		if(m/some error message/) {
-			($wait) = m/extract some (\d+) minutes/sm;
-		} else {
+		# Wait timer?
+		if (m/Seconds to wait: (\d+)/) {
+			# Wait
+			dwait($1);
+	
+			# Extract the captcha code
+			($code) = m/\/file_contents\/captcha_button\/(\d+)/;
+			return error("plugin failure (could not extract captcha code)") unless $code;
+			
+			$res = $mech->get('http://www.easy-share.com/c/' . $code);
 			last;
 		}
 		
-		dwait($wait*60);
-		$res = $mech->reload();
+		# Download without wait?
+		if (m/http:\/\/www.easy-share.com\/c\/(\d+)/) {
+			$code = $1;
+			$res = $mech->get('http://www.easy-share.com/c/' . $code);
+			last;
+		}
+		
+		# Wait if the site requests to (not yet implemented)
+		if(m/some error message/) {
+			my ($wait) = m/extract some (\d+) minutes/sm;		
+			return error("plugin failure (could not extract wait time)") unless $wait;
+			dwait($wait*60);
+			$res = $mech->reload();
+		} else {
+			last;
+		}
 	}
-	
-	# Process the timer
-	if (m/Seconds to wait: (\d+)/) {
-		my $wait = $1;
-		dwait($wait);
-	} else {
-		error("plugin failure (could not extract wait time)");
-		return 0;
-	}
-	
-	# Extract the code
-	my $code;
-	if (m/\/file_contents\/captcha_button\/(\d+)/) {
-		$code = $1;
-	} else {
-		error("plugin failure (could not extract captcha code)");
-		return 0;
-	}
-	
-	# Get the second page
-	$res = $mech->get('http://www.easy-share.com/c/' . $code);
-	$_ = $res->decoded_content."\n";
 	
 	# Extract the download URL
-	my $url;
-	if (m/action=\"([^"]+)\" class=\"captcha\"/) {
-		$url = $1;
-	} else {
-		error("plugin failure (could not extract download url)");
-		return 0;
-	}
+	$_ = $res->decoded_content."\n";
+	my ($url) = m/action=\"([^"]+)\" class=\"captcha\"/;
+	return error("plugin error (could not extract download link)") unless $url;
 	
-	# Download $file by sending a POST to $url with id=$code && captcha=1
-
+	info("download $file by sending a POST-request to \"$url\", with POST-data \"id=$code&captcha=1\"");
 	return 0;
 }
 

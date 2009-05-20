@@ -3,6 +3,7 @@
 # slimrat - HotFile plugin
 #
 # Copyright (c) 2009 Yunnan
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Yunnan <www.yunnan.tk>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -62,22 +64,33 @@ sub check {
 sub download {
 	my $file = shift;
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-	else {
-		$_ = $mech->content();
-		my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	$_ = $mech->content();
+	
+	# Extract primary wait timer
+	my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
   document\.getElementById\(\'dwltmr\'\)#;
-		$wait1 = $wait1/1000;
-		my($wait2) = m#timerend\=d\.getTime\(\)\+([0-9]+);
+	$wait1 = $wait1/1000;
+	
+	# Extract secondary wait timer
+	my($wait2) = m#timerend\=d\.getTime\(\)\+([0-9]+);
   document\.getElementById\(\'dwltxt\'\)#;
-		$wait2 = $wait2/1000;
-		my($wait) = $wait1+$wait2;
-                main::dwait($wait);
-		$mech->form_number(2); # free;
-		$mech->submit_form();
-		my $download = $mech->find_link( text => 'Click here to download' )->url();
-		return "'".$download."'";
-	}
+	$wait2 = $wait2/1000;
+	
+	# Wait
+	my($wait) = $wait1+$wait2;
+        dwait($wait);
+        
+        # Click the button
+	$mech->form_number(2); # free;
+	$mech->submit_form();
+	
+	
+	# Extract the download URL
+	my $download = $mech->find_link( text => 'Click here to download' )->url();
+	return error("plugin error (could not extract download link)") unless $download;
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?hotfile.com");

@@ -3,6 +3,7 @@
 # slimrat - DataHU plugin
 #
 # Copyright (c) 2009 Gabor Bognar
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Gabor Bognar <wade at wade dot hu>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -61,28 +63,29 @@ sub check {
 
 sub download {
 	my $file = shift;
-
+	
+	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-
-	$_ = $res->decoded_content."\n"; 
-	my $ok = 0;
-	while(!$ok){
-		my $wait;
-
-
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	while (1) {
+		$_ = $res->decoded_content."\n"; 
+		
+		# Wait timer
 		if(m#kell:#) {
-			$ok=0;
-			($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
+			my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
+			error("plugin error (could not extract wait time)") unless $wait;
 			dwait($wait);
+			
 			$res = $mech->reload();
-			$_ = $res->decoded_content."\n"; 
 		} else {
-			$ok=1;
+			last;
 		}
 	}
 
+	# Extract the download URL
 	my ($download) = m/class="download_it"><a href="(.*)" onmousedown/sm;
+	return error("plugin error (could not extract download link)") unless $download;
 	return $download;
 }
 

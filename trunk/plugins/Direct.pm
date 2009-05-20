@@ -30,7 +30,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #
 
 # Package name
@@ -47,14 +47,13 @@ use warnings;
 my $ua = LWP::UserAgent->new;
 $ua->agent($useragent);
 
-sub download {
-	return shift;
-}
-
-
 sub check {
 	return 1 if ($ua->head(shift)->is_success);
 	return -1;
+}
+
+sub download {
+	return shift;
 }
 
 1;

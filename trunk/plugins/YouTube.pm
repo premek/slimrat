@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# slimrat - main GUI script
+# slimrat - YouTube plugin
 #
 # Copyright (c) 2008 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
@@ -31,7 +31,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Thanks to:
@@ -70,6 +70,7 @@ sub check {
 sub download {
 	# Extract data from SWF loading script
 	my ($v, $t) = $mech->get(shift)->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
+	return error("plugin error (could not extract video properties)") unless ($v && $t);
 	return "http://www.youtube.com/get_video?video_id=$v&t=$t";
 }
 

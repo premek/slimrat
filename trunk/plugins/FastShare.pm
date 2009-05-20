@@ -3,6 +3,7 @@
 # slimrat - DepositFiles plugin
 #
 # Copyright (c) 2009 Yunnan
+# Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -31,6 +32,7 @@
 #
 # Authors:
 #    Yunnan <www.yunnan.tk>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
 # Package name
@@ -62,14 +64,17 @@ sub check {
 sub download {
 	my $file = shift;
 	my $res = $mech->get($file);
-	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
-	else {
-		$mech->form_number(0);
-		$mech->submit_form();
-		$_ = $mech->content;
-		my ($download) = m/<br>Link: <a href=([^>]+)><b>/s;
-		return $download;
-	}
+	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	
+	# Click the button
+	$mech->form_number(0);
+	$mech->submit_form();
+	$_ = $mech->content;	
+	
+	# Extract the download URL
+	my ($download) = m/<br>Link: <a href=([^>]+)><b>/s;
+	return error("plugin error (could not extract download link)") unless $download;
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fastshare.org");
