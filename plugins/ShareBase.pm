@@ -33,11 +33,18 @@
 #    Yunnan <www.yunnan.tk>
 #
 
+# Package name
 package ShareBase;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+
+# Modules
+use Log;
 use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new('agent' => $useragent );
 
 # return - as usual
@@ -56,12 +63,11 @@ sub check {
 
 sub download {
 	my $file = shift;
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {
 		$_ = $res->content."\n";
-		($asi) = m/name="asi" value="([^\"]+)">/s;	# print $asi."\n";
-#		($size) = m/\(([0-9]+) MB\)/s;			# print $size."\n";
+		my ($asi) = m/name="asi" value="([^\"]+)">/s;
 		$res = $mech->post($file, [ 'asi' => $asi , $asi => 'Download Now !' ] );
 		$_ = $res->content."\n";
 		my $counter = 0;
@@ -71,19 +77,19 @@ sub download {
 			$counter = $counter + 1;
 			if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
 			    $ok=0;
-			    print CYAN &ptime."Reached the download limit for free-users (300 MB)\n";
+			    info("reached the download limit for free-users (300 MB)");
 			    dwait(($wait+1)*60);
 			    $res = $mech->reload();
 			    $_ = $res->content."\n";
 			} elsif( $mech->uri() =~ $file ) {
 			    $ok=0;
-			    print CYAN &ptime."Something wrong, waiting 60 sec\n";
+			    info("something wrong, waiting 60 sec");
 			    dwait(60);
 			} else {
 			    $ok=1;
 			}
 			if($counter > 5) {
-			    print RED &ptime."Loop error\n\n"; die();
+				error("plugin failure (loop error)"); die();
 			}
 		    }
 		my $download = $mech->uri();

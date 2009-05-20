@@ -38,8 +38,18 @@
 #    should work with waiting and catches the redownload possibilities without waiting
 #
 
+# Package name
 package DepositFiles;
+
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new(agent => $useragent ); 
 
 # return
@@ -62,26 +72,28 @@ sub check {
 sub download {
 	my $file = shift;
 	my $res = $mech->get($file);
-	if (!$res->is_success) { print "Error: ".$res->status_line."\n\n"; return 0;}
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {	
 		$_ = $mech->content();
-		if(m#slots for your country are busy#){print "All downloading slots for your country are busy.\n"; return 0;}
-		$re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
-		if(!(($download) = m#$re#)) {
+		if (m/slots for your country are busy/) { error("all downloading slots for your country are busy"); return 0;}
+		my $re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
+		my $download;
+		if(!(($download) = m/$re/)) {
 			$mech->form_number(2);
 			$mech->submit_form();
 			$_ = $mech->content();
-			if(my($wait) = m#Please try in\D*(\d+) min#) {
-				main::dwait($wait*60);
+			my $wait;
+			if (($wait) = m#Please try in\D*(\d+) min#) {
+				dwait($wait*60);
 				$mech->reload();
 				$_ = $mech->content();
 			}
-			elsif(my($wait) = m#Please try in\D*(\d+) sec#) {
-				main::dwait($wait);
+			elsif (($wait) = m#Please try in\D*(\d+) sec#) {
+				dwait($wait);
 				$mech->reload();
 				$_ = $mech->content();
 			}
-			if(m#Try downloading this file again#) {
+			if (m/Try downloading this file again/) {
 				($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;
 			} else {
 				($wait) = m#show_url\((\d+)\)#;

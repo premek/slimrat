@@ -33,22 +33,28 @@
 #    Přemek Vyhnal <premysl.vyhnal gmail com> 
 #
 
+# Package name
 package Leteckaposta;
-use LWP::UserAgent;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
 
+# Modules
+use Log;
+use Toolbox;
+use LWP::UserAgent;
+
+# Write nicely
+use strict;
+use warnings;
+
+my $ua = LWP::UserAgent->new;
+$ua->agent($useragent);
 
 sub download {
 	my $file = shift;
-	
-	$ua = LWP::UserAgent->new;
-	$ua->agent("SlimRat");
 
-	$res = $ua->get($file);
-	if (!$res->is_success) { print RED "Error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $ua->get($file);
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {
-		($download) = $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+		my ($download) = $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
 		return "http://leteckaposta.cz$download";
 	}
 }

@@ -33,11 +33,19 @@
 #    Tomasz Gągor <timor o2 pl>
 #
 
+# Package name
 package MediaFire;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
-my $mech = WWW::Mechanize->new(agent => 'SlimRat' ); ##############
+
+# Write nicely
+use strict;
+use warnings;
+
+my $mech = WWW::Mechanize->new('agent' => $useragent );
 
 # return
 #   1: ok
@@ -58,17 +66,17 @@ sub check {
 sub download {
 	my $file = shift;
 
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
 	else {
 		$_ = $res->decoded_content."\n";
 		my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 		if(!$qk) {
-			print RED "Page #1 error: file doesn't exist or was removed.\n\n"; 
+			error("plugin failure (page #1 failure, file doesn't exist or was removed)");
 			return 0;
 		}
 		$res = $mech->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
-		if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
+		if (!$res->is_success) { error("plugin failure (page 2 error, ", $res->status_line, ")"); return 0;}
 		else {
 			$_ = $res->decoded_content."\n";
 			my ($mL,$mH,$mY) = m/var mL='(.+?)';var mH='(\w+)';var mY='(.+?)';.*/sm;

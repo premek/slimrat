@@ -48,7 +48,7 @@ use strict;
 use warnings;
 
 # Fake a user agent
-our $useragent = "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.4) Gecko/20030624";
+our $useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Gecko/2009042316 Firefox/3.0.10";
 
 
 #

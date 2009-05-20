@@ -33,11 +33,18 @@
 #    Yunnan <www.yunnan.tk>
 #
 
+# Package name
 package HotFile;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+
+# Modules
+use Log;
 use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
+use strict;
+use warnings;
+
 my $mech = WWW::Mechanize->new('agent' => $useragent );
 
 # return - as usual
@@ -54,8 +61,8 @@ sub check {
 
 sub download {
 	my $file = shift;
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	else {
 		$_ = $mech->content();
 		my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
@@ -65,11 +72,10 @@ sub download {
   document\.getElementById\(\'dwltxt\'\)#;
 		$wait2 = $wait2/1000;
 		my($wait) = $wait1+$wait2;
-		print CYAN &ptime."Waiting for ".$wait1." + ".$wait2." = ".$wait." sec.\n";
                 main::dwait($wait);
 		$mech->form_number(2); # free;
 		$mech->submit_form();
-		$download = $mech->find_link( text => 'Click here to download' )->url();
+		my $download = $mech->find_link( text => 'Click here to download' )->url();
 		return "'".$download."'";
 	}
 }

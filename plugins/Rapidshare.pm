@@ -35,12 +35,15 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
+# Package name
 package Rapidshare;
-use Toolbox;
 
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
 use strict;
 use warnings;
 
@@ -70,12 +73,12 @@ sub download {
 
 	# Get the primary page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
 	
 	# Click the "Free" button
 	$mech->form_number(1);
 	$res = $mech->submit_form();
-	if (!$res->is_success) { print RED "Page #2 error: ".$res->status_line."\n\n"; return 0;}
+	if (!$res->is_success) { error("plugin failure (page 2 error, ", $res->status_line, ")"); return 0;}
 	
 	# Process the resulting page
 	while(1) {
@@ -84,22 +87,21 @@ sub download {
 
 		if(m/reached the download limit for free-users/) {
 			($wait) = m/Or try again in about (\d+) minutes/sm;
-			print CYAN &ptime."Reached the download limit for free-users\n";
-			
+			info("reached the download limit for free-users");			
 		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			print CYAN &ptime."Currently a lot of users are downloading files\n";
+			info("currently a lot of users are downloading files");
 		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			print CYAN &ptime."No available slots for free users\n";
+			info("no available slots for free users");
 
 		} elsif(m/already downloading a file/) {
-			print CYAN &ptime."Already downloading a file\n"; 
+			info("already downloading a file");
 			$wait = 60;
 		} else {
 			last;
 		}
 		
 		if ($wait > $wait_max) {
-			print &ptime."Should wait $wait minutes, interval-check in $wait_max minutes\n";
+			debug("should wait $wait minutes, interval-check in $wait_max minutes");
 			$wait = $wait_max;
 		}
 		dwait($wait*60);

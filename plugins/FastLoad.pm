@@ -33,11 +33,19 @@
 #    Tomasz Gągor <timor o2 pl>
 #
 
+# Package name
 package FastLoad;
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
-my $mech = WWW::Mechanize->new(agent => 'SlimRat' ); ##############
+
+# Write nicely
+use strict;
+use warnings;
+
+my $mech = WWW::Mechanize->new('agent'=>$useragent);
 
 # return
 #   1: ok
@@ -58,14 +66,14 @@ sub check {
 sub download {
 	my $file = shift;
 
-	$res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page #1 error: ".$res->status_line."\n\n"; return 0;}
+	my $res = $mech->get($file);
+	if (!$res->is_success) { error("plugin failure (page 1 error, ", $res->status_line, ")"); return 0;}
 	else {
 		$_ = $res->content."\n";
-		($fname) = m/<span style="font-color:grey; font-weight:normal; font-size:8pt;">(.+?)<\/span>/s;
-		if(!$fname) {print RED "Can't find file name.\n\n"; return 0;}
-		($fid) = m/name="fid" value="(\w+)"/sm;
-		if(!$fid) {print RED "Can't find fid number.\n\n"; return 0;}
+		my ($fname) = m/<span style="font-color:grey; font-weight:normal; font-size:8pt;">(.+?)<\/span>/s;
+		if (!$fname) { error("plugin failure (could not find file name)"); return 0;}
+		my ($fid) = m/name="fid" value="(\w+)"/sm;
+		if (!$fid) { error("plugin failure (could not find FID number)"); return 0;}
 		my $download = "http://www.fast-load.net/download.php' --post-data 'fid=".$fid."' -O '".$fname;
 
 		return $download;

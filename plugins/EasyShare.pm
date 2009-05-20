@@ -33,12 +33,15 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
+# Package name
 package EasyShare;
-use Toolbox;
 
-use Term::ANSIColor qw(:constants);
-$Term::ANSIColor::AUTORESET = 1;
+# Modules
+use Log;
+use Toolbox;
 use WWW::Mechanize;
+
+# Write nicely
 use strict;
 use warnings;
 
@@ -65,16 +68,16 @@ sub download {
 
 	# Get the page
 	my $res = $mech->get($file);
-	if (!$res->is_success) { print RED "Page error: ".$res->status_line."\n\n"; return 0;}
+	if (!$res->is_success) { error("plugin failure (", $res->status_line, ")"); return 0;}
 	
 	# Process the resulting page
 	while(1) {
 		my $wait;
 		$_ = $res->decoded_content."\n"; 
-
+		
+		# Wait if the site requests to (not yet implemented)
 		if(m/some error message/) {
 			($wait) = m/extract some (\d+) minutes/sm;
-			print CYAN &ptime."print some message\n";
 		} else {
 			last;
 		}
@@ -88,7 +91,7 @@ sub download {
 		my $wait = $1;
 		dwait($wait);
 	} else {
-		print RED, &ptime, "Could not extract Easy-Share wait time\n";
+		error("plugin failure (could not extract wait time)");
 		return 0;
 	}
 	
@@ -97,7 +100,7 @@ sub download {
 	if (m/\/file_contents\/captcha_button\/(\d+)/) {
 		$code = $1;
 	} else {
-		print RED, &ptime, "Could not extract Easy-Share captcha code\n";
+		error("plugin failure (could not extract captcha code)");
 		return 0;
 	}
 	
@@ -110,12 +113,11 @@ sub download {
 	if (m/action=\"([^"]+)\" class=\"captcha\"/) {
 		$url = $1;
 	} else {
-		print RED, &ptime, "Could not extract download URL\n";
+		error("plugin failure (could not extract download url)");
 		return 0;
 	}
 	
 	# Download $file by sending a POST to $url with id=$code && captcha=1
-	print "URL is $url, code is $code\n";	
 
 	return 0;
 }
