@@ -82,7 +82,7 @@ sub download {
 	if (!$fid) { error("plugin failure (could not find file ID)"); return 0;}
 	
 	# Generate the download URL
-	my $download = "http://www.fast-load.net/download.php' --post-data 'fid=".$fid."' -O '".$fname;
+	my $download = "http://www.fast-load.net/download.php\" --post-data \"id=".$fid."\" -O \"".$fname;
 	return $download;
 }
 
