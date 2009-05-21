@@ -111,8 +111,8 @@ sub download {
 	my ($url) = m/action=\"([^"]+)\" class=\"captcha\"/;
 	return error("plugin error (could not extract download link)") unless $url;
 	
-	info("download $file by sending a POST-request to \"$url\", with POST-data \"id=$code&captcha=1\"");
-	return 0;
+	my $download = "$url\" --post-data \"id=".$code."&captcha=1";
+	return $download;
 }
 
 Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?easy-share.com");
