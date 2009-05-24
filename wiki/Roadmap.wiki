@@ -1,0 +1,43 @@
+#summary Development roadmap.
+
+= Introduction =
+
+This wiki page features the development roadmap, and stuff which has to be resolved for the next release.
+
+= Overview =
+
+|| *Version* || *Date* ||
+|| 0.9.4 || 2009/03/22 ||
+|| 0.9.5 || 2009/06/.. ||
+|| 0.9.6 || 2009/06/.. ||
+
+= Detailed overview =
+
+== 0.9.5 ==
+
+=== Features ===
+ * Queue-class to ease the URL handling (r43)
+ * Log-class to ease sending several levels of messages to the user (r50, r51)
+ * New plugins (HotFile, OdSiebie, FastShare, ShareBase, EasyShare, DepositFiles) (r39, r40, r41, r45, r48, r49)
+ * Support for backgrounding (r35)
+ * Rapidshare plugin: interval check of wait times (r33)
+ * Support for comments (r31), and commenting out downloaded files (r32)
+ * Some bugfixes (r34, r36)
+ * Pre- and post-download custom commands (r38)
+
+=== Blockers ===
+ * Test all plugins:
+  * DataHu
+  * DepositFiles
+  * ~~Direct~~
+  * ~~EasyShare~~
+  * FastLoad
+  * FastShare
+  * HotFile
+  * Leteckaposta
+  * MediaFire
+  * OdSiebie
+  * ~~Rapidshare~~
+  * ShareBase
+  * ~~YouTube~~
+ * Verbosity level
