@@ -144,6 +144,11 @@ else {
 			next;
 		} elsif ($status == 0) {
 			warning("download failed (unknow reason)");
+			$queue->update($link, "ERROR ON CHECK");	# This is a quick-fix, the queue container should support
+									# current() and advance() functions instead of the current
+									# get(), and still advance() even if an update() did not occur,
+									# in order to support skipping $status==0 reports and retry
+									# them on a next run.
 			next;
 		}
  		
@@ -157,6 +162,8 @@ else {
 
 		} else {
 			push @failedlinks, $link;
+			$queue->update($link, "ERROR ON DOWNLOAD");
+			next;
 
 			# custom command on failed download
 			system($ccf);
