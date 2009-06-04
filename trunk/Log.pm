@@ -46,11 +46,14 @@ use Term::ANSIColor qw(:constants);
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp debug info warning error fatal);
+@EXPORT = qw(timestamp debug info warning error fatal level);
 
 # Write nicely
 use strict;
 use warnings;
+
+# Verbosity level
+my $verbosity = 3;
 
 
 #
@@ -76,35 +79,40 @@ sub timestamp {
 # Log routines
 #
 
+# Set loglevel
+sub level($) {
+	my $level = shift;
+	$verbosity = $level;
+}
+
 # Debug message
 sub debug {
-	output(GREEN, "debug", \@_);
+	output(GREEN, "debug", \@_) if ($verbosity >= 4);
 	return 0;
 }
 
 # Informative message
 sub info {
-	output(RESET, \@_);
+	output(RESET, \@_) if ($verbosity >= 3);
 	return 0;
 }
 
 # Warning
 sub warning {
-	output(YELLOW, "warning", \@_);
+	output(YELLOW, "warning", \@_) if ($verbosity >= 2);
 	return 0;
 }
 
 # Non-fatal error
 sub error {
-	output(RED, "error", \@_);
+	output(RED, "error", \@_) if ($verbosity >= 1);
 	return 0;
 }
 
 # Fatal error
 sub fatal {
-	output(RED, "fatal", \@_);
-	# TODO: call slimrat::quit
-	die();
+	output(RED, "fatal error", \@_) if ($verbosity >= 0);
+	main::quit();
 }
 
 # Return
