@@ -42,7 +42,6 @@
 
 # Packages
 use Getopt::Long;
-use Data::Dumper;
 use POSIX 'setsid';
 use Term::ANSIColor qw(:constants);
 
@@ -62,7 +61,7 @@ use warnings;
 
 # Process command-line options
 debug("processing command-line arguments");
-my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $unpack, @pass, $daemon);
+my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $daemon, $verbose, $quiet);
 GetOptions (
 		"help!"		=> \&usage,
 		"check!"	=> \$check,
@@ -70,14 +69,24 @@ GetOptions (
 		"to=s"		=> \$download_to,
 		"address=s"	=> \$address,
 		"wget=s"	=> \$wget_opts,
-		"unpack!"	=> \$unpack,
-		"pass=s@"	=> \@pass,
 		"daemon!"	=> \$daemon,
+		"verbose"	=> \$verbose,
+		"quiet"		=> \$quiet,
 );
 if(!scalar @ARGV && !$list) {
-	error("no input URLs");
-	print "\n";
 	&usage;
+	fatal("no input URLs");
+}
+
+# Apply output level settings
+if ($quiet && $verbose) {
+	fatal("cannot combine --verbose with --quiet option");
+}
+elsif ($quiet) {
+	Log::level(2);
+}
+elsif ($verbose) {
+	Log::level(4);
 }
 
 # Execute configuration
@@ -205,8 +214,10 @@ OPTIONS:
   -a | --address host|ip   bind to specified address for download
   -w | --wget              wget options, enclosed in quotes
                            slimrat -w '--limit-rate=20k' -l file-list
+  -v | --verbose           print debug messages
+  -q | --quiet             be quiet (only warnings and errors)
+
 ";
-	exit 0;
 }
 
 # Redirect check() call to the correct plugin
@@ -214,7 +225,7 @@ sub check {
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
 	my $check = eval $pluginname."::check('$link')";
-	$check ||=0;
+	$check ||= 0;
 	return $check;
 }
 
@@ -245,7 +256,7 @@ sub download {
 	}
 }
 
-# Quit the application
+# Finish
 sub quit {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;

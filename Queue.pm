@@ -41,7 +41,6 @@ package Queue;
 
 # Modules
 use Toolbox qw/indexof/;
-use Data::Dumper;
 
 # Write nicely
 use strict;

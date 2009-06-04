@@ -1,5 +1,8 @@
 2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
+    * log: added controllable verbosity level, through --verbose
+      and --quiet parameters.
+
     * queue: converted the datastructure so it properly
       supports a get() call to get the current URL, and
       an advance() call to proceed to the next URL (which
