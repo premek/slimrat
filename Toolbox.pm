@@ -41,7 +41,7 @@ package Toolbox;
 
 use Exporter;
 @ISA=qw(Exporter);
-@EXPORT=qw(dwait ptime $useragent);
+@EXPORT=qw(dwait ptime indexof $useragent);
 
 # Write nicely
 use strict;
@@ -70,5 +70,15 @@ sub ptime {
 	my ($sec,$min,$hour) = localtime;
 	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
 }
+
+# Look for the index of an item in an array (non-numeric contents)
+sub indexof {
+	my ($value, $arrayref) = (shift, shift);
+	foreach my $i (0 .. @$arrayref-1)  {
+		return $i if $$arrayref[$i] eq $value;
+	}
+	return -1;
+}
+
 
 1;
