@@ -39,6 +39,10 @@
 
 package Queue;
 
+# Modules
+use Toolbox qw/indexof/;
+use Data::Dumper;
+
 # Write nicely
 use strict;
 use warnings;
@@ -51,87 +55,59 @@ use warnings;
 sub new {
 	my $self = {
 		_file		=>	undef,
-		_manual		=>	[],
+		_queued		=>	[],
+		_processed	=>	[],
 	};
 	bless $self, 'Queue';
 	return $self;
 }
 
-# Add a single url
+# Add a single url to the queue
 sub add {
 	my ($self, $url) = @_;
-
-	push(@{$self->{_manual}}, $url);
+	
+	push(@{$self->{_queued}}, $url);
 }
 
 # Set the file
 sub file {
 	my ($self, $file) = @_;
 	
+	# Configure the file
 	$self->{_file} = $file;
+	
+	# Read a first URL
+	$self->file_read();
 }
 
-# Get an URL
-sub get {
+# Add an URL from the file to the queue
+sub file_read {
 	my ($self) = @_;
 	
-	# Check if we got manually added urls queue'd up
-	if (scalar(@{$self->{_manual}}) > 0) {
-		return shift(@{$self->{_manual}});
-	}
-	
-	# Read the file and extract an URL
-	elsif (defined($self->{_file})) {
+	if (defined($self->{_file})) {
 		open(FILE, $self->{_file});
 		while (<FILE>) {
+			# Skip things we don't want
 			next if /^#/;		# Skip comments
 			next if /^\s*$/;	# Skip blank lines
+			
+			# Process a valid URL
 			if ($_ =~ m/^\s*(\S+)\s*/) {
-				close(FILE);
-				return $1;
+				my $url = $1;
+				
+				# Only add to queue if not processed yet and not in container either
+				if ((indexof($url, $self->{_processed}) == -1) && (indexof($url, $self->{_queued}) == -1)) {
+					$self->add($url);
+					last;
+				}
 			}
 		}
 		close(FILE);
 	}
-	
-	# All url's processed
-	$self->{_empty} = 1;
-	return;
 }
-
-# Get everything (all URL at once)
-sub dump {
-	my ($self) = @_;
-	
-	my @output;
-		
-	# Manually added URL's
-	if (scalar(@{$self->{_manual}}) > 0) {
-		foreach (@{$self->{_manual}}) {
-			push(@output, $_);
-		}
-	}
-	
-	# File contents
-	if (defined($self->{file})) {
-		open(FILE, $self->{_file});
-		while (<FILE>) {
-			next if /^#/;		# Skip comments
-			next if /^\s*$/;	# Skip blank lines
-			if ($_ =~ m/^\s*(\S+)\s*/) {
-				push(@output, $1);
-			}
-		}
-		close(FILE);
-	}
-	
-	# Return reference
-	return \@output;
-}
-
 
 # Change the status of an URL (and update the file)
-sub update {
+sub file_update {
 	my ($self, $url, $status) = @_;
 	
 	# Only update if we got a file
@@ -149,6 +125,48 @@ sub update {
 		unlink $self->{_file};
 		rename $self->{_file}.".temp", $self->{_file};
 	}	
+}
+
+# Get the current url
+sub get {
+	my ($self) = @_;
+	
+	# Have we URL's queued up?
+	if (scalar(@{$self->{_queued}}) > 0) {
+		return @{$self->{_queued}}[0];
+	}
+	return;
+}
+
+# Advance to the next url
+sub advance() {
+	my ($self) = @_;
+	
+	# Move the first url from the "queued" array to the "processed" array
+	push(@{$self->{_processed}}, shift(@{$self->{_queued}}));
+	
+	# Check if we still got links in the "queued" array
+	unless ($self->get()) {
+		$self->file_read();
+	}
+}	
+
+# Get everything (all URL at once)
+# This function will empty the queue, so it should't be used 
+# in combination with other functions from the queue
+sub dump {
+	my ($self) = @_;
+	
+	my @output;
+	
+	# Add all URL's to the output
+	while (my $url = $self->get()) {
+		push(@output, $url);
+		$self->advance();
+	}
+	
+	# Return reference
+	return \@output;
 }
 
 1;

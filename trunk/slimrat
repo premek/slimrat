@@ -94,8 +94,8 @@ if($address){
 
 # Initialise a link queue
 my $queue = new Queue();
-$queue->file($list) if ($list);
 $queue->add($link) while ($link = shift);
+$queue->file($list) if ($list);
 
 # Fork in background
 if ($daemon){
@@ -135,39 +135,44 @@ else {
  	$SIG{'INT'} = 'quit';
  	while (my $link = $queue->get()) {
  		info("Downloading ", $link);
+ 		my $failure = 0;
  		
  		# Check the URL
 		my $status = check($link);
 		if ($status < 0){
 			error("download failed (dead link)");
-			$queue->update($link, "DEAD");
-			next;
-		} elsif ($status == 0) {
+			$queue->file_update($link, "DEAD");
+			$failure = 1;
+		}
+		elsif ($status == 0) {
 			warning("download failed (unknow reason)");
-			$queue->update($link, "ERROR ON CHECK");	# This is a quick-fix, the queue container should support
-									# current() and advance() functions instead of the current
-									# get(), and still advance() even if an update() did not occur,
-									# in order to support skipping $status==0 reports and retry
-									# them on a next run.
-			next;
+			$failure = 1;
 		}
  		
  		# Download the URL
-		if (download($link)) {
-			push @oklinks, $link;
-			$queue->update($link, "DONE");
+	 	elsif ($status == 1) {
+			if (download($link)) {
+				push @oklinks, $link;
+				$queue->file_update($link, "DONE");
 
-			# custom command on successful download
-			system($ccs);
+				# custom command on successful download
+				system($ccs);
 
-		} else {
+			} else {
+				$failure = 1;
+			}
+		}
+		
+		# Failure?
+		if ($failure) {
 			push @failedlinks, $link;
-			$queue->update($link, "ERROR ON DOWNLOAD");
-			next;
-
+			
 			# custom command on failed download
 			system($ccf);
 		}
+		
+		# Advance to the next URL
+		$queue->advance();
 	}
 
 	# custom command after all downloads
