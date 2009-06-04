@@ -1,0 +1,57 @@
+2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * queue: converted the datastructure so it properly
+      supports a get() call to get the current URL, and
+      an advance() call to proceed to the next URL (which
+      possibly reads from a file, skipping commented out or
+      already processed links). Fixes issue 30.
+      This makes a $status=0 (from the check() function each
+      plugin should implement) value relevant: it indicates
+      a temporary failure, so the link doesn't get commented
+      out but ignored so it can get retried upon a new session.
+    
+    * ChangeLog: added a requested changelog with most prominent
+    changes. To be kept up to date from now on.
+
+
+2009-05-20  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: introduced a helper library to ease logging. It
+      provides several functions (debug, info, warning, error,
+      fatal) to differentiate the message. The message is
+      coloured depending to the message level, but verbosity
+      settings have yet to be implemented.
+
+    * plugins: added OdSiebie and HotFile plugins.
+    
+    * relicensed to MIT-license.
+
+
+2009-05-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: added EasyShare plugin.
+
+
+2009-05-18  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added FastShare, ShareBase and DepositFiles plugins.
+
+
+2009-05-17  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added Data.hu plugin.
+
+    * slimrat: added custom commands to execute pre-download, and
+      upon failure or completion.
+
+
+2009-05-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: added backgrounding capabilities.
+
+    * plugins/Rapidshare: added interval-check.
+
+    * slimrat: support for comments in the link file.
+
+    * slimrat: downloaded links get comments out upon completion.
+
