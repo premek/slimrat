@@ -1,3 +1,9 @@
+2009-09-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: use a hash in combinaton with GetOptions instead
+      of several global variables.
+
+
 2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * log: added controllable verbosity level, through --verbose
