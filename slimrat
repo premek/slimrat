@@ -87,10 +87,10 @@ if ($options{"quiet"} && $options{"verbose"}) {
 	fatal("cannot combine --verbose with --quiet option");
 }
 elsif ($options{"quiet"}) {
-	Log::level(2);
+	level(2);
 }
 elsif ($options{"verbose"}) {
-	Log::level(4);
+	level(4);
 }
 
 # Execute configuration
@@ -248,14 +248,14 @@ sub download {
 			" \"$fileurl\"";
 
 		if(!system($command)){ #success
-			print GREEN &ptime."File downloaded", RESET, "\n\n";
+			info("file downloaded");
 			return 1;
 		} else { # wget failed
-			print RED &ptime."Download failed\n\n";
+			error("download failed");
 			return 0;
 		}
 	} else { # get fileurl failed
-		print RED &ptime."Plugin failed\n\n";
+		error("plugin failed");
 		return 0;
 	}
 }

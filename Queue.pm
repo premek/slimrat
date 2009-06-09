@@ -168,4 +168,81 @@ sub dump {
 	return \@output;
 }
 
+# Return
 1;
+
+=head1 NAME 
+
+Queue
+
+=head1 SYNOPSIS
+
+  use Queue;
+
+  # Configure a queue
+  my $queue = Queue::new();
+  $queue->add('http://test.url/file');
+  $queue->file('/tmp/urls.dat');
+  
+  # Process all URL's
+  while (my $url = $queue->get) {
+    print "Got an URL: $url\n";
+    $queue->advance();
+  }
+
+=head1 DESCRIPTION
+
+This package provides a queue-based datastructure for URLS, with additional file
+support. It behaves like you expect a queue to behave (functionality to add an URL,
+fetch the last one, remove it, and check if there are URL's available). When however
+a file has been provided, the Queue will fill itself with data from that file
+when the internal queue seems empty.
+
+The file-handling also supports duplicate URL's (which will be avoided), comments, and
+updating (= commenting out URL's with a given prefix) URL's from the file.
+
+=head1 METHODS
+
+=head2 Queue::new()
+
+This constructs a new Queue, with initially no data at all.
+
+=head2 $queue->add()
+
+This adds an URL to the back of the queue.
+
+=head2 $queue->get()
+
+This fetches the first URL from the queue, without removing it.
+
+=head2 $queue->advance()
+
+This advances to the next URL, e.g. by removing the first one, and unless there are
+still URL's queued up, fetch one from the file (if set).
+
+=head2 $queue->file()
+
+Give the queue access to a file. This also triggers a read, so if you want to priorityze
+URL's make sure they have been added before the file() call.
+
+=head2 $queue->file_read()
+
+Read a single URL from the file. Comments and already processed or enqueued URL's will be
+skipped.
+
+=head2 $queue->file_update($url, $status)
+
+Comment out a given URL, and prepend a status
+  # STATUS: url
+
+=head2 $queue->dump()
+
+Dump the contents of the queue in the form of an array. This is a one-time only function, e.g.
+it renders the queue unusable and does not attempt to preserve any state at all.
+
+=head1 AUTHOR
+
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
+

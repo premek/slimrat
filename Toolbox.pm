@@ -41,7 +41,7 @@ package Toolbox;
 
 use Exporter;
 @ISA=qw(Exporter);
-@EXPORT=qw(dwait ptime indexof $useragent);
+@EXPORT=qw(dwait indexof $useragent);
 
 # Write nicely
 use strict;
@@ -65,12 +65,6 @@ sub dwait{
 	sleep ($rem);
 }
 
-# Generate a timestamp
-sub ptime {
-	my ($sec,$min,$hour) = localtime;
-	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
-}
-
 # Look for the index of an item in an array (non-numeric contents)
 sub indexof {
 	my ($value, $arrayref) = (shift, shift);
@@ -80,5 +74,5 @@ sub indexof {
 	return -1;
 }
 
-
+# Return
 1;

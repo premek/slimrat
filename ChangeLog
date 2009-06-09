@@ -2,6 +2,11 @@
 
     * slimrat: use a hash in combinaton with GetOptions instead
       of several global variables.
+    
+    * queue: added POD documentation.
+    
+    * log: added POD documentation, and replaced some more raw prints
+      with routines from log package.
 
 
 2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
@@ -33,7 +38,7 @@
 
     * plugins: added OdSiebie and HotFile plugins.
     
-    * relicensed to MIT-license.
+    * all: relicensed to MIT-license.
 
 
 2009-05-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
