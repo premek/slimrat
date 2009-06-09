@@ -59,33 +59,37 @@ use Log;
 use strict;
 use warnings;
 
+# Global variables
+my ($link, @links, @failedlinks, @oklinks);
+
 # Process command-line options
 debug("processing command-line arguments");
-my ($list, $link, @links, $check, @failedlinks, @oklinks, $download_to, $address, $wget_opts, $daemon, $verbose, $quiet);
+my %options;
 GetOptions (
+		\%options,
 		"help!"		=> \&usage,
-		"check!"	=> \$check,
-		"list=s"	=> \$list,
-		"to=s"		=> \$download_to,
-		"address=s"	=> \$address,
-		"wget=s"	=> \$wget_opts,
-		"daemon!"	=> \$daemon,
-		"verbose"	=> \$verbose,
-		"quiet"		=> \$quiet,
+		"check!",
+		"list=s",
+		"to=s",
+		"address=s",
+		"wget=s",
+		"daemon!",
+		"verbose",
+		"quiet",
 );
-if(!scalar @ARGV && !$list) {
+if(!scalar @ARGV && !$options{"list"}) {
 	&usage;
 	fatal("no input URLs");
 }
 
 # Apply output level settings
-if ($quiet && $verbose) {
+if ($options{"quiet"} && $options{"verbose"}) {
 	fatal("cannot combine --verbose with --quiet option");
 }
-elsif ($quiet) {
+elsif ($options{"quiet"}) {
 	Log::level(2);
 }
-elsif ($verbose) {
+elsif ($options{"verbose"}) {
 	Log::level(4);
 }
 
@@ -95,24 +99,24 @@ our ($ccf, $ccs, $ccg);
 do $RealBin."/config";
 
 # Set socket local address if needed
-if($address){
+if($options{"address"}){
 	no warnings; # avoid a "name used only once" warning
-	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $address);
-	$wget_opts .= " --bind-address='$address' ";
+	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
+	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
 }
 
 # Initialise a link queue
 my $queue = new Queue();
 $queue->add($link) while ($link = shift);
-$queue->file($list) if ($list);
+$queue->file($options{"list"}) if ($options{"list"});
 
 # Fork in background
-if ($daemon){
+if ($options{"daemon"}){
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
-	$wget_opts .= " -q";	# avoid log file spam
-	$wget_opts .= " -c";	# make wget continue if file exists
+	$options{"wget"} .= " -q";	# avoid log file spam
+	$options{"wget"} .= " -c";	# make wget continue if file exists
 				# this is a temporary fix, because when slimrat receives a sig{int}
 				# when downloading, wget will continue to download the file without
 				# updating the urls-file. this can cause a file in the list to be
@@ -127,7 +131,7 @@ if ($daemon){
 info("Slimrat started");
 
 # Check URL's
-if($check) {
+if($options{"check"}) {
 	my $urls_ref = $queue->dump();
 	my @urls = @$urls_ref;
 	foreach my $link (@urls) {
@@ -224,9 +228,9 @@ OPTIONS:
 sub check {
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
-	my $check = eval $pluginname."::check('$link')";
-	$check ||= 0;
-	return $check;
+	my $status = eval $pluginname."::check('$link')";
+	$status ||= 0;
+	return $status;
 }
 
 # Redirect download() call to the correct plugin
@@ -239,8 +243,8 @@ sub download {
 	if($fileurl){ 
 		my $command = 'wget ' .
 			"-U \"$useragent\" ".
-			($wget_opts ? qq($wget_opts ) : '') .
-			($download_to? " -P \"$download_to\" " : "") .
+			($options{"wget"} ? qq($options{"wget"} ) : '') .
+			($options{"to"}? " -P \"".$options{"to"}."\" " : "") .
 			" \"$fileurl\"";
 
 		if(!system($command)){ #success
@@ -261,7 +265,7 @@ sub quit {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
 		print $_,"\n" foreach @oklinks;
-		print "to '",YELLOW, $download_to, RESET, "'\n" if ($download_to);
+		print "to '",YELLOW, $options{"to"}, RESET, "'\n" if ($options{"to"});
 	}
 	if(scalar @failedlinks){
 		print RED, "\nFAILED:\n", RESET;
