@@ -118,3 +118,90 @@ sub fatal {
 # Return
 1;
 
+__END__
+
+=head1 NAME 
+
+Log
+
+=head1 SYNOPSIS
+
+  use Log;
+
+  # Set the verbosity level to 2 (only print warnings, errors or fatal errors)
+  level(2);
+
+  # Print some messages
+  info("this is a informational message, hidden due to verbosity settings");
+  warning("something bad is going to happen");
+  fatal("and here it is");
+  error("this poor error will never be shown");
+  quit();
+
+  # Define a quit method (used by the fatal() function)
+  sub quit() {
+    exit(0);
+  }
+
+=head1 DESCRIPTION
+
+This package provides several functions to ease messaging the
+user. It differentiates several verbosity levels, and provides
+functions to log multiple types of messages. Messages get print
+or hidden depending to a globally set verbosity level.
+
+=head1 METHODS
+
+=head2 output($prefix, $optional_subject, \@messages)
+
+This is the main function of the Log module, but mustn't be used directly. It prints
+a set of messages, prefixed by $prefix (e.g. to colourize the message), and optionally
+adds in a subject notice (e.g. DEBUG, or FATAL ERROR) after having it uppercased.
+
+=head2 timestamp()
+
+This generates a timestamp, and is also mainly intended for internal use by the
+output() function.
+
+=head2 level($level)
+
+This sets the application-wide verbosity level, in which a higher level will print
+more, and a lower level less (see the actual message functions to see which type of
+message each level correlates with).
+
+=head2 debug(@messages)
+
+This prints all passed arguments as a debug message in a green colour. Verbosity level
+has to be 4 or more.
+
+=head2 info(@messages)
+
+This prints all passed arguments as an informational message in the standard colour.
+Verbosity level has to be 3 or more. This is the main function for user-output.
+
+=head2 warning(@messages)
+
+This prints all passed arguments as a warning in a red colour. Verbosity level has
+to be 2 or more. A warning indicates something awkward has happened, but it is not
+severe and the program can continue working (e.g. a suspicious URL redirect).
+
+=head2 error(@messages)
+
+This prints all passed arguments as an error in a red colour. Verbosity level has
+to be 1 or more. An error indicates something quite severe has happened, but is
+not fatal and the program can continue working without much consequences (e.g.
+a plugin has failed).
+
+=head2 fatal(@messages)
+
+This prints all passed arguments as a fatalerror in a red colour. Verbosity level has
+to be 0 or more. Such an error indicates something severe has happened, and the
+program cannot continue execution (e.g. configuration file not found). This routine
+calls the main quit() function.
+
+=head1 AUTHOR
+
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
+
