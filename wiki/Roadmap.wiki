@@ -26,18 +26,5 @@ This wiki page features the development roadmap, and stuff which has to be resol
  * Pre- and post-download custom commands (r38)
 
 === Blockers ===
- * Test all plugins:
-  * DataHu
-  * DepositFiles
-  * ~~Direct~~
-  * ~~EasyShare~~
-  * FastLoad
-  * FastShare
-  * HotFile
-  * Leteckaposta
-  * MediaFire
-  * OdSiebie
-  * ~~Rapidshare~~
-  * ShareBase
-  * ~~YouTube~~
- * Verbosity level
+ * Create a testset and test all plugins
+ * Configuration file (issue 28)
