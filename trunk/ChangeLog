@@ -1,6 +1,13 @@
 2009-09-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * Toolbox (dwait): fixed reference to ptime().
+    
+    * slimrat: added function prototypes, and enhanced the command-
+      line options handline.
+    
+    * slimrat: enhanced backgrounding support, through a state file
+      to save the PID of the daemon in, and a killswitch to kill a
+      single running instance.
 
 
 2009-09-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>

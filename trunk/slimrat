@@ -59,26 +59,68 @@ use Log;
 use strict;
 use warnings;
 
+# Function prototypes
+sub usage();
+sub check($);
+sub download($);
+sub quit();
+sub daemonize();
+sub pid_save();
+sub pid_read();
+
 # Global variables
 my ($link, @links, @failedlinks, @oklinks);
 
 # Process command-line options
+Getopt::Long::Configure("pass_through");
 debug("processing command-line arguments");
 my %options;
 GetOptions (
 		\%options,
-		"help!"		=> \&usage,
+		"help!",
 		"check!",
 		"list=s",
 		"to=s",
 		"address=s",
 		"wget=s",
 		"daemon!",
+		"kill",
 		"verbose",
 		"quiet",
 );
+
+# Check usage validity
+if (@ARGV) {
+	usage();
+	fatal("unrecognized option");
+	quit();
+}
+
+# Give the usage
+if ($options{"usage"}) {
+	usage();
+	quit();
+}
+
+# Kill an instance if requested
+if ($options{"kill"}) {
+	debug("querying state file for an instance to kill");
+	if (my $pid = pid_read()) {
+		if (kill 0, $pid) {
+			info("killing an active instance at PID $pid");
+			kill $pid, 2;
+		} else {
+			warning("no running instance found");
+		}
+	} else {
+		fatal("could not read state file");
+	}
+	quit();
+}
+
+# Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
 if(!scalar @ARGV && !$options{"list"}) {
-	&usage;
+	usage();
 	fatal("no input URLs");
 }
 
@@ -111,7 +153,7 @@ $queue->add($link) while ($link = shift);
 $queue->file($options{"list"}) if ($options{"list"});
 
 # Fork in background
-if ($options{"daemon"}){
+if ($options{"daemon"}) {
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
@@ -200,7 +242,7 @@ else {
 #
 
 # Print the usage
-sub usage {
+sub usage() {
 	print 
 "Usage: $0 [OPTION...] [LINK]...
 Slimrat downloads files from several free download providers.
@@ -212,6 +254,7 @@ EXAMPLES:
 OPTIONS:
   -h | --help              this help
   -d | --daemon            start as a daemon
+  -k | --kill              kill a single active instance
   -l | --list   filename   load links from file (one per line)
   -c | --check             only check links, don't download them
   -t | --to     directory  destination directory (where to download)
@@ -225,7 +268,7 @@ OPTIONS:
 }
 
 # Redirect check() call to the correct plugin
-sub check {
+sub check($) {
 	$link = shift;
 	my $pluginname = Plugin::get_name($link);
 	my $status = eval $pluginname."::check('$link')";
@@ -234,7 +277,7 @@ sub check {
 }
 
 # Redirect download() call to the correct plugin
-sub download {
+sub download($) {
 	$link = shift;
 
 	my $pluginname = Plugin::get_name($link);
@@ -261,7 +304,7 @@ sub download {
 }
 
 # Finish
-sub quit {
+sub quit() {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
 		print $_,"\n" foreach @oklinks;
@@ -280,17 +323,63 @@ sub quit {
 }
 
 # Fork into the background
-sub daemonize {
+sub daemonize() {
+	# Check current instances
+	if (my $pidr = pid_read()) {
+		if ($pidr && kill 0, $pidr) {	# Signal 0 doesn't do any harm
+			warning("an instance already seems to be running, you will not be able to kill _this_ instance through slimrat's kill switch");
+		}
+	} else {
+		warning("could not query state file to check for existing instances (harmless at first run)");
+	}
+	
+	# Regular daemon householding
 	chdir '/' or fatal("couldn't chdir to / ($!)");
 	open STDIN, '/dev/null' or fatal("couldn't redirect input from /dev/null ($!)");
+	
+	# Create a chile
+	defined(my $pid = fork) or fatal("couldn't fork ($!)");
+	exit if $pid;
+	debug("child has been forked off at PID $$");
+	
+	# Start a new session
+	setsid or fatal("couldn't start a new session ($!)");
+	
+	# Save the PID
+	if (!pid_save()) {
+		warning("could not write the state file -- slimrat's kill switch won't work on this instance"); # Will enter the log upon failure
+	}
+	
+	# Redirect all output
 	if (! open STDOUT, '>>/var/log/slimrat.log') { 
 		warning("couldn't redirect output to /var/log/slimrat.log ($!), going silent");
 		open STDOUT, '>>/dev/null' or fatal("couldn't redirect output from /dev/null ($!)");;
 	}
-	defined(my $pid = fork) or fatal("couldn't fork ($!)");
-	exit if $pid;
-	setsid or fatal("couldn't start a new session ($!)");
 	open STDERR, '>&STDOUT' or fatal("couldn't redirect STDERR to STDOUT ($!)");
+	
+}
+
+# Save the PID
+sub pid_save() {
+	open(WRITE, ">/var/run/slimrat.pid") || return 0;	# Open and check existance
+	return 0 unless (-w WRITE);	# Check write access
+	print WRITE $$;
+	close(WRITE);
+	return 1;
+}
+
+# Extract an PID
+sub pid_read() {
+	# Check existance and read access
+	return 0 unless (-f "/var/run/slimrat.pid" && -r "/var/run/slimrat.pid");
+	
+	# Read PID
+	open(PIDR, "/var/run/slimrat.pid");
+	my $pid = <PIDR> || return 0;
+	close(PIDR);
+	
+	return 0 if ($pid !~ /^\d+$/);	
+	return $pid;
 }
 
 __END__
