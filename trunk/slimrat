@@ -59,6 +59,9 @@ use Log;
 use strict;
 use warnings;
 
+# Register signals
+$SIG{'INT'} = 'quit';
+
 # Function prototypes
 sub usage();
 sub check($);
@@ -186,7 +189,6 @@ if($options{"check"}) {
 
 # Download URL's
 else {
- 	$SIG{'INT'} = 'quit';
  	while (my $link = $queue->get()) {
  		info("Downloading ", $link);
  		my $failure = 0;
@@ -280,6 +282,7 @@ sub download($) {
 	$link = shift;
 
 	my $pluginname = Plugin::get_name($link);
+	debug("downloading \"$link\" using the $pluginname-plugin");
 
 	my $fileurl = eval $pluginname."::download('$link')";
 	if($fileurl){ 
