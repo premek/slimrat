@@ -64,7 +64,7 @@ sub dwait{
 	$wait = $rem = shift or return;
 	$|++; # unbuffered output;
 	($sec,$min) = localtime($wait);
-	info("Waiting $min:$sec");
+	info(sprintf("Waiting %d:%02d",$min,$sec));
 	sleep($rem);
 }
 
