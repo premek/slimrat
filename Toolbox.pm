@@ -47,6 +47,9 @@ use Exporter;
 use strict;
 use warnings;
 
+# Modules
+use Log;
+
 # Fake a user agent
 our $useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Gecko/2009042316 Firefox/3.0.10";
 
@@ -61,8 +64,8 @@ sub dwait{
 	$wait = $rem = shift or return;
 	$|++; # unbuffered output;
 	($sec,$min) = localtime($wait);
-	printf(&ptime."Waiting %02d:%02d\n",$min,$sec);
-	sleep ($rem);
+	info("Waiting $min:$sec");
+	sleep($rem);
 }
 
 # Look for the index of an item in an array (non-numeric contents)
