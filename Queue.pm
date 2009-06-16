@@ -46,6 +46,7 @@ use Toolbox qw/indexof/;
 use strict;
 use warnings;
 
+
 #
 # Routines
 #
@@ -54,7 +55,7 @@ use warnings;
 sub new {
 	my $self = {
 		_file		=>	undef,
-		_queued		=>	[],
+		_queued		=>	[],	# Anonymous array
 		_processed	=>	[],
 	};
 	bless $self, 'Queue';
@@ -132,7 +133,7 @@ sub get {
 	
 	# Have we URL's queued up?
 	if (scalar(@{$self->{_queued}}) > 0) {
-		return @{$self->{_queued}}[0];
+		return $self->{_queued}->[0];
 	}
 	return;
 }
@@ -170,6 +171,8 @@ sub dump {
 
 # Return
 1;
+
+__END__
 
 =head1 NAME 
 
