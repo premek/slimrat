@@ -89,19 +89,6 @@ GetOptions (
 		"quiet",
 );
 
-# Check usage validity
-#if (@ARGV) {
-#	usage();
-#	fatal("unrecognized option");
-#	quit();
-#}
-#
-# We can't insert links at the command line with this (?) 
-# slimrat http://...
-# do we have to care about unrecognized options? ;)
-# or change the condition if the first character is '-' or not? ..?
-
-
 # Give the usage
 if ($options{"usage"}) {
 	usage();
@@ -130,6 +117,17 @@ if(!scalar @ARGV && !$options{"list"}) {
 	fatal("no input URLs");
 }
 
+# Initialise a link queue
+my $queue = new Queue();
+while ($link = shift) {
+	if ($link =~ /^\w+:\/\//) {
+		$queue->add($link);
+	} else {
+		fatal("unrecognised option \"$link\"");
+	}
+}
+$queue->file($options{"list"}) if ($options{"list"});
+
 # Apply output level settings
 if ($options{"quiet"} && $options{"verbose"}) {
 	fatal("cannot combine --verbose with --quiet option");
@@ -152,11 +150,6 @@ if($options{"address"}){
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
 	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
 }
-
-# Initialise a link queue
-my $queue = new Queue();
-$queue->add($link) while ($link = shift);
-$queue->file($options{"list"}) if ($options{"list"});
 
 # Fork in background
 if ($options{"daemon"}) {
