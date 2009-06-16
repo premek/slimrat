@@ -1,4 +1,8 @@
-2009-09-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+2009-06-16  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added UploadedTo.
+
+2009-06-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * Toolbox (dwait): fixed reference to ptime().
 
@@ -14,7 +18,7 @@
       across the system.
 
 
-2009-09-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+2009-06-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: use a hash in combinaton with GetOptions instead
       of several global variables.
