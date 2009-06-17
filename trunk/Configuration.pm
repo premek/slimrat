@@ -198,10 +198,11 @@ sub file_read($$) {
 		next unless length;
 		
 		# Get the key/value pair
-		my ($key, $value) = split(/\s*=\s*/, $_, 2);
-		
-		# Save it
-		$self->add($key, $value);
+		if (/^(.+)\s*=\s*(.+)$/) {
+			$self->add($1, $2);
+		} else {
+			warning("ignored invalid configuration file entry \"$_\"");
+		}
 	}
 	close(READ);
 }
