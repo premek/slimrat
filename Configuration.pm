@@ -178,10 +178,32 @@ sub revert($$) {
 sub protect($$) {
 	my ($self, $key) = @_;
 	if ($self->contains($key)) {
-		$self->{_items}->{$key}->mutable = 0;
+		$self->{_items}->{$key}->mutable(0);
 		return 1;
 	}
 	return 0;
+}
+
+# Read a file
+sub file_read($$) {
+	my ($self, $file) = @_;
+	open(READ, $file) || fatal("could not open configuration file \"$file\"");
+	while (<READ>) {
+		chomp;
+		
+		# Skip comments, and leading & trailing spaces
+		s/#.*//;
+		s/^\s+//;
+		s/\s+$//;
+		next unless length;
+		
+		# Get the key/value pair
+		my ($key, $value) = split(/\s*=\s*/, $_, 2);
+		
+		# Save it
+		$self->add($key, $value);
+	}
+	close(READ);
 }
 
 # Return
@@ -250,5 +272,9 @@ through a while-loop:
 
 Protect a key from further modifications (it be the values which can be modified through add(),
 or the default value which can be modified through add_default()).
+
+=head2 $config->file_read($file)
+
+Read configuration data from a given file. The file is interpreted as a set of key/value pairs.
 
 =cut=

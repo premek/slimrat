@@ -1,5 +1,8 @@
 2009-06-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
+    * configuration (file_read): implemented configuration
+      file parsing.
+
     * configuration: fixed some bugs with the struct handling,
       and made use of the configuration handler on some places
       in the main slimrat executable.
