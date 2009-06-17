@@ -46,7 +46,7 @@ use Toolbox;
 use Log;
 
 # Write nicely
-#use strict;
+use strict;
 use warnings;
 
 # A configuration item
@@ -131,9 +131,7 @@ sub add_default($$$) {
 sub get($$) {
 	my ($self, $key) = @_;
 	
-	# Check if it contains the key
-	# TODO: is this the best way to throw an error in perl? What if the user wants to specify a scalar
-	# value of 0 in the configuration, will "if ($value = $config->get(key))" fail then?
+	# Check if it contains the key (not present returns false)
 	return 0 unless ($self->contains($key));
 	
 	# Check if values available

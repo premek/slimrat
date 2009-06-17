@@ -36,8 +36,13 @@
 #
 
 
+
+#################
+# CONFIGURATION #
+#################
+
 #
-# Configuration
+# Dependancies
 #
 
 # Packages
@@ -60,6 +65,11 @@ use Configuration;
 use strict;
 use warnings;
 
+
+#
+# Essential stuff
+#
+
 # Register signals
 $SIG{'INT'} = 'quit';
 
@@ -80,10 +90,25 @@ my $config = new Configuration;
 $config->add_default("state_file", "/var/run/slimrat.pid");
 $config->add_default("log_file", "/var/log/slimrat.log");
 
-# TODO: Read configuration files into configuration handler
+# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
+if (-r "/etc/slimrat.conf") {
+	$config->file_read("/etc/slimrat.confg");
+}
+if (-r $ENV{HOME}."/.slimrat/config") {
+	$config->file_read($ENV{HOME}."/.slimrat/config");
+}
+
+
+#
+# Command-line options
+#
+
+# NOTE: this is the only section where the %options hash should be used. After this, an appropriate action
+#       should have been undertaken, or if the value is needed later on (e.g. the lists file) the value should
+#       be added to the configuration handler. This makes it possible for some entries to originate at other
+#       sources, e.g. the "daemonise" flag could be passed through CLI as well as being specified in /etc/slimrat.conf
 
 # Process command-line options
-# TODO: move some options (e.g. the verbosity level, backgrounding flag, or destination directory) to the configuration handler as well
 Getopt::Long::Configure("pass_through");
 debug("processing command-line arguments");
 my %options;
@@ -123,8 +148,21 @@ if ($options{"kill"}) {
 	quit();
 }
 
+# Options we might use later on
+$config->add("list", $options{"list"}) if ($options{"list"});
+fatal("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
+$config->add("verbosity", 2) if ($options{"quiet"});
+$config->add("verbosity", 4) if ($options{"verbose"});
+$config->add("daemon", 1) if ($options{"daemon"});
+$config->add("address", $options{"address"}) if ($options{"address"});
+
+
+#
+# Apply configuration
+#
+
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
-if(!scalar @ARGV && !$options{"list"}) {
+if (!scalar @ARGV && !$config->get("list")) {
 	usage();
 	fatal("no input URLs");
 }
@@ -138,33 +176,20 @@ while ($link = shift) {
 		fatal("unrecognised option \"$link\"");
 	}
 }
-$queue->file($options{"list"}) if ($options{"list"});
+$queue->file($config->get("list")) if ($config->get("list"));
 
-# Apply output level settings
-if ($options{"quiet"} && $options{"verbose"}) {
-	fatal("cannot combine --verbose with --quiet option");
-}
-elsif ($options{"quiet"}) {
-	level(2);
-}
-elsif ($options{"verbose"}) {
-	level(4);
-}
-
-# Execute configuration
-debug("executing configuration");
-our ($ccf, $ccs, $ccg);
-do $RealBin."/config";
+# Apply verbosity
+level($config->get("verbosity"));
 
 # Set socket local address if needed
-if($options{"address"}){
+if($config->get("address")){
 	no warnings; # avoid a "name used only once" warning
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
 	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
 }
 
 # Fork in background
-if ($options{"daemon"}) {
+if ($config->get("daemon")) {
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
@@ -177,9 +202,10 @@ if ($options{"daemon"}) {
 }
 
 
-#
-# Main
-#
+
+########
+# MAIN #
+########
 
 info("Slimrat started");
 
@@ -220,8 +246,10 @@ else {
 				push @oklinks, $link;
 				$queue->file_update($link, "DONE");
 
-				# custom command on successful download
-				system($ccs);
+				# Command after successful download
+				if (my $command = $config->get("post_download")) {
+					system($command);
+				}
 
 			} else {
 				$failure = 1;
@@ -231,25 +259,30 @@ else {
 		# Failure?
 		if ($failure) {
 			push @failedlinks, $link;
-			
-			# custom command on failed download
-			system($ccf);
+
+			# Command after failed download
+			if (my $command = $config->get("post_failure")) {
+				system($command);
+			}
 		}
 		
 		# Advance to the next URL
 		$queue->advance();
 	}
 
-	# custom command after all downloads
-	system($ccg);
+	# Command after all downloads
+	if (my $command = $config->get("post_all")) {
+		system($command);
+	}
 
 	&quit;
 }
 
 
-#
-# Routines
-#
+
+############
+# ROUTINES #
+############
 
 # Print the usage
 sub usage() {

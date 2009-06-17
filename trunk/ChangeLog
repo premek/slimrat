@@ -1,5 +1,8 @@
 2009-06-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
+    * slimrat: implemented the use of the brand new configuration
+      handler.
+
     * configuration (file_read): implemented configuration
       file parsing, with support for mutable as well as
       immutable entries.
