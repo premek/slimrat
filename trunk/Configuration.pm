@@ -198,8 +198,9 @@ sub file_read($$) {
 		next unless length;
 		
 		# Get the key/value pair
-		if (/^(.+)\s*=\s*(.+)$/) {
-			$self->add($1, $2);
+		if (/^(.+?)\s*(=+)\s*(.+?)$/) {		# The extra "?" makes perl prefer a shorter match (to avoid "\w " keys)
+			$self->add($1, $3);
+			$self->protect($1) if (length($2) >= 2);
 		} else {
 			warning("ignored invalid configuration file entry \"$_\"");
 		}
@@ -277,5 +278,7 @@ or the default value which can be modified through add_default()).
 =head2 $config->file_read($file)
 
 Read configuration data from a given file. The file is interpreted as a set of key/value pairs.
+Pairs separated by a single '=' indicate mutable entries, while a double '==' means the entry
+shall be protected and thus immutable.
 
 =cut=
