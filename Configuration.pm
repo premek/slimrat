@@ -71,7 +71,7 @@ sub init($$) {
 	}
 	
 	my $item = new Item;
-	$item->{mutable} = 1;
+	$item->mutable(1);
 	
 	$self->{_items}->{$key} = $item;
 	
@@ -82,7 +82,7 @@ sub init($$) {
 sub items($$) {
 	my ($self, $key) = @_;
 	return -1 unless ($self->contains($key));
-	return scalar(@{$self->{_items}->{$key}->{values}});
+	return scalar(@{$self->{_items}->{$key}->values});
 }
 
 
@@ -102,7 +102,7 @@ sub new {
 # Check if the configuration contains a specific key
 sub contains($$) {
 	my ($self, $key) = @_;
-	if ($self->{_items}->{$key}) {
+	if (exists $self->{_items}->{$key}) {
 		return 1;
 	} else {
 		return 0;
@@ -115,7 +115,7 @@ sub add_default($$$) {
 	
 	# Check if key contains
 	if ($self->contains($key)) {
-		if (! $self->{_items}->{$key}->{mutable}) {
+		if (! $self->{_items}->{$key}->mutable) {
 			warning("attempt to change default value of protected key \"$key\"");
 			return 0;
 		}
@@ -124,7 +124,7 @@ sub add_default($$$) {
 	}
 	
 	# Update the default value
-	$self->{_items}->{$key}->{default} = $value;
+	$self->{_items}->{$key}->default($value);
 }
 
 # Get a value
@@ -138,9 +138,9 @@ sub get($$) {
 	
 	# Check if values available
 	if ($self->items($key) > 0) {
-		return $self->{_items}->{$key}->{values}->[-1];
+		return $self->{_items}->{$key}->values->[-1];
 	} else {
-		return $self->{_items}->{$key}->{default};
+		return $self->{_items}->{$key}->default;
 	}
 }
 
@@ -154,13 +154,13 @@ sub add($$$) {
 	}
 	
 	# Check if mutable
-	if (! $self->{_items}->{$key}->{mutable}) {
+	if (! $self->{_items}->{$key}->mutable) {
 		warning("attempt to modify protected key \"$key\"");
 		return 0;
 	}
 	
 	# Modify value
-	push(@{$self->{_items}->{$key}->{values}}, $value);
+	push(@{$self->{_items}->{$key}->values}, $value);
 	return 1;
 }
 
@@ -168,7 +168,7 @@ sub add($$$) {
 sub revert($$) {
 	my ($self, $key) = @_;
 	if ($self->items($key) > 0) {
-		pop(@{$self->{_items}->{$key}->{values}});
+		pop(@{$self->{_items}->{$key}->values});
 		return 1;
 	}
 	return 0;
@@ -178,7 +178,7 @@ sub revert($$) {
 sub protect($$) {
 	my ($self, $key) = @_;
 	if ($self->contains($key)) {
-		$self->{_items}->{$key}->{mutable} = 0;
+		$self->{_items}->{$key}->mutable = 0;
 		return 1;
 	}
 	return 0;

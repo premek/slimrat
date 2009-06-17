@@ -54,6 +54,7 @@ use Plugin;
 use Toolbox;
 use Queue;
 use Log;
+use Configuration;
 
 # Write nicely
 use strict;
@@ -74,7 +75,15 @@ sub pid_read();
 # Global variables
 my ($link, @links, @failedlinks, @oklinks);
 
+# Initialise configuration handler and configure default values
+my $config = new Configuration;
+$config->add_default("state_file", "/var/run/slimrat.pid");
+$config->add_default("log_file", "/var/log/slimrat.log");
+
+# TODO: Read configuration files into configuration handler
+
 # Process command-line options
+# TODO: move some options (e.g. the verbosity level, backgrounding flag, or destination directory) to the configuration handler as well
 Getopt::Long::Configure("pass_through");
 debug("processing command-line arguments");
 my %options;
@@ -339,7 +348,7 @@ sub daemonize() {
 	chdir '/' or fatal("couldn't chdir to / ($!)");
 	open STDIN, '/dev/null' or fatal("couldn't redirect input from /dev/null ($!)");
 	
-	# Create a chile
+	# Create a child
 	defined(my $pid = fork) or fatal("couldn't fork ($!)");
 	exit if $pid;
 	debug("child has been forked off at PID $$");
@@ -353,8 +362,9 @@ sub daemonize() {
 	}
 	
 	# Redirect all output
-	if (! open STDOUT, '>>/var/log/slimrat.log') { 
-		warning("couldn't redirect output to /var/log/slimrat.log ($!), going silent");
+	my $log_file = $config->get("log_file");
+	if (! open STDOUT, ">>$log_file") { 
+		warning("couldn't redirect output to \"$log_file\" ($!), going silent");
 		open STDOUT, '>>/dev/null' or fatal("couldn't redirect output from /dev/null ($!)");;
 	}
 	open STDERR, '>&STDOUT' or fatal("couldn't redirect STDERR to STDOUT ($!)");
@@ -363,8 +373,9 @@ sub daemonize() {
 
 # Save the PID
 sub pid_save() {
-	open(WRITE, ">/var/run/slimrat.pid") || return 0;	# Open and check existance
-	return 0 unless (-w WRITE);	# Check write access
+	my $state_file = $config->get("state_file");
+	open(WRITE, ">$state_file") || return 0;	# Open and check existance
+	return 0 unless (-w WRITE);			# Check write access
 	print WRITE $$;
 	close(WRITE);
 	return 1;
@@ -373,10 +384,11 @@ sub pid_save() {
 # Extract an PID
 sub pid_read() {
 	# Check existance and read access
-	return 0 unless (-f "/var/run/slimrat.pid" && -r "/var/run/slimrat.pid");
+	my $state_file = $config->get("state_file");
+	return 0 unless (-f $state_file && -r $state_file);
 	
 	# Read PID
-	open(PIDR, "/var/run/slimrat.pid");
+	open(PIDR, $state_file);
 	my $pid = <PIDR> || return 0;
 	close(PIDR);
 	
