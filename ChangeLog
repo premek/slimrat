@@ -1,4 +1,4 @@
-2009-06-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+2009-06-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * configuration (file_read): implemented configuration
       file parsing.
