@@ -92,10 +92,10 @@ $config->add_default("log_file", "/var/log/slimrat.log");
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
-	$config->file_read("/etc/slimrat.config");
+	$config->file_read("/etc/slimrat.conf");
 }
-if (-r $ENV{HOME}."/.slimrat/config") {
-	$config->file_read($ENV{HOME}."/.slimrat/config");
+if (-r $ENV{HOME}."/.slimrat/conf") {
+	$config->file_read($ENV{HOME}."/.slimrat/conf");
 }
 
 
@@ -155,6 +155,8 @@ $config->add("verbosity", 2) if ($options{"quiet"});
 $config->add("verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
 $config->add("address", $options{"address"}) if ($options{"address"});
+$config->add("wget", $options{"wget"}) if ($options{"wget"});
+$config->add("to", $config->get("to")) if ($config->get("to"));
 
 
 #
@@ -193,12 +195,13 @@ if ($config->get("daemon")) {
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
-	$options{"wget"} .= " -q";	# avoid log file spam
-	$options{"wget"} .= " -c";	# make wget continue if file exists
-				# this is a temporary fix, because when slimrat receives a sig{int}
-				# when downloading, wget will continue to download the file without
-				# updating the urls-file. this can cause a file in the list to be
-				# already downloaded, and to avoid wget redownload it we use this -c flag
+	$config->add("wget", $config->get("wget") . "-q -c");
+	# avoid log file spam and  make wget continue if file exists
+	# this is a temporary fix, because when slimrat receives a sig{int}
+	# when downloading, wget will continue to download the file without
+	# updating the urls-file. this can cause a file in the list to be
+	# already downloaded, and to avoid wget redownload it we use this -c flag
+	# Nasty code, but will be removed later on
 }
 
 
@@ -330,8 +333,8 @@ sub download($) {
 	if($fileurl){ 
 		my $command = 'wget ' .
 			"-U \"$useragent\" ".
-			($options{"wget"} ? qq($options{"wget"} ) : '') .
-			($options{"to"}? " -P \"".$options{"to"}."\" " : "") .
+			($config->get("wget") ? qq($config->get("wget") ) : '') .
+			($config->get("to")? " -P \"".$config->get("to")."\" " : "") .
 			" \"$fileurl\"";
 
 		if(!system($command)){ #success
@@ -352,7 +355,7 @@ sub quit() {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
 		print $_,"\n" foreach @oklinks;
-		print "to '",YELLOW, $options{"to"}, RESET, "'\n" if ($options{"to"});
+		print "to '",YELLOW, $config->get("to"), RESET, "'\n" if ($config->get("to"));
 	}
 	if(scalar @failedlinks){
 		print RED, "\nFAILED:\n", RESET;
