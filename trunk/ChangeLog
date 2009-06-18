@@ -1,3 +1,9 @@
+2009-06-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration: removed the revert() functionality, but
+      added support for a key with multiple values.
+
+
 2009-06-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: implemented the use of the brand new configuration
