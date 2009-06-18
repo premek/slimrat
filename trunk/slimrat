@@ -90,6 +90,7 @@ my $config = new Configuration;
 $config->add_default("state_file", "/var/run/slimrat.pid");
 $config->add_default("log_file", "/var/log/slimrat.log");
 $config->add_default("mode", "download");
+$config->add_default("verbosity", 3);
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
