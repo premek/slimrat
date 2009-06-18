@@ -89,6 +89,7 @@ my ($link, @links, @failedlinks, @oklinks);
 my $config = new Configuration;
 $config->add_default("state_file", "/var/run/slimrat.pid");
 $config->add_default("log_file", "/var/log/slimrat.log");
+$config->add_default("mode", "download");
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
@@ -147,6 +148,9 @@ if ($options{"kill"}) {
 	}
 	quit();
 }
+
+# Mode (e.g. what slimrat should do)
+$config->add("mode", "check") if ($options{"check"});
 
 # Options we might use later on
 $config->add("list", $options{"list"}) if ($options{"list"});
@@ -212,8 +216,11 @@ if ($config->get("daemon")) {
 
 info("Slimrat started");
 
-# Check URL's
-if($options{"check"}) {
+#
+# Check
+#
+
+if ($config->get("mode") eq "check") {
 	my $urls_ref = $queue->dump();
 	my @urls = @$urls_ref;
 	foreach my $link (@urls) {
@@ -225,8 +232,12 @@ if($options{"check"}) {
 	}
 }
 
-# Download URL's
-else {
+
+#
+# Download
+#
+
+elsif ($config->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
  		info("Downloading ", $link);
  		my $failure = 0;
@@ -279,6 +290,15 @@ else {
 	}
 
 	&quit;
+}
+
+
+#
+# Other
+#
+
+else {
+	fatal("unrecognised mode");
 }
 
 
