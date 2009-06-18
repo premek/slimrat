@@ -94,8 +94,8 @@ $config->add_default("log_file", "/var/log/slimrat.log");
 if (-r "/etc/slimrat.conf") {
 	$config->file_read("/etc/slimrat.conf");
 }
-if (-r $ENV{HOME}."/.slimrat/conf") {
-	$config->file_read($ENV{HOME}."/.slimrat/conf");
+if (-r $ENV{HOME}."/.slimrat/config") {
+	$config->file_read($ENV{HOME}."/.slimrat/config");
 }
 
 

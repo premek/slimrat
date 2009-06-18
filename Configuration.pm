@@ -78,13 +78,6 @@ sub init($$) {
 	return 1;
 }
 
-# Get the amount of stacked up items
-sub items($$) {
-	my ($self, $key) = @_;
-	return -1 unless ($self->contains($key));
-	return scalar(@{$self->{_items}->{$key}->values});
-}
-
 
 #
 # Routines
@@ -128,17 +121,28 @@ sub add_default($$$) {
 }
 
 # Get a value
-sub get($$) {
-	my ($self, $key) = @_;
+sub get {	# Non-prototypes, as it can take 1 as well as 2 arguments
+	my ($self, $key, $index) = @_;
 	
 	# Check if it contains the key (not present returns false)
 	return 0 unless ($self->contains($key));
 	
-	# Check if values available
-	if ($self->items($key) > 0) {
-		return $self->{_items}->{$key}->values->[-1];
-	} else {
-		return $self->{_items}->{$key}->default;
+	# Index specified?
+	if ($index) {
+		if ($index == -1) {
+			return $self->{_items}->{$key}->default;
+		} else {
+			return $self->{_items}->{$key}->values->[$index];
+		}
+	}
+	
+	# Index not specified
+	else {
+		if ($self->count($key) > 0) {
+			return $self->{_items}->{$key}->values->[-1];
+		} else {
+			return $self->{_items}->{$key}->default;
+		}
 	}
 }
 
@@ -162,16 +166,6 @@ sub add($$$) {
 	return 1;
 }
 
-# Revert a value
-sub revert($$) {
-	my ($self, $key) = @_;
-	if ($self->items($key) > 0) {
-		pop(@{$self->{_items}->{$key}->values});
-		return 1;
-	}
-	return 0;
-}
-
 # Protect an item
 sub protect($$) {
 	my ($self, $key) = @_;
@@ -180,6 +174,13 @@ sub protect($$) {
 		return 1;
 	}
 	return 0;
+}
+
+# Get the amount of stacked up items
+sub count($$) {
+	my ($self, $key) = @_;
+	return -1 unless ($self->contains($key));
+	return scalar(@{$self->{_items}->{$key}->values});
 }
 
 # Read a file
@@ -246,27 +247,26 @@ default value, so one can still access the default value (and all previousely en
 values!) after adding a new value through this routine.
 If nonexistant, the item gets created, by default mutable with "undef" as default value.
 
+=head2 $config->count($key)
+
+Get the amount of saved values for a specific key. This excludes the default value, and only
+lists manually added values (through add(), or indirectly through file_read()).
+
 =head2 $config->get($key)
 
 Return the value for a specific key. Returns 0 if not found, and if found but no values
 are found it returns the default value (which is "undef" if not specified).
 
+=head2 $config->get($key, $index)
+
+This returns a specific value, which can be used in case of multiple values corresponding
+with a single key. Use the count() function to know the amount of values.
+Special index -1 returns the default value.
+
 =head2 $config->contains($key)
 
 Check whether a specific key has been entered in the configuration (albeit by default
 or customized value).
-
-=head2 $config->revert($key)
-
-Revert values, up to when no values are available no more upon which the fucnction returns 0.
-This can be used by specifying a valid default value, and looping the manually specified values
-through a while-loop:
-  my $number = $config->get("number");
-  while ($number !~ /^\d$/) {
-  	$config->revert("number") || die("no valid number found");
-  	$number = $config->get("number");
-  }
-  print "Number is $number\n";
 
 =head2 $config->protect($key)
 
