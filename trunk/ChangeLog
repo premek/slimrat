@@ -1,3 +1,13 @@
+2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: added documentation, and used Pod::Usage to
+      generate a --help and --man dialog based on that
+      documentation.
+    
+    * log (usage): added a new reporting function which
+      indicates invalid usage.
+
+
 2009-06-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * configuration: removed the revert() functionality, but

@@ -46,7 +46,7 @@ use Term::ANSIColor qw(:constants);
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp debug info warning error fatal level);
+@EXPORT = qw(timestamp debug info warning error usage fatal level);
 
 # Write nicely
 use strict;
@@ -109,7 +109,14 @@ sub error {
 	return 0;
 }
 
-# Fatal error
+# Usage error
+sub usage {
+	output(YELLOW, "invalid usage", \@_) if ($verbosity >= 1);
+	output(RESET, ["Try `$0 --help` or `$0 --man` for more information"]);
+	main::quit();
+}
+
+# Fatal runtime error
 sub fatal {
 	output(RED, "fatal error", \@_) if ($verbosity >= 0);
 	main::quit();
