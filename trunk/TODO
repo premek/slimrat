@@ -14,3 +14,6 @@
   - Support for loading a specific configuration file through parameters
   - Statusbar
   - Use ~/.slimrat/log for all output, unless overriden to /var/log/. Also always log everything.
+  - Implement variables in configuration parsing, including "~" for home and $error for post_failure
+    (same with ./)
+
