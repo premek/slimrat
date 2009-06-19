@@ -50,7 +50,7 @@ use Gtk2::GladeXML;
 use Glib qw(TRUE FALSE);
 use Gtk2::SimpleList;
 use File::Basename;
-use Clipboard;
+use Clipboard;
 # Find root for custom packages
 use FindBin qw($RealBin);
 use lib $RealBin;
@@ -102,7 +102,7 @@ my $gui = Gtk2::GladeXML->new($config->get("glade_file"), 'mainWindow');
 $gui->signal_autoconnect_from_package('main');
 
 # Treeview
-use constant { # pořadí sloupečků;
+use constant {
 	COL_STATUS	=> 0,
 	COL_PASS	=> 3,
 	COL_TYPE	=> 1,
@@ -116,16 +116,16 @@ my $slist = Gtk2::SimpleList->new(
 	'Link'		=> 'text',
 	'Pass'		=> 'text',
 );
-$slist->get_column(COL_PASS)->set_visible(0); ## pak dat pryc;
+$slist->get_column(COL_PASS)->set_visible(0);
 $slist->get_selection->set_mode ('multiple');
 $slist->get_column($_)->set_resizable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK, COL_PASS);
 $slist->get_column($_)->set_reorderable(1) foreach (COL_STATUS, COL_TYPE, COL_LINK, COL_PASS);
 $slist->set_column_editable ($_, TRUE) foreach (COL_LINK, COL_PASS);
 $slist->set_search_column(COL_LINK);
-$slist->set_search_equal_func(sub { # vyhledávání i podle shody uprostřed řetězce (ne jen na začátku)
+$slist->set_search_equal_func(sub { # search (as-you-type) links in the list not only at the beginning of the string but also in the middle of the string
 	my($store,$col,$pat,$iter)=@_;
-	return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # ošetřit!
-	return $store->get($iter,$col)!~m/$pat/i;
+#return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # what is this?
+	return $store->get($iter,$col) !~ m/$pat/i;
 });
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
@@ -192,6 +192,11 @@ sub move_item {
 	$slist->select($to);
 }
 
+# Select all
+sub select_all {
+	$slist->select($_) foreach (0 .. (scalar @{$slist->{data}})-1);
+}
+
 
 #
 # Key handling
@@ -238,34 +243,32 @@ sub on_btnStart1_clicked {
 	}
 	my $command = sprintf $config->get("terminal"), "$RealBin/slimrat -l '".$config->get("queue_file"). "' -t '$download_to' $unpack";
 	system($command);
-# spustí cli verzi v xtermu a předá soubor do kterého si gui ukládá seznam;
-# slimrat si hned po spuštění přečte celej soubor a zapamatuje si všechny odkazy takže se ten soubor pak může hned zase měnit.;
 	&quit;
 }
 
-# Check URLs
+# Check selected URLs
+# if no link selected, check all
+# DEAD links will remain SELECTED (do we want this? or do we want to keep the selection?)
 sub on_btnCheck_clicked {
-# kontrola vybranych radku - oznaceny zustanou jen mrtve (chceme to? nechceme radsi zachovat vyber?)
-	if(scalar $slist->get_selected_indices > 0){
-		foreach my $rownum ($slist->get_selected_indices){
-			my $row = @{$slist->{data}}[$rownum];
-			my $link = @{$row}[COL_LINK];
-			my $pluginname = Plugin::get_name($link);
-			my $check = eval $pluginname."::check('$link')";
-			my $ico;
-			if($check>0) { #live
-				$ico="gtk-yes";
-				$slist->unselect($rownum);
-			} elsif($check<0) { # dead
-				$ico="gtk-no";
-				$slist->select($rownum);
-			} else { #?
-				$ico="gtk-dialog-question";
-				$slist->unselect($rownum);
-			}
-			$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
-			$rownum++;
+	select_all() if(scalar $slist->get_selected_indices == 0);
+	foreach my $rownum ($slist->get_selected_indices){
+		my $row = @{$slist->{data}}[$rownum];
+		my $link = @{$row}[COL_LINK];
+		my $pluginname = Plugin::get_name($link);
+		my $check = eval $pluginname."::check('$link')";
+		my $ico;
+		if($check>0) { #live
+			$ico="gtk-yes";
+			$slist->unselect($rownum);
+		} elsif($check<0) { # dead
+			$ico="gtk-no";
+			$slist->select($rownum);
+		} else { #?
+			$ico="gtk-dialog-question";
+			$slist->unselect($rownum);
 		}
+		$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
+		$rownum++;
 	}
 }
 
@@ -296,7 +299,7 @@ sub on_btnRemove1_clicked{
 
 # Remove all
 sub on_btnRemoveAll_clicked{
-	$slist->select($_) foreach (0 .. (scalar @{$slist->{data}})-1);
+	select_all();
 	&on_btnRemove1_clicked;
 }
 
