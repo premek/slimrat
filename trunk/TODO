@@ -1,0 +1,16 @@
+# GENERAL #
+
+  - Translate comments to English
+
+
+# VERSION SPECIFIC #
+
+* 0.9.6
+  - Replace `wget` by pure-perl solution (LWP)
+  - Split `slimrat` into `slimrat-cli` and `slimrat-common.pm`, and make `slimrat-gui` use those
+    common methods instead of invoking `slimrat(-cli)`
+  - Implement some "save queue" and "load queue" methods in Queue.pm, which should take care of
+    manually added URLs as well as loaded file queue's.
+  - Support for loading a specific configuration file through parameters
+  - Statusbar
+  - Use ~/.slimrat/log for all output, unless overriden to /var/log/. Also always log everything.
