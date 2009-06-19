@@ -31,7 +31,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal <premysl.vyhnal gmail com> 
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
@@ -49,6 +49,7 @@
 use Getopt::Long;
 use POSIX 'setsid';
 use Term::ANSIColor qw(:constants);
+use Pod::Usage;
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -74,7 +75,6 @@ use warnings;
 $SIG{'INT'} = 'quit';
 
 # Function prototypes
-sub usage();
 sub check($);
 sub download($);
 sub quit();
@@ -117,6 +117,7 @@ my %options;
 GetOptions (
 		\%options,
 		"help!",
+		"man!",
 		"check!",
 		"list=s",
 		"to=s",
@@ -128,9 +129,12 @@ GetOptions (
 		"quiet",
 );
 
-# Give the usage
-if ($options{"usage"}) {
-	usage();
+# Give the usage or manual
+if ($options{"man"}) {
+	pod2usage(-verbose => 2);
+	quit();
+} elsif ($options{"help"}) {
+	pod2usage(-verbose => 1);
 	quit();
 }
 
@@ -155,7 +159,7 @@ $config->add("mode", "check") if ($options{"check"});
 
 # Options we might use later on
 $config->add("list", $options{"list"}) if ($options{"list"});
-fatal("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
+usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
 $config->add("verbosity", 2) if ($options{"quiet"});
 $config->add("verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
@@ -170,8 +174,7 @@ $config->add("to", $config->get("to")) if ($config->get("to"));
 
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
 if (!scalar @ARGV && !$config->get("list")) {
-	usage();
-	fatal("no input URLs");
+	usage("no input URLs");
 }
 
 # Initialise a link queue
@@ -180,7 +183,7 @@ while ($link = shift) {
 	if ($link =~ /^\w+:\/\//) {
 		$queue->add($link);
 	} else {
-		fatal("unrecognised option \"$link\"");
+		usage("unrecognised option \"$link\"");
 	}
 }
 $queue->file($config->get("list")) if ($config->get("list"));
@@ -299,7 +302,7 @@ elsif ($config->get("mode") eq "download") {
 #
 
 else {
-	fatal("unrecognised mode");
+	usage("unrecognised mode");
 }
 
 
@@ -307,32 +310,6 @@ else {
 ############
 # ROUTINES #
 ############
-
-# Print the usage
-sub usage() {
-	print 
-"Usage: $0 [OPTION...] [LINK]...
-Slimrat downloads files from several free download providers.
-
-EXAMPLES:
-   $0 http://rapidshare.com/files/012345678/somefile.xxx
-   $0 -l urls.dat -d
-		
-OPTIONS:
-  -h | --help              this help
-  -d | --daemon            start as a daemon
-  -k | --kill              kill a single active instance
-  -l | --list   filename   load links from file (one per line)
-  -c | --check             only check links, don't download them
-  -t | --to     directory  destination directory (where to download)
-  -a | --address host|ip   bind to specified address for download
-  -w | --wget              wget options, enclosed in quotes
-                           slimrat -w '--limit-rate=20k' -l file-list
-  -v | --verbose           print debug messages
-  -q | --quiet             be quiet (only warnings and errors)
-
-";
-}
 
 # Redirect check() call to the correct plugin
 sub check($) {
@@ -455,4 +432,81 @@ sub pid_read() {
 
 __END__
 
-Some documentation?
+# Print the usage
+
+=head1 NAME
+
+slimrat-cli
+
+=head1 VERSION
+
+0.9.4-99
+
+=head1 DESCRIPTION
+
+  Command-line download manager, capable of downloading files from
+  several free download providers
+
+=head1 SYNOPSIS
+
+  slimrat [OPTION...] [LINK]...
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+  Prints a summary how to use the client.
+
+=item B<--man>
+
+  Prints a manual how to use the client.
+
+=item B<--daemon>
+
+  Makes slimrat work in the background, by properly forking and redirecting
+  the output to a specified logfile.
+
+=item B<--kill>
+
+  Kills a single active client (the first one started), by looking up the
+  PID in a predefined state file.
+
+=item B<--list>
+
+  Uses te given file as a queue-file containing URLs.
+
+=item B<--check>
+
+  Do not download the loaded URLs, just check them.
+
+=item B<--to>
+
+  Specifies the target directory for the downloaded files.
+
+=item B<--address>
+
+  Makes the download client bind to a specific address.
+
+=item B<--wget>
+
+  Used to pass additional options to the used wget client.
+
+=item B<--verbose>
+
+  Makes slimrat more verbose, printing debug messages.
+
+=item B<--quiet>
+
+  Makes slimrat less verbose, only displaying errors and warnings.
+
+=back
+
+=head1 EXAMPLES
+
+  slimrat http://rapidshare.com/files/012345678/somefile.xxx
+  slimrat -l urls.dat -dz
+
+=cut
+
