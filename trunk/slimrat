@@ -361,7 +361,7 @@ sub quit() {
 	}
 	info("Slimrat finished");
 	
-	# todo: kill any active wget instance
+	# TODO: kill any active wget instance
 	
 	# hard exit, for when &quit gets called out of sig{int}
 	exit(0);
