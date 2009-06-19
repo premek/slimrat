@@ -1,5 +1,8 @@
 2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
+    * slimrat-gui: refactored the code, and ported some parts
+      to the configuration handler.
+
     * slimrat: added documentation, and used Pod::Usage to
       generate a --help and --man dialog based on that
       documentation.
