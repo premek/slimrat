@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - direct downloading plugin
 #
 # Copyright (c) 2008 Přemek Vyhnal

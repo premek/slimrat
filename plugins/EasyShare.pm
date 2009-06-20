@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - Easy-Share plugin
 #
 # Copyright (c) 2009 Tim Besard

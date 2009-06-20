@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - UploadedTo plugin
 #
 # Copyright (c) 2009 Přemek Vyhnal

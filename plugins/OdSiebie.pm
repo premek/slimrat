@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - OdSiebie plugin
 #
 # Copyright (c) 2009 Yunnan

@@ -1,7 +1,6 @@
-# slimrat - FastLoad plugin
+# slimrat - Magaupload plugin
 #
-# Copyright (c) 2008 Tomasz Gągor
-# Copyright (c) 2009 Tim Besard
+# Copyright (c) 2009 Přemek Vyhnal
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -29,12 +28,11 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Tomasz Gągor <timor o2 pl>
-#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#    Přemek Vyhnal
 #
 
 # Package name
-package FastLoad;
+package Megaupload;
 
 # Modules
 use Log;
@@ -53,37 +51,53 @@ my $mech = WWW::Mechanize->new('agent'=>$useragent);
 #   0: don't know
 sub check {
 	my $res = $mech->get(shift);
-	if ($res->is_success) {
-		if ($res->decoded_content =~ m/name="fid" value/) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
+	return -1 if ($res->is_success && $res->decoded_content =~ m#link you have clicked is not available#);
+	return 1 if($res->decoded_content =~ m#gencap.php#);
 	return 0;
 }
 
 sub download {
 	my $file = shift;
+	my $res;
 
-	my $res = $mech->get($file);
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	
-	$_ = $res->content."\n";
-	
-	# Extract filename
-	my ($fname) = m/<span style="font-color:grey; font-weight:normal; font-size:8pt;">(.+?)<\/span>/s;
-	if (!$fname) { error("plugin failure (could not find file name)"); return 0;}
-	
-	# Extract file ID
-	my ($fid) = m/name="fid" value="(\w+)"/sm;
-	if (!$fid) { error("plugin failure (could not find file ID)"); return 0;}
-	
-	# Generate the download URL
-	my $download = "http://www.fast-load.net/download.php\" --post-data \"id=".$fid."\" -O \"".$fname;
+	do {
+		$res = $mech->get($file);
+		return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+
+		$_ = $res->decoded_content;
+
+		#if(my($minutes) = m#Or wait (\d+) minutes!#) { error("Your Free-Traffic is exceeded, wait $minutes minutes."); return 0; }
+
+		# Download & view captcha image
+		my ($captchaimg) = m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
+		return error("can't get captcha image") unless ($captchaimg);
+		
+		system("wget '$captchaimg' -O mu-captcha.tmp");
+		# hmm, hm...
+		system("asciiview -kbddriver stdin -driver stdout mu-captcha.tmp"); # TODO config
+		unlink("mu-captcha.tmp");
+
+		# Ask the user
+		print "Captcha? ";
+		my $captcha = <>;
+		chomp $captcha;
+
+		# submit captcha form
+		$res = $mech->submit_form( with_fields => { captcha => $captcha });
+		return 0 unless ($res->is_success);
+	} while ($res->decoded_content !~ m#downloadlink#);
+
+	# Wait
+	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
+	info("Now we can wait for $wait seconds, but we don't have to.");
+	#dwait ($wait);
+
+	# Get download url
+	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;
+
 	return $download;
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fast-load.net");
+Plugin::register(__PACKAGE__,"^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");
 
 1;

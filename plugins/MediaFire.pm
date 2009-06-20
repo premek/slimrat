@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - MediaFire plugin
 #
 # Copyright (c) 2008 Tomasz Gągor
