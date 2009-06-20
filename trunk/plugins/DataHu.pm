@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - DataHU plugin
 #
 # Copyright (c) 2009 Gabor Bognar

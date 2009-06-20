@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - YouTube plugin
 #
 # Copyright (c) 2008 Přemek Vyhnal
