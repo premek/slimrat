@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - several frequently-used subroutines
 #
 # Copyright (c) 2008-2009 Přemek Vyhnal

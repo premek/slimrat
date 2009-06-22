@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - configuration handling
 #
 # Copyright (c) 2009 Tim Besard
