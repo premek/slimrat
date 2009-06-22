@@ -249,12 +249,12 @@ elsif ($config->get("mode") eq "download") {
  		# Check the URL
 		my $status = check($link);
 		if ($status < 0){
-			error("download failed (dead link)");
+			error("check failed (dead link)");
 			$queue->file_update($link, "DEAD");
 			$failure = 1;
 		}
 		elsif ($status == 0) {
-			warning("download failed (unknow reason)");
+			warning("check failed (unknown reason)");
 			$failure = 1;
 		}
  		

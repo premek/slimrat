@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - log messages infrastructure
 #
 # Copyright (c) 2009 Tim Besard

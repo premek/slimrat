@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # slimrat - URL queue datastructure
 #
 # Copyright (c) 2009 Tim Besard
@@ -115,7 +113,7 @@ sub file_update {
 		open (FILE, $self->{_file});
 		open (FILE2, ">".$self->{_file}.".temp");
 		while(<FILE>) {
-			if (!/^#/ && /$url/) {
+			if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
 				print FILE2 "# ".$status.": ";
 			}
 			print FILE2 $_;

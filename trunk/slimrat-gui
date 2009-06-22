@@ -124,8 +124,7 @@ $slist->set_column_editable ($_, TRUE) foreach (COL_LINK, COL_PASS);
 $slist->set_search_column(COL_LINK);
 $slist->set_search_equal_func(sub { # search (as-you-type) links in the list not only at the beginning of the string but also in the middle of the string
 	my($store,$col,$pat,$iter)=@_;
-#return 1 if($pat =~ m/[^-a-z0-9:_&?=.\/]+/im); # what is this?
-	return $store->get($iter,$col) !~ m/$pat/i;
+	return $store->get($iter,$col) !~ m/\Q$pat\E/i;
 });
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;

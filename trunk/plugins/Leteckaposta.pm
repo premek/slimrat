@@ -48,6 +48,15 @@ use warnings;
 my $ua = LWP::UserAgent->new;
 $ua->agent($useragent);
 
+
+
+sub check {
+	my $res = $ua->get(shift);
+	return -1 unless ($res->is_success);
+	return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
+	return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+}
+
 sub download {
 	my $file = shift;
 
@@ -55,9 +64,11 @@ sub download {
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	# Extract the download URL
-	my ($download) = $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+	my ($download, $filename) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>(.+?)</a>#;
 	return error("plugin error (could not extract download link)") unless $download;
-	return "http://leteckaposta.cz$download";
+	$download = "http://leteckaposta.cz$download";
+	$download .= "\" -O \"".$filename if ($filename);
+	return $download;
 }
 
 Plugin::register(__PACKAGE__, "^[^/]+//(?:www.)?leteckaposta.cz");
