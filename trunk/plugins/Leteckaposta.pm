@@ -67,7 +67,12 @@ sub download {
 	my ($download, $filename) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>(.+?)</a>#;
 	return error("plugin error (could not extract download link)") unless $download;
 	$download = "http://leteckaposta.cz$download";
-	$download .= "\" -O \"".$filename if ($filename);
+
+	if ($filename){
+		warning("This can overwrite your files with the same name.");
+		$download .= "\" -O \"".$filename;
+	}
+
 	return $download;
 }
 

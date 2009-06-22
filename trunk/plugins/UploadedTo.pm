@@ -81,7 +81,10 @@ sub download {
 
 	# Generate the download URL
 	$download .= " \" --post-data \"download_submit=Free Download\"";
-	if($fname) {$download .= " -O \"".$fname;} # works like wget http://... -O - > fname (overwrites the file!!!)
+	if($fname) {
+		$download .= " -O \"".$fname; # works like wget http://... -O - > fname (overwrites the file!!!)
+		warning("This can overwrite your files with the same name.");
+	}			
 	return $download;
 }
 
