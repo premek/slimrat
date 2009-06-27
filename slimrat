@@ -91,6 +91,7 @@ $config->add_default("state_file", "/var/run/slimrat.pid");
 $config->add_default("log_file", "/var/log/slimrat.log");
 $config->add_default("mode", "download");
 $config->add_default("verbosity", 3);
+$config->add_default("to", ".");
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
@@ -164,7 +165,7 @@ $config->add("verbosity", 2) if ($options{"quiet"});
 $config->add("verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
 $config->add("address", $options{"address"}) if ($options{"address"});
-$config->add("wget", $options{"wget"}) if ($options{"wget"});
+$config->add("wget", $options{"wget"}) if ($options{"wget"}); # TODO: remove
 $config->add("to", $config->get("to")) if ($config->get("to"));
 
 
@@ -191,7 +192,7 @@ $queue->file($config->get("list")) if ($config->get("list"));
 # Apply verbosity
 level($config->get("verbosity"));
 
-# Set socket local address if needed
+# Set socket local address if needed (TODO: fix)
 if($config->get("address")){
 	no warnings; # avoid a "name used only once" warning
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
@@ -314,41 +315,81 @@ else {
 # Redirect check() call to the correct plugin
 sub check($) {
 	$link = shift;
-	my $pluginname = Plugin::get_name($link);
-	my $status = eval $pluginname."::check('$link')";
-	$status ||= 0;
-	return $status;
+	my $plugin = Plugin->new($link);
+	my $status = $plugin->check();
+	$status ||=0;
 }
 
 # Redirect download() call to the correct plugin
 sub download($) {
 	$link = shift;
-
-	my $pluginname = Plugin::get_name($link);
+	
+	# Load plugin
+	my $plugin = Plugin->new($link);
+	my $pluginname = $plugin->get_name();
 	debug("downloading \"$link\" using the $pluginname-plugin");
-
-	my $fileurl = eval $pluginname."::download('$link')";
-	if($fileurl){ 
-		my $command = 'wget ' .
-			"-U \"$useragent\" ".
-			($config->get("wget") ? qq($config->get("wget") ) : '') .
-			($config->get("to")? " -P \"".$config->get("to")."\" " : "") .
-			" \"$fileurl\"";
-
-		if(!system($command)){ #success
-			info("file downloaded");
-			return 1;
-		} else { # wget failed
-			error("download failed");
-			return 0;
-		}
-	} else { # get fileurl failed
-		error("plugin failed");
-		return 0;
+	
+	# Get destination filename (TODO: check if able to)
+	my $filename = $plugin->get_filename();
+	my $filepath = $config->get("to") . "\/$filename";
+	debug("file will be saved as \"$filepath\"");
+	
+	# Check if exists
+	if (-e $filepath) {
+		warning("file exists, renaming");
+		rename($filepath, "$filepath.old");
 	}
+	
+	# Download status counters
+	my $size;
+	my $t_start = time;
+	my $t_prev = 0;
+	my $size_downloaded = 0;
+	
+	# Get data
+	$|++; # unbuffered output
+	$plugin->get_data( sub {
+		# Fetch server response
+		my $res = $_[1];
+		
+		# Do one-time stuff
+		unless ($size) {
+			# Save length and print
+			$size = $res->content_length;
+			if ($size)
+			{
+				info("Filesize: ", bytes_readable($size));
+			} else {
+				info("Filesize unknown");
+			}
+			
+			# Open file
+			open(FILE, ">$filepath");	# TODO: check if opened
+			binmode FILE;
+		}
+		
+		# Write the data
+		print FILE $_[0];	# TODO: check if able to write
+		
+		# Download indication	# TODO: move to Log.pm
+		$size_downloaded += length($_[0]);	
+		if ($t_prev != time) {	# don't update too often
+			$t_prev = time;
+			progress($size_downloaded, $size, 0);
+		}
+	});
+	progress($size, $size, 0);
+	print "\r\n";
+	
+	# Close file
+	close(FILE);
+	
+	# Download finished
+	info("File downloaded");
+	return 1;
 }
 
-# Finish
+# Finish (TODO: move output to Log.pm so we don't use raw colours here)
 sub quit() {
 	if(scalar @oklinks){
 		print GREEN, "\nDOWNLOADED:\n", RESET;
@@ -360,8 +401,6 @@ sub quit() {
 		print $_,"\n" foreach @failedlinks;
 	}
 	info("Slimrat finished");
-	
-	# TODO: kill any active wget instance
 	
 	# hard exit, for when &quit gets called out of sig{int}
 	exit(0);

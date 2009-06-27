@@ -44,7 +44,7 @@ use Term::ANSIColor qw(:constants);
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp debug info warning error usage fatal level);
+@EXPORT = qw(timestamp debug info warning error usage fatal progress level);
 
 # Write nicely
 use strict;
@@ -82,6 +82,18 @@ sub level($) {
 	my $level = shift;
 	$verbosity = $level;
 }
+
+# Progress bar (TODO: ETA)
+sub progress {
+	my ($done, $total, $time) = @_;
+	if ($total) {
+		my $perc = $done / $total;
+		print "\r", &timestamp, "Downloaded: ", int($perc*10000)/100, "%      ";
+	} else {
+		print "\r", "Downloaded ", human_readable($done);
+	}
+}
+	
 
 # Debug message
 sub debug {

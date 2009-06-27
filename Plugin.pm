@@ -61,6 +61,15 @@ my %plugins;
 # Routines
 #
 
+# Get an object
+sub new {
+	my $url = $_[1];
+	
+	my $plugin = get_name($url);
+	my $object = eval $plugin."->new('$url')";
+	return $object;
+}
+
 # Register a plugin
 sub register {
 	my ($name,$re) = @_;

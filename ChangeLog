@@ -1,3 +1,9 @@
+2009-06-27  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: initial switch to LWP, only porting the Direct
+      plugin for now.
+
+
 2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat-gui: refactored the code, and ported some parts

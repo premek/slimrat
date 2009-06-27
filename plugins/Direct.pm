@@ -29,6 +29,11 @@
 #
 # Authors:
 #    Přemek Vyhnal <premysl.vyhnal gmail com>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#
+
+#
+# Configuration
 #
 
 # Package name
@@ -43,17 +48,66 @@ use LWP::UserAgent;
 use strict;
 use warnings;
 
-my $ua = LWP::UserAgent->new;
-$ua->agent($useragent);
 
+#
+# Routines
+#
+
+# Constructor
+sub new {
+	my $self  = {};
+	$self->{URL} = $_[1];
+	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
+	bless($self);
+	return $self;
+}
+
+# Plugin name
+sub get_name {
+	return "Direct";
+}
+
+# Get filename
+sub get_filename {
+	my $self = shift;
+	
+	# Get filename through HTTP request
+	my $filename = ($self->{UA}->head($self->{URL})->filename);
+	
+	# If unsuccessfull, deduce from URL
+	unless ($filename) {
+		if ($self->{URL} =~ m/http.+\/([^\/]+)$/)
+		{
+			$filename = $1;
+		}
+		else
+		{
+			error("could not deduce filename");
+		}
+	}
+	return $filename;
+}
+
+# Download data
+sub get_data {
+	my $self = shift;
+	
+	warning("no plugin for this site, downloading using 'Direct' plugin");
+	
+	my $data_processor = shift;
+	$self->{UA}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
+}
+
+# Check if link is alive
+#   1: ok
+#  -1: dead
+#   0: don't know
 sub check {
-	return 1 if ($ua->head(shift)->is_success);
+	my $self = shift;
+	
+	return 1 if ($self->{UA}->head($self->{URL})->is_success);
 	return -1;
 }
 
-sub download {
-	warning("no plugin for this site, downloading using 'Direct' plugin");
-	return shift;
-}
-
 1;
+
