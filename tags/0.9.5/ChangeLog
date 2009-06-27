@@ -1,0 +1,125 @@
+2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat-gui: refactored the code, and ported some parts
+      to the configuration handler.
+
+    * slimrat: added documentation, and used Pod::Usage to
+      generate a --help and --man dialog based on that
+      documentation.
+    
+    * log (usage): added a new reporting function which
+      indicates invalid usage.
+
+
+2009-06-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration: removed the revert() functionality, but
+      added support for a key with multiple values.
+
+
+2009-06-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: implemented the use of the brand new configuration
+      handler.
+
+    * configuration (file_read): implemented configuration
+      file parsing, with support for mutable as well as
+      immutable entries.
+
+    * configuration: fixed some bugs with the struct handling,
+      and made use of the configuration handler on some places
+      in the main slimrat executable.
+
+
+2009-06-16  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added UploadedTo.
+
+
+2009-06-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * Toolbox (dwait): fixed reference to ptime().
+
+    * slimrat: added function prototypes, and enhanced the command-
+      line options handline.
+
+    * slimrat: enhanced backgrounding support, through a state file
+      to save the PID of the daemon in, and a killswitch to kill a
+      single running instance.
+
+    * Config: added the initial functions for a class which will ease
+      the handling of configurations, originating from different sources
+      across the system.
+
+
+2009-06-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: use a hash in combinaton with GetOptions instead
+      of several global variables.
+
+    * queue: added POD documentation.
+
+    * log: added POD documentation, and replaced some more raw prints
+      with routines from log package.
+
+
+2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: added controllable verbosity level, through --verbose
+      and --quiet parameters.
+
+    * queue: converted the datastructure so it properly
+      supports a get() call to get the current URL, and
+      an advance() call to proceed to the next URL (which
+      possibly reads from a file, skipping commented out or
+      already processed links). Fixes issue 30.
+      This makes a $status=0 (from the check() function each
+      plugin should implement) value relevant: it indicates
+      a temporary failure, so the link doesn't get commented
+      out but ignored so it can get retried upon a new session.
+
+    * ChangeLog: added a requested changelog with most prominent
+    changes. To be kept up to date from now on.
+
+
+2009-05-20  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: introduced a helper library to ease logging. It
+      provides several functions (debug, info, warning, error,
+      fatal) to differentiate the message. The message is
+      coloured depending to the message level, but verbosity
+      settings have yet to be implemented.
+
+    * plugins: added OdSiebie and HotFile plugins.
+
+    * all: relicensed to MIT-license.
+
+
+2009-05-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: added EasyShare plugin.
+
+
+2009-05-18  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added FastShare, ShareBase and DepositFiles plugins.
+
+
+2009-05-17  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added Data.hu plugin.
+
+    * slimrat: added custom commands to execute pre-download, and
+      upon failure or completion.
+
+
+2009-05-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: added backgrounding capabilities.
+
+    * plugins/Rapidshare: added interval-check.
+
+    * slimrat: support for comments in the link file.
+
+    * slimrat: downloaded links get comments out upon completion.
+
