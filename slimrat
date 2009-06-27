@@ -1,0 +1,512 @@
+#!/usr/bin/env perl
+#
+# slimrat - main CLI script
+#
+# Copyright (c) 2008-2009 Přemek Vyhnal
+# Copyright (c) 2009 Tim Besard
+#
+# This file is part of slimrat, an open-source Perl scripted
+# command line and GUI utility for downloading files from
+# several download providers.
+# 
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# Authors:
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#
+
+
+
+#################
+# CONFIGURATION #
+#################
+
+#
+# Dependancies
+#
+
+# Packages
+use Getopt::Long;
+use POSIX 'setsid';
+use Term::ANSIColor qw(:constants);
+use Pod::Usage;
+
+# Find root for custom packages
+use FindBin qw($RealBin);
+use lib $RealBin;
+
+# Custom packages
+use Plugin;
+use Toolbox;
+use Queue;
+use Log;
+use Configuration;
+
+# Write nicely
+use strict;
+use warnings;
+
+
+#
+# Essential stuff
+#
+
+# Register signals
+$SIG{'INT'} = 'quit';
+
+# Function prototypes
+sub check($);
+sub download($);
+sub quit();
+sub daemonize();
+sub pid_save();
+sub pid_read();
+
+# Global variables
+my ($link, @links, @failedlinks, @oklinks);
+
+# Initialise configuration handler and configure default values
+my $config = new Configuration;
+$config->add_default("state_file", "/var/run/slimrat.pid");
+$config->add_default("log_file", "/var/log/slimrat.log");
+$config->add_default("mode", "download");
+$config->add_default("verbosity", 3);
+
+# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
+if (-r "/etc/slimrat.conf") {
+	$config->file_read("/etc/slimrat.conf");
+}
+if (-r $ENV{HOME}."/.slimrat/config") {
+	$config->file_read($ENV{HOME}."/.slimrat/config");
+}
+
+
+#
+# Command-line options
+#
+
+# NOTE: this is the only section where the %options hash should be used. After this, an appropriate action
+#       should have been undertaken, or if the value is needed later on (e.g. the lists file) the value should
+#       be added to the configuration handler. This makes it possible for some entries to originate at other
+#       sources, e.g. the "daemonise" flag could be passed through CLI as well as being specified in /etc/slimrat.conf
+
+# Process command-line options
+Getopt::Long::Configure("pass_through");
+debug("processing command-line arguments");
+my %options;
+GetOptions (
+		\%options,
+		"help!",
+		"man!",
+		"check!",
+		"list=s",
+		"to=s",
+		"address=s",
+		"wget=s",
+		"daemon!",
+		"kill",
+		"verbose",
+		"quiet",
+);
+
+# Give the usage or manual
+if ($options{"man"}) {
+	pod2usage(-verbose => 2);
+	quit();
+} elsif ($options{"help"}) {
+	pod2usage(-verbose => 1);
+	quit();
+}
+
+# Kill an instance if requested
+if ($options{"kill"}) {
+	debug("querying state file for an instance to kill");
+	if (my $pid = pid_read()) {
+		if (kill 0, $pid) {
+			info("killing an active instance at PID $pid");
+			kill $pid, 2;
+		} else {
+			warning("no running instance found");
+		}
+	} else {
+		fatal("could not read state file");
+	}
+	quit();
+}
+
+# Mode (e.g. what slimrat should do)
+$config->add("mode", "check") if ($options{"check"});
+
+# Options we might use later on
+$config->add("list", $options{"list"}) if ($options{"list"});
+usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
+$config->add("verbosity", 2) if ($options{"quiet"});
+$config->add("verbosity", 4) if ($options{"verbose"});
+$config->add("daemon", 1) if ($options{"daemon"});
+$config->add("address", $options{"address"}) if ($options{"address"});
+$config->add("wget", $options{"wget"}) if ($options{"wget"});
+$config->add("to", $config->get("to")) if ($config->get("to"));
+
+
+#
+# Apply configuration
+#
+
+# Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
+if (!scalar @ARGV && !$config->get("list")) {
+	usage("no input URLs");
+}
+
+# Initialise a link queue
+my $queue = new Queue();
+while ($link = shift) {
+	if ($link =~ /^\w+:\/\//) {
+		$queue->add($link);
+	} else {
+		usage("unrecognised option \"$link\"");
+	}
+}
+$queue->file($config->get("list")) if ($config->get("list"));
+
+# Apply verbosity
+level($config->get("verbosity"));
+
+# Set socket local address if needed
+if($config->get("address")){
+	no warnings; # avoid a "name used only once" warning
+	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
+	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
+}
+
+# Fork in background
+if ($config->get("daemon")) {
+	debug("becoming a daemon");
+	daemonize();
+	print "\n\n";
+	$config->add("wget", $config->get("wget") . "-q -c");
+	# avoid log file spam and  make wget continue if file exists
+	# this is a temporary fix, because when slimrat receives a sig{int}
+	# when downloading, wget will continue to download the file without
+	# updating the urls-file. this can cause a file in the list to be
+	# already downloaded, and to avoid wget redownload it we use this -c flag
+	# Nasty code, but will be removed later on
+}
+
+
+
+########
+# MAIN #
+########
+
+info("Slimrat started");
+
+#
+# Check
+#
+
+if ($config->get("mode") eq "check") {
+	my $urls_ref = $queue->dump();
+	my @urls = @$urls_ref;
+	foreach my $link (@urls) {
+		my $status = check($link);
+		if ($status>0) {print GREEN,  "[ALIVE] ", RESET;}
+		elsif ($status<0) {print RED, "[DEAD]  ", RESET; }
+		else {print GREEN, "[?]     ", RESET;}
+		print YELLOW, $link, RESET, " (", Plugin::get_name($link), ")\n";
+	}
+}
+
+
+#
+# Download
+#
+
+elsif ($config->get("mode") eq "download") {
+ 	while (my $link = $queue->get()) {
+ 		info("Downloading ", $link);
+ 		my $failure = 0;
+ 		
+ 		# Check the URL
+		my $status = check($link);
+		if ($status < 0){
+			error("check failed (dead link)");
+			$queue->file_update($link, "DEAD");
+			$failure = 1;
+		}
+		elsif ($status == 0) {
+			warning("check failed (unknown reason)");
+			$failure = 1;
+		}
+ 		
+ 		# Download the URL
+	 	elsif ($status == 1) {
+			if (download($link)) {
+				push @oklinks, $link;
+				$queue->file_update($link, "DONE");
+
+				# Command after successful download
+				if (my $command = $config->get("post_download")) {
+					system($command);
+				}
+
+			} else {
+				$failure = 1;
+			}
+		}
+		
+		# Failure?
+		if ($failure) {
+			push @failedlinks, $link;
+
+			# Command after failed download
+			if (my $command = $config->get("post_failure")) {
+				system($command);
+			}
+		}
+		
+		# Advance to the next URL
+		$queue->advance();
+	}
+
+	# Command after all downloads
+	if (my $command = $config->get("post_all")) {
+		system($command);
+	}
+
+	&quit;
+}
+
+
+#
+# Other
+#
+
+else {
+	usage("unrecognised mode");
+}
+
+
+
+############
+# ROUTINES #
+############
+
+# Redirect check() call to the correct plugin
+sub check($) {
+	$link = shift;
+	my $pluginname = Plugin::get_name($link);
+	my $status = eval $pluginname."::check('$link')";
+	$status ||= 0;
+	return $status;
+}
+
+# Redirect download() call to the correct plugin
+sub download($) {
+	$link = shift;
+
+	my $pluginname = Plugin::get_name($link);
+	debug("downloading \"$link\" using the $pluginname-plugin");
+
+	my $fileurl = eval $pluginname."::download('$link')";
+	if($fileurl){ 
+		my $command = 'wget ' .
+			"-U \"$useragent\" ".
+			($config->get("wget") ? qq($config->get("wget") ) : '') .
+			($config->get("to")? " -P \"".$config->get("to")."\" " : "") .
+			" \"$fileurl\"";
+
+		if(!system($command)){ #success
+			info("file downloaded");
+			return 1;
+		} else { # wget failed
+			error("download failed");
+			return 0;
+		}
+	} else { # get fileurl failed
+		error("plugin failed");
+		return 0;
+	}
+}
+
+# Finish
+sub quit() {
+	if(scalar @oklinks){
+		print GREEN, "\nDOWNLOADED:\n", RESET;
+		print $_,"\n" foreach @oklinks;
+		print "to '",YELLOW, $config->get("to"), RESET, "'\n" if ($config->get("to"));
+	}
+	if(scalar @failedlinks){
+		print RED, "\nFAILED:\n", RESET;
+		print $_,"\n" foreach @failedlinks;
+	}
+	info("Slimrat finished");
+	
+	# TODO: kill any active wget instance
+	
+	# hard exit, for when &quit gets called out of sig{int}
+	exit(0);
+}
+
+# Fork into the background
+sub daemonize() {
+	# Check current instances
+	if (my $pidr = pid_read()) {
+		if ($pidr && kill 0, $pidr) {	# Signal 0 doesn't do any harm
+			warning("an instance already seems to be running, you will not be able to kill _this_ instance through slimrat's kill switch");
+		}
+	} else {
+		warning("could not query state file to check for existing instances (harmless at first run)");
+	}
+	
+	# Regular daemon householding
+	chdir '/' or fatal("couldn't chdir to / ($!)");
+	open STDIN, '/dev/null' or fatal("couldn't redirect input from /dev/null ($!)");
+	
+	# Create a child
+	defined(my $pid = fork) or fatal("couldn't fork ($!)");
+	exit if $pid;
+	debug("child has been forked off at PID $$");
+	
+	# Start a new session
+	setsid or fatal("couldn't start a new session ($!)");
+	
+	# Save the PID
+	if (!pid_save()) {
+		warning("could not write the state file -- slimrat's kill switch won't work on this instance"); # Will enter the log upon failure
+	}
+	
+	# Redirect all output
+	my $log_file = $config->get("log_file");
+	if (! open STDOUT, ">>$log_file") { 
+		warning("couldn't redirect output to \"$log_file\" ($!), going silent");
+		open STDOUT, '>>/dev/null' or fatal("couldn't redirect output from /dev/null ($!)");;
+	}
+	open STDERR, '>&STDOUT' or fatal("couldn't redirect STDERR to STDOUT ($!)");
+	
+}
+
+# Save the PID
+sub pid_save() {
+	my $state_file = $config->get("state_file");
+	open(WRITE, ">$state_file") || return 0;	# Open and check existance
+	return 0 unless (-w WRITE);			# Check write access
+	print WRITE $$;
+	close(WRITE);
+	return 1;
+}
+
+# Extract an PID
+sub pid_read() {
+	# Check existance and read access
+	my $state_file = $config->get("state_file");
+	return 0 unless (-f $state_file && -r $state_file);
+	
+	# Read PID
+	open(PIDR, $state_file);
+	my $pid = <PIDR> || return 0;
+	close(PIDR);
+	
+	return 0 if ($pid !~ /^\d+$/);	
+	return $pid;
+}
+
+__END__
+
+# Print the usage
+
+=head1 NAME
+
+slimrat-cli
+
+=head1 VERSION
+
+0.9.4-99
+
+=head1 DESCRIPTION
+
+  Command-line download manager, capable of downloading files from
+  several free download providers
+
+=head1 SYNOPSIS
+
+  slimrat [OPTION...] [LINK]...
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+  Prints a summary how to use the client.
+
+=item B<--man>
+
+  Prints a manual how to use the client.
+
+=item B<--daemon>
+
+  Makes slimrat work in the background, by properly forking and redirecting
+  the output to a specified logfile.
+
+=item B<--kill>
+
+  Kills a single active client (the first one started), by looking up the
+  PID in a predefined state file.
+
+=item B<--list>
+
+  Uses te given file as a queue-file containing URLs.
+
+=item B<--check>
+
+  Do not download the loaded URLs, just check them.
+
+=item B<--to>
+
+  Specifies the target directory for the downloaded files.
+
+=item B<--address>
+
+  Makes the download client bind to a specific address.
+
+=item B<--wget>
+
+  Used to pass additional options to the used wget client.
+
+=item B<--verbose>
+
+  Makes slimrat more verbose, printing debug messages.
+
+=item B<--quiet>
+
+  Makes slimrat less verbose, only displaying errors and warnings.
+
+=back
+
+=head1 EXAMPLES
+
+  slimrat http://rapidshare.com/files/012345678/somefile.xxx
+  slimrat -l urls.dat -dz
+
+=cut
+
