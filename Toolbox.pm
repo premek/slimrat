@@ -39,7 +39,7 @@ package Toolbox;
 
 use Exporter;
 @ISA=qw(Exporter);
-@EXPORT=qw(dwait indexof bytes_readable $useragent);
+@EXPORT=qw(dwait indexof $useragent);
 
 # Write nicely
 use strict;
@@ -73,21 +73,6 @@ sub indexof {
 		return $i if $$arrayref[$i] eq $value;
 	}
 	return -1;
-}
-
-# Convert a raw amount of bytes to a more human-readable form
-sub bytes_readable
-{
-	my $bytes = shift;
-	
-	my $bytes_hum = "$bytes";
-	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
-	elsif ($bytes>2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
-	elsif ($bytes>2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
-	else { $bytes_hum = $bytes . " B" }
-	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
-	
-	return $bytes_hum;
 }
 
 # Return
