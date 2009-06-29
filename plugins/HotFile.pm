@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent' => $useragent );
-
 
 #
 # Routines
@@ -68,20 +66,30 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "HotFile";
+}
+
 # Check if the link is alive
 sub check {
-	$mech->get(shift);
-	return 1  if($mech->content() =~ m/Your download will begin in/);
+	my $self = shift;
+	
+	$self->{MECH}->get($self->{URL});
+	return 1  if($self->{MECH}->content() =~ m/Your download will begin in/);
 	# TODO: detect 0-size reply HotFile returns upon dead links (and return 0 in other cases)
 	return -1;
 }
 
-sub download {
-	my $file = shift;
-	my $res = $mech->get($file);
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
-	$_ = $mech->content();
+	$_ = $self->{MECH}->content();
 	
 	# Extract primary wait timer
 	my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
@@ -98,14 +106,16 @@ sub download {
         dwait($wait);
         
         # Click the button
-	$mech->form_number(2); # free;
-	$mech->submit_form();
+	$self->{MECH}->form_number(2); # free;
+	$self->{MECH}->submit_form();
 	
 	
 	# Extract the download URL
-	my $download = $mech->find_link( text => 'Click here to download' )->url();
+	my $download = $self->{MECH}->find_link( text => 'Click here to download' )->url();
 	return error("plugin error (could not extract download link)") unless $download;
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?hotfile.com");

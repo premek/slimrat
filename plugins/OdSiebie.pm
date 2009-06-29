@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent' => $useragent );
-
 
 #
 # Routines
@@ -68,29 +66,40 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "OdSiebie";
+}
+
 # Check if the link is alive
 sub check {
-	$mech->get(shift);
-	return 1  if($mech->content() =~ m/Pobierz plik/);
+	my $self = shift;
+	
+	$self->{MECH}->get($self->{URL});
+	return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
 	# TODO: detect the 302 redirect to the upload form and return -1, otherwise 0
 	return -1;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
 	
 	# Get the page
-	my $res = $mech->get($file);
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
-	$_ = $mech->content;
-	$mech->follow_link( text => 'Pobierz plik' );
-	$res = $mech->follow_link( text => 'kliknij tutaj' );
+	$_ = $self->{MECH}->content;
+	$self->{MECH}->follow_link( text => 'Pobierz plik' );
+	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj' );
 	if ($res->content_is_html) { error("plugin failure (an unspecified error occured)"); return 0;}
-	my $dfilename = $mech->response()->filename;
+	my $dfilename = $self->{MECH}->response()->filename;
 	
-	my $download = $mech->uri()."\n";
-	return $download."' -O '".$dfilename;
+	my $download = $self->{MECH}->uri()."\n";
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?odsiebie.com");

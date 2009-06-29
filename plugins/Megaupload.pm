@@ -47,8 +47,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent'=>$useragent);
-
 
 #
 # Routines
@@ -66,20 +64,29 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "MegaUpload";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	return -1 if ($res->is_success && $res->decoded_content =~ m#link you have clicked is not available#);
 	return 1 if($res->decoded_content =~ m#gencap.php#);
 	return 0;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
 	my $res;
-
 	do {
-		$res = $mech->get($file);
+		$res = $self->{MECH}->get($self->{URL});
 		return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 
 		$_ = $res->decoded_content;
@@ -101,7 +108,7 @@ sub download {
 		chomp $captcha;
 
 		# submit captcha form
-		$res = $mech->submit_form( with_fields => { captcha => $captcha });
+		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
 	} while ($res->decoded_content !~ m#downloadlink#);
 
@@ -112,8 +119,9 @@ sub download {
 
 	# Get download url
 	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;
-
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");
