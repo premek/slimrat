@@ -74,7 +74,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		if ($res->decoded_content =~ m/You are requesting<strong>([^<]+)<\/strong>/) {
+		if ($res->decoded_content =~ m/You are requesting<strong> ([^<]+)<\/strong>/) {
 			return $1;
 		} else {
 			return 0;
@@ -120,20 +120,28 @@ sub get_data {
 
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
+	
+	# Click the "Free" button
+	$self->{MECH}->form_number(1);
+	$res = $self->{MECH}->submit_form();
+	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Process the resulting page
 	my $code;
 	while (1) {
-		$_ = $res->decoded_content."\n";
+		my $content = $res->decoded_content."\n";
 		
 		# Wait timer?
-		if (m/Seconds to wait: (\d+)/) {
+		if ($content =~ m/Seconds to wait: (\d+)/) {
 			# Wait
 			dwait($1);
-	
-			# Extract the captcha code
-			($code) = m/\/file_contents\/captcha_button\/(\d+)/;
+		}
+		
+		# Captcha extraction
+		if ($content =~ m/\/file_contents\/captcha_button\/(\d+)/) {
+			$code = $1;
+			print "Got captcha through button: $code\n";
 			return error("plugin failure (could not extract captcha code)") unless $code;
 			
 			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
@@ -141,22 +149,29 @@ sub get_data {
 		}
 		
 		# Download without wait?
-		if (m/http:\/\/www.easy-share.com\/c\/(\d+)/) {
+		if ($content =~ m/http:\/\/www.easy-share.com\/c\/(\d+)/) {
 			$code = $1;
+			print "Got captcha directly: $code\n";
 			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
 			last;
 		}
 		
 		# Wait if the site requests to (not yet implemented)
-		if(m/some error message/) {
+		if($content =~ m/some error message/) { #TODO: find what EasyShare does upon wait request
 			my ($wait) = m/extract some (\d+) minutes/sm;		
 			return error("plugin failure (could not extract wait time)") unless $wait;
 			dwait($wait*60);
 			$res = $self->{MECH}->reload();
-		} else {
-			last;
+			next;
 		}
+		
+		# We got a problem here
+		return error("plugin failure (page 2 error, could not match any action)");
 	}
+	
+	# Get the third page
+	$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
+	return error("plugin failure (page 3 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Extract the download URL
 	$_ = $res->decoded_content."\n";
@@ -164,7 +179,10 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $url;
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(POST => $url, [id => $code, captcha => 1]), $data_processor);
+	my $req = HTTP::Request->new(POST => $url);
+	$req->content_type('application/x-www-form-urlencoded');
+	$req->content("id=$code&captcha=1");
+	$self->{UA}->request($req, $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?easy-share.com");
