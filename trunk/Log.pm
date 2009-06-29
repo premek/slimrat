@@ -43,12 +43,10 @@ package Log;
 
 # Modules
 use Term::ANSIColor qw(:constants);
-use Toolbox;
-
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp level debug info warning error usage fatal progress summary status);
+@EXPORT = qw(timestamp bytes_readable level debug info warning error usage fatal progress summary status);
 
 # Write nicely
 use strict;
@@ -79,6 +77,21 @@ sub output_contin {
 sub timestamp {
 	my ($sec,$min,$hour) = localtime;
 	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
+}
+
+# Convert a raw amount of bytes to a more human-readable form
+sub bytes_readable
+{
+	my $bytes = shift;
+	
+	my $bytes_hum = "$bytes";
+	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
+	elsif ($bytes>2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
+	elsif ($bytes>2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
+	else { $bytes_hum = $bytes . " B" }
+	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
+	
+	return $bytes_hum;
 }
 
 
