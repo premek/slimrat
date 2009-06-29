@@ -3,6 +3,15 @@
     * slimrat: moved all colour dependant functions (check and
       download summary) to the Log.pm module.
 
+    * slimrat: removed the wget dependancy, using a pure-Perl
+      solution now (LWP-based downloader). The plugin model has
+      also altered a lot, with the possibility to support
+      several protocols and enhanced requests.
+
+    * plugins: ported to the new plugin framework, implementing
+      additional get_filename and get_size methods where
+      possible.
+
 
 2009-06-27  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
