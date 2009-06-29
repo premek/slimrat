@@ -36,6 +36,10 @@
 #    Bartłomiej Palmowski
 #
 
+#
+# Configuration
+#
+
 # Package name
 package YouTube;
 
@@ -49,10 +53,24 @@ use warnings;
 
 my $mech = WWW::Mechanize->new('agent'=>$useragent );
 
-# return
-#   1: ok
-#  -1: dead
-#   0: don't know
+
+#
+# Routines
+#
+
+# Constructor
+sub new {
+	return error("plugin not ported yet");
+	my $self  = {};
+	$self->{URL} = $_[1];
+	
+	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
+	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	bless($self);
+	return $self;
+}
+
+# Check if the link is alive
 sub check {
 	my $res = $mech->get(shift);
 	if ($res->is_success) {

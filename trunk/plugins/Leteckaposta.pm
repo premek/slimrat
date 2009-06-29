@@ -33,6 +33,10 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
+#
+# Configuration
+#
+
 # Package name
 package Leteckaposta;
 
@@ -49,7 +53,23 @@ my $ua = LWP::UserAgent->new;
 $ua->agent($useragent);
 
 
+#
+# Routines
+#
 
+# Constructor
+sub new {
+	return error("plugin not ported yet");
+	my $self  = {};
+	$self->{URL} = $_[1];
+	
+	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
+	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	bless($self);
+	return $self;
+}
+
+# Check if the link is alive
 sub check {
 	my $res = $ua->get(shift);
 	return -1 unless ($res->is_success);
