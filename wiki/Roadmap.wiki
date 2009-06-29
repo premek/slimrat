@@ -8,23 +8,19 @@ This wiki page features the development roadmap, and stuff which has to be resol
 
 || *Version* || *Date* ||
 || 0.9.4 || 2009/03/22 ||
-|| 0.9.5 || 2009/06/.. ||
-|| 0.9.6 || 2009/06/.. ||
+|| 0.9.5 || 2009/06/29 ||
+|| 0.9.6 || 2009/07/.. ||
 
 = Detailed overview =
 
-== 0.9.5 ==
+== 0.9.6 ==
+
+_*NOTE*: have a look at the [http://code.google.com/p/slimrat/source/browse/trunk/TODO TODO] file for more upcoming features._
 
 === Features ===
- * Queue-class to ease the URL handling (r43)
- * Log-class to ease sending several levels of messages to the user (r50, r51)
- * New plugins (HotFile, OdSiebie, FastShare, ShareBase, EasyShare, DepositFiles) (r39, r40, r41, r45, r48, r49)
- * Support for backgrounding (r35)
- * Rapidshare plugin: interval check of wait times (r33)
- * Support for comments (r31), and commenting out downloaded files (r32)
- * Some bugfixes (r34, r36)
- * Pre- and post-download custom commands (r38)
+ * WIP: replace WGET with pure-perl solution (LWP)
+ * TODO: merge all core functionality to a shared library which -gui as well as -cli uses
+ * TODO: functionality to save the current queue for a next session.
 
 === Blockers ===
- * Create a testset and test all plugins
- * Configuration file (issue 28)
+None yet, release too far off.
