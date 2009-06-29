@@ -17,8 +17,7 @@ This wiki page features the development roadmap, and stuff which has to be resol
 
 _*NOTE*: have a look at the [http://code.google.com/p/slimrat/source/browse/trunk/TODO TODO] file for more upcoming features._
 
-=== Features ===
- * WIP: replace WGET with pure-perl solution (LWP)
+=== Todo ===
  * TODO: merge all core functionality to a shared library which -gui as well as -cli uses
  * TODO: functionality to save the current queue for a next session.
 
