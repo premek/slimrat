@@ -73,21 +73,34 @@ sub get_name {
 	return "Rapidshare";
 }
 
-# Get filename
+# Filename
 sub get_filename {
 	my $self = shift;
 	
-	# A rapidshare filename is always last part of the url
-	my $filename;
-	if ($self->{URL} =~ m/http.+\/([^\/]+)$/)
-	{
-		$filename = $1;
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </) {
+			return $1;
+		} else {
+			return 0;
+		}
 	}
-	else
-	{
-		return error("Could not deduce filename");
+	return 0;
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
+			return $1;
+		} else {
+			return 0;
+		}
 	}
-	return $filename;
+	return 0;
 }
 
 # Check if the link is alive
