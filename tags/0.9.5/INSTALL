@@ -1,47 +1,100 @@
-SlimRat installation
-***********************
+RPM-based distro's
+==================
 
-See: http://code.google.com/p/slimrat/wiki/Installation
-
-
-
-
-
-Install dependencies:
------------------------
-
-- perl
-- wget
-- xclip (for GUI)
-
-perl modules:
-	Getopt::Long
-	LWP::UserAgent
-	Term::ANSIColor
-	WWW::Mechanize
-	Gtk2::GladeXML (gui)
-	Gtk2::SimpleList (gui)
-
-
-Debian:
-	libwww-mechanize-perl
-	libgtk2-gladexml-perl
-
-Ubuntu: probably the same.
-
-FreeBSD: (Thanks to: abr)
-	portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
-
-CPAN:
-	perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
+RPM (though currently outdated) are available at:
+    http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
 
 
 
-1) download (probably done already)
-2) unpack
-3) symlinks
-	ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
-	ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
-4) run!
-	slimrat
-	slimrat-gui
+Arch Linux
+==========
+
+You can install Slimrat from AUR:
+    http://aur.archlinux.org/packages.php?ID=20499
+
+
+
+Manual installation
+===================
+
+
+Dependencies
+------------
+
+1) Main
+  - Perl
+  - wget
+  - xclip (optional, handles GUI clipboard extensions)
+
+Install these using your package manager of choice.
+
+
+2) Perl modules
+  - Getopt::Long
+  - LWP::UserAgent
+  - Term::ANSIColor
+  - WWW::Mechanize
+  - Gtk2::GladeXML (GUI)
+  - Gtk2::SimpleList (GUI)
+
+a) On Debian/Ubuntu
+    apt-get install libwww-mechanize-perl libgtk2-gladexml-perl
+b) On FreeBSD
+    portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+c) Manually (through CPAN)
+    perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
+
+
+Installation
+------------
+
+1) Unpack the tarball at a place you want to. Users wanting to run slimrat do not
+   need to have write access to that folder.
+    tar -xjvf slimrat-x.x.x.tar.bz2 -C /usr/local/bin/
+
+2) Create symlinks to the main slimrat executables.
+    ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
+    ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
+
+3) Optional: create a system-wide configuration file at /etc/slimrat.conf, a sample
+   configuration file documenting all options is provided under the name "slimrat.conf"
+
+
+
+Windows
+=======
+
+NOTE: the GUI is currently not available on Windows.
+
+Dependencies
+------------
+
+1) Main
+  - Perl
+    http://strawberryperl.com/
+  - wget
+    http://www.christopherlewis.com/WGet/WGetFiles.htm
+
+
+2) Perl modules
+  - Getopt::Long
+  - LWP::UserAgent
+  - Term::ANSIColor
+  - WWW::Mechanize
+
+    perl -MCPAN -e "install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize"
+
+
+Installation
+------------
+
+1) Unpack the tarball at a place you want to, you can use Winrar to open the archive.
+
+2) Open up the "slimrat" executable and replace the 'wget' invocation
+       my $command = 'wget '
+   to a 'wget.exe' invocation
+       my $command = 'wget.exe '
+
+NOTE: configuration files are currently also unavailable on Windows, so you'll need to
+      specify any options through the command-line.
+
