@@ -242,34 +242,25 @@ if ($config->get("mode") eq "check") {
 elsif ($config->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
  		info("Downloading ", $link);
+ 		
+ 		# Download the URL and check the result
  		my $failure = 0;
- 		
- 		# Check the URL
-		my $status = check($link);
-		if ($status < 0){
-			error("check failed (dead link)");
-			$queue->file_update($link, "DEAD");
-			$failure = 1;
-		}
-		elsif ($status == 0) {
-			warning("check failed (unknown reason)");
-			$failure = 1;
-		}
- 		
- 		# Download the URL
-	 	elsif ($status == 1) {
-			if (download($link)) {
-				push @oklinks, $link;
-				$queue->file_update($link, "DONE");
+		my $result = download($link);
+		if ($result) {
+			push @oklinks, $link;
+			$queue->file_update($link, "DONE");
 
-				# Command after successful download
-				if (my $command = $config->get("post_download")) {
-					system($command);
-				}
-
-			} else {
-				$failure = 1;
+			# Command after successful download
+			if (my $command = $config->get("post_download")) {
+				system($command);
 			}
+		}
+		elsif ($result == 0) {
+			$failure = 1;
+		}
+		elsif ($result == -1) {
+			$failure = 1;
+			$queue->file_update($link, "DEAD");
 		}
 		
 		# Failure?
@@ -312,9 +303,8 @@ else {
 # Redirect check() call to the correct plugin
 sub check($) {
 	$link = shift;
-	my $plugin = Plugin->new($link);
-	my $status = $plugin->check();
-	$status ||=0;
+	my $plugin = Plugin->new($link) || return 0;
+	return $plugin->check();
 }
 
 # Redirect download() call to the correct plugin
@@ -322,16 +312,23 @@ sub download($) {
 	$link = shift;
 	
 	# Load plugin
-	my $plugin = Plugin->new($link);
+	my $plugin = Plugin->new($link) || return 0;
 	my $pluginname = $plugin->get_name();
 	debug("downloading \"$link\" using the $pluginname-plugin");
 	
-	# Get destination filename
-	my $filename;
-	unless ($filename = $plugin->get_filename()) {
-		error("could not deduce filename");
-		return 0;
+	# Check if link is valid
+	my $status = $plugin->check();
+	if ($status < 0){
+		error("check failed (dead link)");
+		return $status;
 	}
+	elsif ($status == 0) {
+		warning("check failed (unknown reason)");
+		return $status;
+	}
+	
+	# Get destination filename
+	my $filename = $plugin->get_filename() || return 0;
 	my $filepath = $config->get("to") . "\/$filename";
 	debug("file will be saved as \"$filepath\"");
 	
@@ -378,7 +375,7 @@ sub download($) {
 		
 		# Download indication
 		$size_downloaded += length($_[0]);	
-		if ($t_prev != time) {	# don't update too often
+		if ($t_prev+1 < time) {	# don't update too often
 			$t_prev = time;
 			progress($size_downloaded, $size, 0);
 		}
@@ -396,7 +393,7 @@ sub download($) {
 
 # Finish
 sub quit() {
-	info("Download summary:");
+	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
 	
 	# Hard exit, for when &quit gets called out of sig{int}	

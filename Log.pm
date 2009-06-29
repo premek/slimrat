@@ -156,6 +156,12 @@ sub summary {
 	my $fail_ref = shift;
 	my @faillinks = @{$fail_ref};
 	
+	if (scalar(@oklinks) + scalar(@faillinks)) {
+		info("Download summary:");
+	} else {
+		return 0;
+	}
+	
 	if(scalar @oklinks){
 		output_contin(GREEN, ["DOWNLOADED:"]);
 		output_contin(RESET, ["\t", $_]) foreach @oklinks;

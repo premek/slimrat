@@ -82,7 +82,7 @@ sub get_filename {
 		}
 		else
 		{
-			return 0;
+			return error("could not deduce filename");
 		}
 	}
 	return $filename;
@@ -98,10 +98,7 @@ sub get_data {
 	$self->{UA}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
 }
 
-# Check if link is alive
-#   1: ok
-#  -1: dead
-#   0: don't know
+# Check if the link is alive
 sub check {
 	my $self = shift;
 	
