@@ -31,6 +31,9 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
+# TODO: make Log.pm alter it's behaviour when outputting to a log (no
+# progress, no colours, ...)
+
 #
 # Configuration
 #
@@ -44,7 +47,7 @@ use Term::ANSIColor qw(:constants);
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp debug info warning error usage fatal progress level);
+@EXPORT = qw(timestamp level debug info warning error usage fatal progress summary status);
 
 # Write nicely
 use strict;
@@ -64,6 +67,11 @@ sub output {
 	print while ($_ = shift(@{$_[0]}));
 	print RESET, "\n";
 }
+sub output_contin {
+	print shift, " " x length(&timestamp), @_==2?uc(shift).": ":"";
+	print while ($_ = shift(@{$_[0]}));
+	print RESET, "\n";
+}
 
 
 # Generate a timestamp
@@ -74,7 +82,7 @@ sub timestamp {
 
 
 #
-# Log routines
+# Output configuration
 #
 
 # Set loglevel
@@ -83,17 +91,10 @@ sub level($) {
 	$verbosity = $level;
 }
 
-# Progress bar (TODO: ETA)
-sub progress {
-	my ($done, $total, $time) = @_;
-	if ($total) {
-		my $perc = $done / $total;
-		print "\r", &timestamp, "Downloaded: ", int($perc*10000)/100, "%      ";
-	} else {
-		print "\r", "Downloaded ", human_readable($done);
-	}
-}
-	
+
+#
+# Enhanced print routines
+#	
 
 # Debug message
 sub debug {
@@ -130,6 +131,54 @@ sub usage {
 sub fatal {
 	output(RED, "fatal error", \@_) if ($verbosity >= 0);
 	main::quit();
+}
+
+
+#
+# Complex Slimrat-specific routines
+#
+
+# Progress bar (TODO: ETA)
+sub progress {
+	my ($done, $total, $time) = @_;
+	if ($total) {
+		my $perc = $done / $total;
+		print "\r", &timestamp, "Downloaded: ", int($perc*10000)/100, "%      ";
+	} else {
+		print "\r", "Downloaded ", human_readable($done);
+	}
+}
+
+# Download summary
+sub summary {
+	my $ok_ref = shift;
+	my @oklinks = @{$ok_ref};
+	my $fail_ref = shift;
+	my @faillinks = @{$fail_ref};
+	
+	if(scalar @oklinks){
+		output_contin(GREEN, ["DOWNLOADED:"]);
+		output_contin(RESET, ["\t", $_]) foreach @oklinks;
+	}
+	if(scalar @faillinks){
+		output_contin(RED, ["FAILED:"]);
+		output_contin(RESET, ["\t", $_]) foreach @faillinks;
+	}
+}
+
+# Status of a download link
+sub status {
+	my $link = shift;
+	my $status = shift;
+	my $site = shift;
+
+	if ($status>0) {
+		output_contin(GREEN, ["[ALIVE] ", RESET, $link, YELLOW, " ($site)"]);
+	} elsif ($status<0) {
+		output_contin(RED, ["[DEAD] ", RESET, $link, YELLOW, " ($site)"]);
+	} else {
+		output_contin(YELLOW, ["[?] ", RESET, $link, YELLOW, " ($site)"]);
+	}
 }
 
 # Return
@@ -215,6 +264,20 @@ This prints all passed arguments as a fatalerror in a red colour. Verbosity leve
 to be 0 or more. Such an error indicates something severe has happened, and the
 program cannot continue execution (e.g. configuration file not found). This routine
 calls the main quit() function.
+
+=head2 progress($done, $total, $time)
+
+This generates a evolving progress bar, which expresses the current progress ($done)
+to the final target ($total). An ETA is generated based on the $time needed to get
+to the current progress.
+
+=head2 summary($succeeded, $failed)
+
+This prints a download summary, given two refs to arrays with actual links.
+
+=head2 status($link, $status, $site)
+
+Print a one-line status indication for a given download URL.
 
 =head1 AUTHOR
 

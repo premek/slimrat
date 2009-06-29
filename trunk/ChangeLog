@@ -1,3 +1,9 @@
+2009-06-29  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: moved all colour dependant functions (check and
+      download summary) to the Log.pm module.
+
+
 2009-06-27  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: initial switch to LWP, only porting the Direct
