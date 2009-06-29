@@ -1,0 +1,230 @@
+#summary Instructions on how to develop a plugin for Slimrat.
+#labels Featured,Phase-Implementation
+
+= Introduction =
+
+This page is meant to be a guide on plugin development. It describes which routines should be implemented, what their function signature is, and how they might be implemented.
+
+This guide is based upon Slimrat 0.9.6, as of 2009-06-29 the *development version*. For information on earlier versions, have a look at existing plugins.
+
+
+
+= Implementation =
+
+Slimrat uses plugins to fetch data from a distant resource. The resource location is specified by a textual string, the Uniform Resource Locator (URL). URLs can point to several types of locations (a webserver like Rapidshare, some FTP server, a MMS multimedia server, ...), and a plugin has to be available to pass Slimrat the resource's data.
+
+Every plugin has to be implemented in an object-oriented matter, which makes it possible to move certain actions to a constructor. Example: if the get_size as well as the get_filename function require the contents of an identical page, this could be handled in the constructor, or using a data container and flag.
+
+== Register ==
+
+For Slimrat to know which plugin to use to process a given URL, each plugin has to register itself using a static function. This is done by a regular expression, using which every given URL is attempted to be matched with
+
+The following example code makes the plugin register itself to any URL containing rapidshare.com, it be over HTTP as well as FTP.
+{{{
+Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?rapidshare.com");
+}}}
+
+== Constructor ==
+
+The constructor has to create the initial object, initialising any needed objects in order to get the data later on. Most HTTP-based plugins will need a Mechanize object to click through forms, and a UserAgent object to download the data to a download processor.
+{{{
+sub new {
+	my $self  = {};
+	$self->{URL} = $_[1];
+	
+	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
+	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	bless($self);
+	return $self;
+}
+}}}
+
+The constructor is given the initial URL, which is saved for later use.
+
+When the plugin is essentially not working (e.g. still needed to be ported to a new framework), the next fragment of code should be prepended in the constructor:
+{{{
+return error("plugin not ported yet");
+}}}
+This will prevent Slimrat from using the plugin, but won't mark the URLs as "DEAD" though.
+
+== Plugin name ==
+
+AMBIGIOUS: Plugin::get_name does this with the package name.
+
+== Filename ==
+
+This method is used to determine the filename of the resulting (local) file. Popular HTTP download sites display the filename at the initial page, which would lead to code alike:
+{{{
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/Filename: (.+)/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+}}}
+
+Again, a return value of 0 will result in a "unknown filename".
+
+== Filesize ==
+
+TODO: require parsing
+
+This method fetches a alphanumeric string indicating the filesize. Returns 0 if unknown.
+{{{
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/Filesize: (.+)/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+}}}
+
+Return values analogue to the get_filename method.
+
+== Check ==
+
+This method should check if the passed URL is up and alive. It differentiates the failure return value however:
+* return -1, when the link is DEAD (the download site reported so)
+* return 0, when the plugin doesn't really know if the URL is deaed (404, or unknown error)
+* return 1, link is up and alive, and can be downloaded.
+{{{
+sub check {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		# Check if the download form is present
+		if ($res->decoded_content =~ m/click here to download) {
+			return 1;
+		} elsif ($res->decoded_content =~ m/link is dead/ {
+			return -1;
+		}
+	}
+	return 0;
+}
+}}}
+
+== Get data ==
+
+This is the main method of any plugin, and should download the data ant reroute it to the only parameter of the get_data method: a data processor routine.
+
+In case of a HTTP-based download site, the process most of the times consists of three parts
+# Fulfil all prerequisites (click through some forms, fill in a captcha, ...)
+# Generate a final request which will download the file
+# Send the request, and reroute the output to the data processor
+
+=== Method signature ===
+
+This is the method description, accepting the extra parameter
+{{{
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+}}}
+
+=== Step 1: prerequisites ===
+
+Most of the times this will fetch the initial page:
+{{{
+my $res = $self->{MECH}->get($self->{URL});
+return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+}}}
+
+Sometimes, you might need to click a specific button (e.g. Rapidshare's FREE button):
+{{{
+$self->{MECH}->form_number(1);
+$res = $self->{MECH}->submit_form();
+return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+}}}
+
+After having a page, some complex loops might be required to wait upon request, or to extract a code which is needed to download the actual site. An example of the EasyShare plugin:
+{{{
+my $code;
+while (1) {
+	my $content = $res->decoded_content."\n";
+	
+	# Wait timer?
+	if ($content =~ m/You have to wait: (\d+)/) {
+		# Wait
+		dwait($1);
+		# Eventually reload and restart the loop
+	}
+	
+	# Code extraction
+	if ($content =~ m/Magic code: (\d+)/) {
+		$code = $1;
+		print "Got captcha through button: $code\n";
+		return error("plugin failure (could not extract captcha code)") unless $code;
+		last;
+	}
+	
+	# Wait if the site requests to
+	if($content =~ m/some error message/) {
+		my ($wait) = m/extract some (\d+) minutes/sm;		
+		return error("plugin failure (could not extract wait time)") unless $wait;
+		dwait($wait*60);
+			$res = $self->{MECH}->reload();
+		next;
+	}
+	
+	# We got a problem here
+	return error("plugin failure (could not match any action)");
+}
+}}}
+
+=== Step 2: request generation ===
+
+In case of a regular HTTP-GET request:
+{{{
+my $request = HTTP::Request->new(GET => $url_after_prerequisites);
+}}}
+
+Sometimes, a POST request with additional data is required:
+{{{
+my $req = HTTP::Request->new(POST => $url_after_prerequisites);
+$req->content_type('application/x-www-form-urlencoded');
+$req->content("magic_code=$code&foo=bar");
+}}}
+
+=== Step 3: Download ===
+
+This is the easy part, which will send the request and reroute the output to the data processor.
+
+In case of a regular HTTP request:
+{{{
+$self->{UA}->request($req, $data_processor);
+}}}
+
+
+
+= Notes =
+
+== Error reporting ==
+
+When a plugin needs to report an error, it should do that by returning the error() function:
+{{{
+return error("this is why the plugin failed")
+}}}
+
+This makes the plugin de-activate immediately, with an error message printed. As the error() function returns "FALSE" by default, the caller will however also detect a failure, and might that way proceed to a next url
+{{{
+while (my $url = read_url()) {
+  if (my $plugin = new Plugin()) {
+  ...
+  }
+}
+}}}
