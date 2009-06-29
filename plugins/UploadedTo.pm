@@ -54,7 +54,6 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("plugin not ported yet");
 	my $self  = {};
 	$self->{URL} = $_[1];
 	
@@ -67,6 +66,36 @@ sub new {
 # Plugin name
 sub get_name {
 	return "UploadedTo";
+}
+
+# Filename
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/Filename: \&nbsp;<\/td><td><b>\s*([^<]+?)\s+<\/b>/s) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/Filesize: \&nbsp;<\/td><td>\s*([^<]+?)\s*<\/td>/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
 }
 
 # Check if the link is alive
@@ -99,20 +128,10 @@ sub get_data {
 
 	# Extract url
 	my ($download) = m#<form name="download_form" method="post" action="(.+?)">#;
-	if (!$download) { error("plugin failure (could not find url)"); return 0; }
-
-	# Extract filename
-	my ($fname) = m/<title>(.+?) \.\.\./s;
-
-	# Generate the download URL
-	$download .= " \" --post-data \"download_submit=Free Download\"";
-	if($fname) {
-		$download .= " -O \"".$fname; # works like wget http://... -O - > fname (overwrites the file!!!)
-		warning("This can overwrite your files with the same name.");
-	}			
+	if (!$download) { error("plugin failure (could not find url)"); return 0; }		
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{UA}->request(HTTP::Request->new(POST => $download, ["download_submit" => "Free Download"]), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(uploaded.to/file|ul.to)/");
