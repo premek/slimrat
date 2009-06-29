@@ -83,7 +83,7 @@ sub get_filename {
 	return 0;
 }
 
-# Filename
+# Filesize
 sub get_filesize {
 	my $self = shift;
 	
