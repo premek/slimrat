@@ -58,7 +58,6 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("plugin not ported yet");
 	my $self  = {};
 	$self->{URL} = $_[1];
 	
@@ -71,6 +70,36 @@ sub new {
 # Plugin name
 sub get_name {
 	return "FastLoad";
+}
+
+# Filename
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/\/fastload\/files\/([^<]+)<\/span>/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/<\/span> \(([^)]+)\)<\/p>/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
 }
 
 # Check if the link is alive
@@ -101,13 +130,6 @@ sub get_data {
 	return error("plugin failure (cannot find download url)") unless ($download);
 
 	$download = "http://www.fast-load.net$download";
-	
-	my ($filename) = m#<span class="blue">/fastload/files/(.+?)</span>#;
-	if ($filename){
-		warning("This can overwrite your files with the same name.");
-		$download .= "\" -O \"".$filename;
-	}
-
 	
 	# Download the data
 	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
