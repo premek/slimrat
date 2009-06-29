@@ -54,7 +54,6 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("plugin not ported yet");
 	my $self  = {};
 	$self->{URL} = $_[1];
 	
@@ -67,6 +66,36 @@ sub new {
 # Plugin name
 sub get_name {
 	return "MegaUpload";
+}
+
+# Filename
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/Filename:<\/font> <font[^>]*>([^<]+)<\/font/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/File size:<\/font> <font[^>]*>([^<]+)<\/font/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
 }
 
 # Check if the link is alive
@@ -97,10 +126,10 @@ sub get_data {
 		my ($captchaimg) = m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
 		return error("can't get captcha image") unless ($captchaimg);
 		
-		system("wget '$captchaimg' -O mu-captcha.tmp");
+		system("wget -q '$captchaimg' -O /tmp/mu-captcha.tmp");
 		# hmm, hm...
-		system("asciiview -kbddriver stdin -driver stdout mu-captcha.tmp"); # TODO config
-		unlink("mu-captcha.tmp");
+		system("asciiview -kbddriver stdin -driver stdout /tmp/mu-captcha.tmp"); # TODO config
+		unlink("/tmp/mu-captcha.tmp");
 
 		# Ask the user
 		print "Captcha? ";
