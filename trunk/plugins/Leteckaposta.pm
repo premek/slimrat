@@ -49,9 +49,6 @@ use LWP::UserAgent;
 use strict;
 use warnings;
 
-my $ua = LWP::UserAgent->new;
-$ua->agent($useragent);
-
 
 #
 # Routines
@@ -69,18 +66,27 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "Leteckaposta";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $ua->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{UA}->get($self->{URL});
 	return -1 unless ($res->is_success);
 	return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
 	return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
 
-	my $res = $ua->get($file);
+	my $res = $self->{UA}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	# Extract the download URL
@@ -92,8 +98,9 @@ sub download {
 		warning("This can overwrite your files with the same name.");
 		$download .= "\" -O \"".$filename;
 	}
-
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__, "^[^/]+//(?:www.)?leteckaposta.cz");

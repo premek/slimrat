@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent'=>$useragent);
-
 
 #
 # Routines
@@ -68,20 +66,28 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "DataHu";
+}
+
 # Check if the link is alive
 sub check {
-	my $file = shift;
-	$mech->get($file);
-	$_ = $mech->content();
+	my $self = shift;
+	
+	$self->{MECH}->get($self->{URL});
+	$_ = $self->{MECH}->content();
 	return -1 if(m#error_box#);
 	return 1;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;	
 	
 	# Get the primary page
-	my $res = $mech->get($file);
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	while (1) {
@@ -93,7 +99,7 @@ sub download {
 			error("plugin error (could not extract wait time)") unless $wait;
 			dwait($wait);
 			
-			$res = $mech->reload();
+			$res = $self->{MECH}->reload();
 		} else {
 			last;
 		}
@@ -102,7 +108,9 @@ sub download {
 	# Extract the download URL
 	my ($download) = m/class="download_it"><a href="(.*)" onmousedown/sm;
 	return error("plugin error (could not extract download link)") unless $download;
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?data.hu");

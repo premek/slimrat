@@ -51,8 +51,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent'=>$useragent );
-
 
 #
 # Routines
@@ -70,9 +68,16 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "Youtube";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/<div class="errorBox">/) {
 			return -1;
@@ -83,11 +88,18 @@ sub check {
 	return 0;
 }
 
-sub download {
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
 	# Extract data from SWF loading script
-	my ($v, $t) = $mech->get(shift)->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
+	my ($v, $t) = $self->{MECH}->get($self->{URL})->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
 	return error("plugin error (could not extract video properties)") unless ($v && $t);
-	return "http://www.youtube.com/get_video?video_id=$v&t=$t";
+	my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//[^.]*\.?youtube\.com/watch[?]v=.+");

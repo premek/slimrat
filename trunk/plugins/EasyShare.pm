@@ -47,8 +47,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent'=>$useragent);
-
 
 #
 # Routines
@@ -66,9 +64,16 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "Easyshare";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/msg-err/) {
 			return -1;
@@ -79,11 +84,13 @@ sub check {
 	return 0;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
 
 	# Get the primary page
-	my $res = $mech->get($file);
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	# Process the resulting page
@@ -100,14 +107,14 @@ sub download {
 			($code) = m/\/file_contents\/captcha_button\/(\d+)/;
 			return error("plugin failure (could not extract captcha code)") unless $code;
 			
-			$res = $mech->get('http://www.easy-share.com/c/' . $code);
+			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
 			last;
 		}
 		
 		# Download without wait?
 		if (m/http:\/\/www.easy-share.com\/c\/(\d+)/) {
 			$code = $1;
-			$res = $mech->get('http://www.easy-share.com/c/' . $code);
+			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
 			last;
 		}
 		
@@ -116,7 +123,7 @@ sub download {
 			my ($wait) = m/extract some (\d+) minutes/sm;		
 			return error("plugin failure (could not extract wait time)") unless $wait;
 			dwait($wait*60);
-			$res = $mech->reload();
+			$res = $self->{MECH}->reload();
 		} else {
 			last;
 		}
@@ -127,8 +134,8 @@ sub download {
 	my ($url) = m/action=\"([^"]+)\" class=\"captcha\"/;
 	return error("plugin error (could not extract download link)") unless $url;
 	
-	my $download = "$url\" --post-data \"id=".$code."&captcha=1";
-	return $download;
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(POST => $url, [id => $code, captcha => 1]), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?easy-share.com");

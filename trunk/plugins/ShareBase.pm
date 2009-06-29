@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent' => $useragent );
-
 
 #
 # Routines
@@ -68,21 +66,30 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "ShareBase";
+}
+
 # Check if the link is alive
 sub check {
-	$mech->get(shift);
-	return -1 if($mech->content() =~ m/The download doesnt exist/);
-	return -1 if($mech->content() =~ m/Der Download existiert nicht/);
-	return -1 if($mech->content() =~ m/Upload Now !/);
-	return 1  if($mech->content() =~ m/Download Now !/);
+	my $self = shift;
+	
+	$self->{MECH}->get($self->{URL});
+	return -1 if($self->{MECH}->content() =~ m/The download doesnt exist/);
+	return -1 if($self->{MECH}->content() =~ m/Der Download existiert nicht/);
+	return -1 if($self->{MECH}->content() =~ m/Upload Now !/);
+	return 1  if($self->{MECH}->content() =~ m/Download Now !/);
 	return 0;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
 	
 	# Get the primary page
-	my $res = $mech->get($file);
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Click the button
@@ -90,7 +97,7 @@ sub download {
 	my ($asi) = m/name="asi" value="([^\"]+)">/s;
 	
 	
-	$res = $mech->post($file, [ 'asi' => $asi , $asi => 'Download Now !' ] );
+	$res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	$_ = $res->content."\n";
 	
@@ -102,9 +109,9 @@ sub download {
 		if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
 		    info("reached the download limit for free-users (300 MB)");
 		    dwait(($wait+1)*60);
-		    $res = $mech->reload();
+		    $res = $self->{MECH}->reload();
 		    $_ = $res->content."\n";
-		} elsif( $mech->uri() =~ $file ) {
+		} elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
 		    info("something wrong, waiting 60 sec");
 		    dwait(60);
 		} else {
@@ -115,8 +122,10 @@ sub download {
 		}
 	}
 	
-	my $download = $mech->uri();
-	return $download;
+	my $download = $self->{MECH}->uri();
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?sharebase.to");

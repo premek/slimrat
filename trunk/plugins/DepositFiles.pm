@@ -54,8 +54,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new(agent => $useragent );
-
 
 #
 # Routines
@@ -73,9 +71,16 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "DepositFiles";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/does not exist/) {
 			return -1;
@@ -86,31 +91,33 @@ sub check {
 	return 0;
 }
 
-
-sub download {
-	my $file = shift;
-	my $res = $mech->get($file);
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
-	$_ = $mech->content();
+	$_ = $self->{MECH}->content();
 	if (m/slots for your country are busy/) { error("all downloading slots for your country are busy"); return 0;}
 	my $re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
 	
 	my $download;
 	if(!(($download) = m/$re/)) {
-		$mech->form_number(2);
-		$mech->submit_form();
-		$_ = $mech->content();
+		$self->{MECH}->form_number(2);
+		$self->{MECH}->submit_form();
+		$_ = $self->{MECH}->content();
 		my $wait;
 		if (($wait) = m#Please try in\D*(\d+) min#) {
 			dwait($wait*60);
-			$mech->reload();
-			$_ = $mech->content();
+			$self->{MECH}->reload();
+			$_ = $self->{MECH}->content();
 		}
 		elsif (($wait) = m#Please try in\D*(\d+) sec#) {
 			dwait($wait);
-			$mech->reload();
-			$_ = $mech->content();
+			$self->{MECH}->reload();
+			$_ = $self->{MECH}->content();
 		}
 		if (m/Try downloading this file again/) {
 			($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;
@@ -121,7 +128,9 @@ sub download {
 			return error("plugin error (could not extract download link)") unless $download;
 		}
 	}
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?depositfiles.com");

@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent' => $useragent );
-
 
 #
 # Routines
@@ -68,9 +66,16 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "MediaFire";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/) {
 			return 1;
@@ -81,11 +86,13 @@ sub check {
 	return 0;
 }
 
-sub download {
-	my $file = shift;
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
 
 	# Get the primary page
-	my $res = $mech->get($file);
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error", $res->status_line, ")") unless ($res->is_success);
 	
 	$_ = $res->decoded_content."\n";
@@ -96,7 +103,7 @@ sub download {
 	}
 	
 	# Get the secondary page
-	$res = $mech->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
+	$res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 		
 	$_ = $res->decoded_content."\n";
@@ -109,7 +116,9 @@ sub download {
 	
 	# Generate the download URL
 	my $download = "http://$mL/${var}g/$mH/$mY";
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?mediafire.com");

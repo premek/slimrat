@@ -49,8 +49,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent' => $useragent );
-
 
 #
 # Routines
@@ -68,28 +66,40 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "FastShare";
+}
+
 # Check if the link is alive
 sub check {
-	$mech->get(shift);
-	return -1 if($mech->content() =~ m/No filename specified or the file has been deleted!/);
-	return 1  if($mech->content() =~ m/klicken sie bitte auf Download!/);
+	my $self = shift;
+	
+	$self->{MECH}->get($self->{URL});
+	return -1 if($self->{MECH}->content() =~ m/No filename specified or the file has been deleted!/);
+	return 1  if($self->{MECH}->content() =~ m/klicken sie bitte auf Download!/);
 	return 0;
 }
 
-sub download {
-	my $file = shift;
-	my $res = $mech->get($file);
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	# Click the button
-	$mech->form_number(0);
-	$mech->submit_form();
-	$_ = $mech->content;	
+	$self->{MECH}->form_number(0);
+	$self->{MECH}->submit_form();
+	$_ = $self->{MECH}->content;	
 	
 	# Extract the download URL
 	my ($download) = m/<br>Link: <a href=([^>]+)><b>/s;
 	return error("plugin error (could not extract download link)") unless $download;
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fastshare.org");

@@ -47,8 +47,6 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new('agent'=>$useragent);
-
 
 #
 # Routines
@@ -66,9 +64,16 @@ sub new {
 	return $self;
 }
 
+# Plugin name
+sub get_name {
+	return "UploadedTo";
+}
+
 # Check if the link is alive
 sub check {
-	my $res = $mech->get(shift);
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m#File doesn't exist#) {
 			return -1;
@@ -79,10 +84,12 @@ sub check {
 	return 0;
 }
 
-sub download {
-	my $file = shift;
-
-	my $res = $mech->get($file);
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
 	$_ = $res->content."\n";
@@ -103,7 +110,9 @@ sub download {
 		$download .= " -O \"".$fname; # works like wget http://... -O - > fname (overwrites the file!!!)
 		warning("This can overwrite your files with the same name.");
 	}			
-	return $download;
+	
+	# Download the data
+	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(uploaded.to/file|ul.to)/");
