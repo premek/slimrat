@@ -131,7 +131,10 @@ sub get_data {
 	if (!$download) { error("plugin failure (could not find url)"); return 0; }		
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(POST => $download, ["download_submit" => "Free Download"]), $data_processor);
+	my $req = HTTP::Request->new(POST => $download);
+	$req->content_type('application/x-www-form-urlencoded');
+	$req->content("download_submit=Free%20Download");
+	$self->{UA}->request($req, $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(uploaded.to/file|ul.to)/");
