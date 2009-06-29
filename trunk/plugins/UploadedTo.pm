@@ -123,7 +123,7 @@ sub get_data {
 	
 	$_ = $res->content."\n";
 
-
+	# TODO: actually wait here
 	if(my($minutes) = m#Or wait (\d+) minutes!#) { error("Your Free-Traffic is exceeded, wait $minutes minutes."); return 0; }
 
 	# Extract url
