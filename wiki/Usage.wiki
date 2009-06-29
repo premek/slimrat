@@ -1,62 +1,40 @@
 #labels Featured
+= Slimrat usage =
+
+This document is based upon Slimrat 0.9.5, for other versions, see the usage bundled with the script:
 {{{
-$ slimrat 
-Loaded plugins: Rapidshare, YouTube, DepositFiles, Leteckaposta
-
-SlimRat 
-
-Downloads files from rapidshare and other servers to your working directory. 
-Files to download are specified by download links like 'http://rapidshare.com/files
-/012345678/somefile.xxx' as arguments on command line or one per line in file 
-given as --list option ('-' for stdin works too).
-
-USAGE:
-   ./slimrat [options] [link [link [...]]]
-
-OPTIONS:
-   -h | --help              this help
-   -l | --list   filename   load links from file (one per line)
-   -c | --check             check links instead of downloading them
-   -t | --to     directory  destination directory (where to download)
-   -w | --wget              wget options, enclosed in quotes
-                            slimrat -w '--limit-rate=20k' -l file-list (see "man wget")
-
-
-$ slimrat http://rapidshare.com/files/146955194/screenshot-20080911_122625.png.html
-Loaded plugins: FastLoad, MediaFire, YouTube, DepositFiles, Rapidshare, Leteckaposta
-[11:43:52] Slimrat started
-[11:43:52] Downloading http://rapidshare.com/files/...25.png.html (Rapidshare) [ALIVE] 
---2009-03-08 11:43:53--  http://rs529l32.rapidshare.com/files/...25.png ...wget...
-100%[============================================>] 23 885       145K/s   za 0,2s    
-
-2009-03-08 11:43:54 (145 KB/s) – „screenshot-20080911_122625.png“ uloženo [23885/23885]
-
-[11:43:54] File downloaded  
-
-
-DOWNLOADED:
-http://rapidshare.com/files/146955194/screenshot-20080911_122625.png.html
-
-
-$ slimrat -l links.txt
-...
-
-$ echo 'http://rapidshare.com/files/012345678/foo.bar' | slimrat --list -
-...
-
-$ slimrat -c -l list.txt 
-[ALIVE] http://depositfiles.com/files/8110795 (DepositFiles)
-[DEAD]  http://depositfiles.com/files/811 (DepositFiles)
-[?]     http://leteckaposta.cz/185036736 (Leteckaposta)
-[ALIVE] http://rapidshare.com/files/146955194/screenshot-20080911_122625.png.html (Rapidshare)
-
-$ echo $?
-1
-
+$ slimrat --help
 }}}
 
-==GUI hotkeys==
+Version 0.9.5 and above includes a more thorough help:
+{{{
+$ slimrat --man
+}}}
+
+== CLI and GUI clients ==
+
+Both the CLI and the GUI client parse two configuration files:
+ # System-wide configuration file, located at _/etc/slimrat.conf_
+ # User-specific configuration file, located at _~/.slimrat/config_
+
+The tarball includes a sample configuration file, which documents all supported options. Some are GUI specific, other aren't (documented in the sample configuration file as well).
+
+It is also possible for the system admin to force certain options, by setting a configuration value and making it immutable after it:
+{{{
+log_file == /var/log/slimrat.log
+}}}
+Now every slimrat instance will always log there, and no user will be able to avoid this setting.
+This might later on be very handy when combined with scheduling options.
+
+== CLI client ==
+
+The CLI client can takse parameters over the command-line, as well as through the previously mentioned configuration file. All options are complementary to the ones in the configuration file, which means you won't be able either to override a previously set immutable value. See _slimrat --man_ for an explanation of all options.
+
+== GUI client ==
+
+The GUI client can at the moment only be configured by editing the configuration file, or through the currently quite limited GUI functionality.
+
+=== GUI hotkeys ===
 || Ctrl-V || Insert links from clipboard||
 || Insert || Add links dialog ||
 || Ctrl-Enter || OK in "add links dialog" ||
-|| .. || ? ||
