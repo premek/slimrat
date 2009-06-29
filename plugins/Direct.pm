@@ -82,7 +82,7 @@ sub get_filename {
 		}
 		else
 		{
-			error("could not deduce filename");
+			return 0;
 		}
 	}
 	return $filename;

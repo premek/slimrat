@@ -48,7 +48,6 @@
 # Packages
 use Getopt::Long;
 use POSIX 'setsid';
-use Term::ANSIColor qw(:constants);
 use Pod::Usage;
 
 # Find root for custom packages
@@ -226,14 +225,12 @@ info("Slimrat started");
 #
 
 if ($config->get("mode") eq "check") {
+	info("Checking URLs");
 	my $urls_ref = $queue->dump();
 	my @urls = @$urls_ref;
 	foreach my $link (@urls) {
 		my $status = check($link);
-		if ($status>0) {print GREEN,  "[ALIVE] ", RESET;}
-		elsif ($status<0) {print RED, "[DEAD]  ", RESET; }
-		else {print GREEN, "[?]     ", RESET;}
-		print YELLOW, $link, RESET, " (", Plugin::get_name($link), ")\n";
+		status($link, $status,  Plugin::get_name($link));
 	}
 }
 
@@ -329,8 +326,12 @@ sub download($) {
 	my $pluginname = $plugin->get_name();
 	debug("downloading \"$link\" using the $pluginname-plugin");
 	
-	# Get destination filename (TODO: check if able to)
-	my $filename = $plugin->get_filename();
+	# Get destination filename
+	my $filename;
+	unless ($filename = $plugin->get_filename()) {
+		error("could not deduce filename");
+		return 0;
+	}
 	my $filepath = $config->get("to") . "\/$filename";
 	debug("file will be saved as \"$filepath\"");
 	
@@ -364,14 +365,18 @@ sub download($) {
 			}
 			
 			# Open file
-			open(FILE, ">$filepath");	# TODO: check if opened
+			open(FILE, ">$filepath");
+			unless (-w FILE) {
+				error("could not open file to write");
+				return 0;
+			}
 			binmode FILE;
 		}
 		
 		# Write the data
-		print FILE $_[0];	# TODO: check if able to write
+		print FILE $_[0];
 		
-		# Download indication	# TODO: move to Log.pm
+		# Download indication
 		$size_downloaded += length($_[0]);	
 		if ($t_prev != time) {	# don't update too often
 			$t_prev = time;
@@ -389,20 +394,13 @@ sub download($) {
 	return 1;
 }
 
-# Finish (TODO: move output to Log.pm so we don't use raw colours here)
+# Finish
 sub quit() {
-	if(scalar @oklinks){
-		print GREEN, "\nDOWNLOADED:\n", RESET;
-		print $_,"\n" foreach @oklinks;
-		print "to '",YELLOW, $config->get("to"), RESET, "'\n" if ($config->get("to"));
-	}
-	if(scalar @failedlinks){
-		print RED, "\nFAILED:\n", RESET;
-		print $_,"\n" foreach @failedlinks;
-	}
-	info("Slimrat finished");
+	info("Download summary:");
+	summary(\@oklinks, \@failedlinks);
 	
-	# hard exit, for when &quit gets called out of sig{int}
+	# Hard exit, for when &quit gets called out of sig{int}	
+	info("Slimrat finished");
 	exit(0);
 }
 
