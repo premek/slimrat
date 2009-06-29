@@ -61,7 +61,6 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("plugin not ported yet");
 	my $self  = {};
 	$self->{URL} = $_[1];
 	
@@ -74,6 +73,38 @@ sub new {
 # Plugin name
 sub get_name {
 	return "DepositFiles";
+}
+
+# Filename
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/File name: <b[^>]*>([^<]+)<\/b>/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/File size: <b[^>]*>([^<]+)<\/b>/) {
+			my $size = $1;
+			$size =~ s/\&nbsp;/ /;
+			return $size;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
 }
 
 # Check if the link is alive
