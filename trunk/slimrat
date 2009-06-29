@@ -347,13 +347,14 @@ sub download($) {
 	my $size_downloaded = 0;
 	
 	# Get data
+	my $flag = 0;
 	$|++; # unbuffered output
 	$plugin->get_data( sub {
 		# Fetch server response
 		my $res = $_[1];
 		
 		# Do one-time stuff
-		unless ($size) {
+		unless ($flag) {
 			# Save length and print
 			$size = $res->content_length;
 			if ($size)
@@ -370,6 +371,8 @@ sub download($) {
 				return 0;
 			}
 			binmode FILE;
+			
+			$flag = 1;
 		}
 		
 		# Write the data
@@ -382,7 +385,11 @@ sub download($) {
 			progress($size_downloaded, $size, 0);
 		}
 	});
-	progress($size, $size, 0);
+	if ($size) {
+		progress(1, 1, 0);
+	} else {
+		progress($size_downloaded, 0, 0);
+	}
 	print "\r\n";
 	
 	# Close file

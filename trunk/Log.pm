@@ -43,6 +43,7 @@ package Log;
 
 # Modules
 use Term::ANSIColor qw(:constants);
+use Toolbox;
 
 # Export functionality
 use Exporter;
@@ -145,7 +146,7 @@ sub progress {
 		my $perc = $done / $total;
 		print "\r", &timestamp, "Downloaded: ", int($perc*10000)/100, "%      ";
 	} else {
-		print "\r", "Downloaded ", human_readable($done);
+		print "\r", &timestamp, "Downloaded ", bytes_readable($done);
 	}
 }
 
