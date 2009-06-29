@@ -238,7 +238,7 @@ if ($config->get("mode") eq "check") {
 		}
 		else {		
 			my $status = $plugin->check();
-			status($link, $status,  $plugin->get_filename() . ", " . $plugin->get_filesize());
+			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($plugin->get_filesize()||"unknown filesize"));
 		}
 	}
 }
