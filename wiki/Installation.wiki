@@ -1,6 +1,8 @@
 #summary How to install & run slimrat
 #labels Featured,Phase-Deploy
 
+_*NOTE*: the most up-to-date installation instructions are to be found in [http://code.google.com/p/slimrat/source/browse/trunk/INSTALL the repository]._
+
 =Unix=
 
 ==RPM==
