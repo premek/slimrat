@@ -176,14 +176,14 @@ sub summary {
 sub status {
 	my $link = shift;
 	my $status = shift;
-	my $site = shift;
+	my $extra = shift;
 
 	if ($status>0) {
-		output_contin(GREEN, ["[ALIVE] ", RESET, $link, YELLOW, " ($site)"]);
+		output_contin(GREEN, ["[ALIVE] ", RESET, $link, " ($extra)"]);
 	} elsif ($status<0) {
-		output_contin(RED, ["[DEAD] ", RESET, $link, YELLOW, " ($site)"]);
+		output_contin(RED, ["[DEAD] ", RESET, $link, " ($extra)"]);
 	} else {
-		output_contin(YELLOW, ["[?] ", RESET, $link, YELLOW, " ($site)"]);
+		output_contin(YELLOW, ["[?] ", RESET, $link, " ($extra)"]);
 	}
 }
 
@@ -281,9 +281,10 @@ to the current progress.
 
 This prints a download summary, given two refs to arrays with actual links.
 
-=head2 status($link, $status, $site)
+=head2 status($link, $status, $extra)
 
-Print a one-line status indication for a given download URL.
+Print a one-line status indication for a given download URL, with some extra information
+between brackets.
 
 =head1 AUTHOR
 

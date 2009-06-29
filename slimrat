@@ -226,11 +226,20 @@ info("Slimrat started");
 
 if ($config->get("mode") eq "check") {
 	info("Checking URLs");
+	
+	# Get and loop all URLs
 	my $urls_ref = $queue->dump();
 	my @urls = @$urls_ref;
 	foreach my $link (@urls) {
-		my $status = check($link);
-		status($link, $status,  Plugin::get_name($link));
+		# Load plugin
+		my $plugin;
+		unless ($plugin = Plugin->new($link)) {
+			status($link, 0, "plugin failure");
+		}
+		else {		
+			my $status = $plugin->check();
+			status($link, $status,  $plugin->get_name());
+		}
 	}
 }
 
@@ -299,13 +308,6 @@ else {
 ############
 # ROUTINES #
 ############
-
-# Redirect check() call to the correct plugin
-sub check($) {
-	$link = shift;
-	my $plugin = Plugin->new($link) || return 0;
-	return $plugin->check();
-}
 
 # Redirect download() call to the correct plugin
 sub download($) {
