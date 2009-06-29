@@ -6,14 +6,14 @@
 || DataHu            || OK                             || ? || ? ||
 || DepositFiles      || OK                             || ? || ? ||
 || Direct            || OK                             || ? || ? ||
-|| EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
+|| EasyShare         || OK                             || ? || ? ||
 || FastLoad          || OK                             || ? || ? ||
 || FastShare         || OK                             || ? || ? ||
 || HotFile           || OK                             || ? || ? ||
 || Leteckaposta      || OK                             || ? || ? ||
-|| MediaFire         || <font color="red">FAIL</font>  || ? || ? ||
+|| MediaFire         || OK                             || ? || ? ||
 || Megaupload        || OK                             || ? || ? ||
-|| OdSiebie          || <font color="red">FAIL</font>  || ? || ? ||
+|| OdSiebie          || OK                             || ? || ? ||
 || Rapidshare        || OK                             || ? || ? ||
 || ShareBase         || OK                             || ? || ? ||
 || UploadedTo        || OK                             || ? || ? ||
