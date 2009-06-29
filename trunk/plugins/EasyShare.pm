@@ -54,7 +54,6 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("plugin not ported yet");
 	my $self  = {};
 	$self->{URL} = $_[1];
 	
@@ -67,6 +66,36 @@ sub new {
 # Plugin name
 sub get_name {
 	return "Easyshare";
+}
+
+# Filename
+sub get_filename {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/You are requesting<strong>([^<]+)<\/strong>/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
+}
+
+# Filename
+sub get_filesize {
+	my $self = shift;
+	
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		if ($res->decoded_content =~ m/You are requesting<strong>[^<]+<\/strong> \(([^)]+)\)/) {
+			return $1;
+		} else {
+			return 0;
+		}
+	}
+	return 0;
 }
 
 # Check if the link is alive
