@@ -49,6 +49,13 @@ This will prevent Slimrat from using the plugin, but won't mark the URLs as "DEA
 
 == Plugin name ==
 
+This function returns the name of the plugin. This can be descriptive (e.g. "MMS-stream over UDP") and does not have to be unique. This contrary to the package name, which has to be an unique identifier used internally to register the plugins.
+{{{
+sub get_name {
+	return "Youtube";
+}
+}}}
+
 AMBIGIOUS: Plugin::get_name does this with the package name.
 
 == Filename ==
