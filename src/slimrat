@@ -172,6 +172,14 @@ $config->add("to", $config->get("to")) if ($config->get("to"));
 # Apply configuration
 #
 
+# Make sure slimrat has a proper directory in the users home folder
+if (! -d $ENV{HOME}."/.slimrat") {
+	debug("creating a directory in the home folder");
+	unless (mkdir $ENV{HOME}."/.slimrat") {
+		fatal("could not create slimrat's home directory");
+	}
+}
+
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
 if (!scalar @ARGV && !$config->get("list")) {
 	usage("no input URLs");
