@@ -140,7 +140,7 @@ while (<QUEUE>){
 	chomp;
 	my @newRow;
 	$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
-	$newRow[COL_TYPE] = Plugin::get_name($_);
+	$newRow[COL_TYPE] = Plugin::get_package($_);
 	$newRow[COL_LINK] = $_;
 	push @{$slist->{data}},[@newRow];
 }

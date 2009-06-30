@@ -65,7 +65,7 @@ my %plugins;
 sub new {
 	my $url = $_[1];
 	
-	my $plugin = get_name($url);
+	my $plugin = get_package($url);
 	my $object = eval $plugin."->new('$url')";
 	return $object;
 }
@@ -77,7 +77,7 @@ sub register {
 }
 
 # Get a plugin's name
-sub get_name {
+sub get_package {
 	(my $link) = @_;
 	foreach my $re (keys %plugins){
 		if($link =~ m#$re#i){
