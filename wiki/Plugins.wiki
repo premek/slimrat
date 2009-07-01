@@ -1,6 +1,10 @@
 #summary Which plugins are working
 #labels Phase-QA
 
+=Plugin tests=
+==v. 0.9.5==
+last update: 2009-06-29
+
 || *Plugin*          |||||| *Test*                                              ||
 ||                   || *One 100kB file*   || *Larger file* || *Lot of traffic* ||
 || DataHu            || OK                             || ? || ? ||
@@ -18,3 +22,6 @@
 || ShareBase         || OK                             || ? || ? ||
 || UploadedTo        || OK                             || ? || ? ||
 || YouTube           || OK                             || ? || ? ||
+
+==svn==
+?
