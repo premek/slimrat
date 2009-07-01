@@ -144,7 +144,7 @@ if ($options{"kill"}) {
 	if (my $pid = pid_read()) {
 		if (kill 0, $pid) {
 			info("killing an active instance at PID $pid");
-			kill $pid, 2;
+			kill 2, $pid;
 		} else {
 			warning("no running instance found");
 		}
