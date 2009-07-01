@@ -3,6 +3,9 @@
     * slimrat: fixed issue 35, by creating a .slimrat folder
       at runtime and moving inclusions of custom packages.
 
+    * slimrat: fixed a bug preventing slimrat to kill another
+      instance.
+
 
 2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
