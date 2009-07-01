@@ -1,3 +1,9 @@
+2009-07-01  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: fixed issue 35, by creating a .slimrat folder
+      at runtime and moving inclusions of custom packages.
+
+
 2009-06-29  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: moved all colour dependant functions (check and
