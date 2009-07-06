@@ -165,7 +165,7 @@ $config->add("verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
 $config->add("address", $options{"address"}) if ($options{"address"});
 $config->add("wget", $options{"wget"}) if ($options{"wget"}); # TODO: remove
-$config->add("to", $config->get("to")) if ($config->get("to"));
+$config->add("to", $options{"to"}) if ($options{"to"});
 
 
 #
