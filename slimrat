@@ -448,7 +448,7 @@ slimrat-cli
 
 =head1 VERSION
 
-0.9.5.1
+0.9.5.2
 
 =head1 DESCRIPTION
 
@@ -514,7 +514,7 @@ slimrat-cli
 =head1 EXAMPLES
 
   slimrat http://rapidshare.com/files/012345678/somefile.xxx
-  slimrat -l urls.dat -dz
+  slimrat -l urls.dat -d
 
 =cut
 
