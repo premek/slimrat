@@ -211,7 +211,7 @@ if ($config->get("daemon")) {
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
-	$config->add("wget", $config->get("wget") . "-q -c");
+	$config->add("wget", ($config->get("wget")?$config->get("wget"):"") . " -q -c ");
 	# avoid log file spam and  make wget continue if file exists
 	# this is a temporary fix, because when slimrat receives a sig{int}
 	# when downloading, wget will continue to download the file without
@@ -339,9 +339,10 @@ sub download($) {
 	if($fileurl){ 
 		my $command = 'wget ' .
 			"-U \"$useragent\" ".
-			($config->get("wget") ? qq($config->get("wget") ) : '') .
-			($config->get("to")? " -P \"".$config->get("to")."\" " : "") .
+			($config->get("wget") ? $config->get("wget")  : "") .
+			($config->get("to") ? " -P \"".$config->get("to")."\" " : "") .
 			" \"$fileurl\"";
+		#print $command;
 
 		if(!system($command)){ #success
 			info("file downloaded");
