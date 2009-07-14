@@ -104,10 +104,12 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	$self->{MECH}->get($self->{URL});
-	return 1  if($self->{MECH}->content() =~ m/Your download will begin in/);
-	# TODO: detect 0-size reply HotFile returns upon dead links (and return 0 in other cases)
-	return -1;
+	my $res = $self->{MECH}->get($self->{URL});
+	if($res->is_success){
+		return 1  if($self->{MECH}->content() =~ m/Downloading/);
+		return -1 unless length($mech->content()); # server returns 0-sized page on dead links
+	}
+	return 0;
 }
 
 # Download data
