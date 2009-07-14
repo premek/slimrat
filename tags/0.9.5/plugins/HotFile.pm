@@ -53,10 +53,12 @@ my $mech = WWW::Mechanize->new('agent' => $useragent );
 #   0: don't know
 
 sub check {
-	$mech->get(shift);
-	return 1  if($mech->content() =~ m/Your download will begin in/);
-	# TODO: detect 0-size reply HotFile returns upon dead links (and return 0 in other cases)
-	return -1;
+	my $res = $mech->get(shift);
+	if($res->is_success){
+		return 1  if($mech->content() =~ m/Downloading/);
+		return -1 unless length($mech->content()); # server returns 0-sized page on dead links
+	}
+	return 0;
 }
 
 sub download {
