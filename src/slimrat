@@ -233,7 +233,11 @@ if ($config->get("mode") eq "check") {
 		unless ($plugin = Plugin->new($link)) {
 			status($link, 0, "plugin failure");
 		}
-		else {		
+		else {
+			# Configure plugin
+			$plugin->config($config->section($plugin->get_name()));
+			
+			# Check status
 			my $status = $plugin->check();
 			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($plugin->get_filesize()||"unknown filesize"));
 		}
@@ -313,6 +317,7 @@ sub download($) {
 	# Load plugin
 	my $plugin = Plugin->new($link) || return 0;
 	my $pluginname = $plugin->get_name();
+	$plugin->config($config->section($pluginname));
 	debug("downloading \"$link\" using the $pluginname-plugin");
 	
 	# Check if link is valid

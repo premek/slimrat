@@ -38,10 +38,13 @@
 # Package name
 package EasyShare;
 
-# Modules
+# Packages
+use WWW::Mechanize;
+
+# Custom packages
 use Log;
 use Toolbox;
-use WWW::Mechanize;
+use Configuration;
 
 # Write nicely
 use strict;
@@ -59,8 +62,16 @@ sub new {
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	$self->{CONF} = Configuration->new();
+	
 	bless($self);
 	return $self;
+}
+
+# Configure
+sub config {
+	my ($self, $config) = @_;
+	$self->{CONF}->merge($config);
 }
 
 # Plugin name

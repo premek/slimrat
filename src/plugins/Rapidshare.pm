@@ -40,17 +40,17 @@
 # Package name
 package Rapidshare;
 
-# Modules
+# Packages
+use WWW::Mechanize;
+
+# Custom packages
 use Log;
 use Toolbox;
-use WWW::Mechanize;
+use Configuration;
 
 # Write nicely
 use strict;
 use warnings;
-
-# Maximum wait interval (in minutes)
-my $wait_max = 2;
 
 
 #
@@ -64,8 +64,18 @@ sub new {
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	$self->{CONF} = Configuration->new();
+	
+	$self->{CONF}->add_default("interval", 0);
+	
 	bless($self);
 	return $self;
+}
+
+# Configure
+sub config {
+	my ($self, $config) = @_;
+	$self->{CONF}->merge($config);
 }
 
 # Plugin name
@@ -141,23 +151,23 @@ sub get_data {
 
 		if(m/reached the download limit for free-users/) {
 			($wait) = m/Or try again in about (\d+) minutes/sm;
-			print CYAN &ptime."Reached the download limit for free-users\n";
+			info("Reached the download limit for free-users");
 			
 		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			print CYAN &ptime."Currently a lot of users are downloading files\n";
+			info("Currently a lot of users are downloading files");
 		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			print CYAN &ptime."No available slots for free users\n";
+			info("No available slots for free users");
 
 		} elsif(m/already downloading a file/) {
-			print CYAN &ptime."Already downloading a file\n"; 
-			$wait = 60;
+			info("Already downloading a file");
+			$wait = 1;
 		} else {
 			last;
 		}
 		
-		if ($wait > $wait_max) {
-			print &ptime."Should wait $wait minutes, interval-check in $wait_max minutes\n";
-			$wait = $wait_max;
+		if ($self->{CONF}->get("interval") && $wait > $self->{CONF}->get("interval")) {
+			print &ptime."Should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes\n";
+			$wait = $self->{CONF}->get("interval");
 		}
 		wait($wait*60);
 		$res = $self->{MECH}->reload();
