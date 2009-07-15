@@ -66,7 +66,7 @@ sub new {
 	my $url = $_[1];
 	
 	my $plugin = get_package($url);
-	my $object = eval $plugin."->new('$url')";
+	my $object = new $plugin $url;
 	return $object;
 }
 
