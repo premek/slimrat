@@ -1,3 +1,9 @@
+2009-07-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin (new): abandoned eval structure, using dynamic
+      binding (fixes issue 32).
+
+
 2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * configuration (file_read, section, merge): implemented
