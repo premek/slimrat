@@ -1,3 +1,26 @@
+2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration (file_read, section, merge): implemented
+      support for sections (indicated by "[\w+]"), extracting
+      them from the main configuration object, and merging them
+      back in an object with default values (see documentation).
+
+    * configuration: removed any dependancy to other custom
+      packages, making it usable all over the place.
+    
+    * toolbox, plugins: moved dwait() to log, to remove the
+      dependancy.
+
+    * slimrat: removed wget references.
+
+    * slimrat (daemonize): stricter daemonization, disallowing
+      multiple instances and dying upon failure to write the state
+      file.
+
+    * slimrat: moved output configuration as high up as possible,
+      and altered sample configuration file.
+
+
 2009-07-06  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
 	* slimrat: fixed issue 36 - "download to" option
