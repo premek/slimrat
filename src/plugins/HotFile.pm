@@ -107,7 +107,7 @@ sub check {
 	my $res = $self->{MECH}->get($self->{URL});
 	if($res->is_success){
 		return 1  if($self->{MECH}->content() =~ m/Downloading/);
-		return -1 unless length($mech->content()); # server returns 0-sized page on dead links
+		return -1 unless length($self->{MECH}->content()); # server returns 0-sized page on dead links
 	}
 	return 0;
 }
