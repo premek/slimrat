@@ -169,6 +169,9 @@ $config->add("to", $options{"to"}) if ($options{"to"});
 # Apply configuration
 #
 
+# Configure the output
+Log::configure($config->section("log"));
+
 # Make sure slimrat has a proper directory in the users home folder
 if (! -d $ENV{HOME}."/.slimrat") {
 	debug("creating a directory in the home folder");
@@ -192,9 +195,6 @@ while ($link = shift) {
 	}
 }
 $queue->file($config->get("list")) if ($config->get("list"));
-
-# Configure the output
-Log::configure($config->section("log"));
 
 # Set socket local address if needed
 if($config->get("address")){
