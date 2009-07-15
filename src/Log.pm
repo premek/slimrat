@@ -41,19 +41,30 @@
 # Package name
 package Log;
 
-# Modules
+# Packages
 use Term::ANSIColor qw(:constants);
+
+# Custom packages
+use Configuration;
+
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp bytes_readable level debug info warning error usage fatal progress summary status);
+@EXPORT = qw(timestamp bytes_readable level debug info warning error usage fatal progress summary status wait);
 
 # Write nicely
 use strict;
 use warnings;
 
-# Verbosity level
-my $verbosity = 3;
+# Base configuration
+my $config = new Configuration;
+$config->add_default("verbosity", 3);
+
+# Configure the package
+sub configure {
+	my $complement = shift;
+	$config->merge($complement);
+}
 
 
 #
@@ -96,54 +107,43 @@ sub bytes_readable
 
 
 #
-# Output configuration
-#
-
-# Set loglevel
-sub level($) {
-	my $level = shift;
-	$verbosity = $level;
-}
-
-
-#
 # Enhanced print routines
 #	
 
 # Debug message
 sub debug {
-	output(GREEN, "debug", \@_) if ($verbosity >= 4);
+	output(GREEN, "debug", \@_) if ($config->get("verbosity") >= 4);
 	return 0;
 }
 
 # Informative message
 sub info {
-	output(RESET, \@_) if ($verbosity >= 3);
+	output(RESET, \@_) if ($config->get("verbosity") >= 3);
 	return 0;
 }
 
 # Warning
 sub warning {
-	output(YELLOW, "warning", \@_) if ($verbosity >= 2);
+	output(YELLOW, "warning", \@_) if ($config->get("verbosity") >= 2);
 	return 0;
 }
 
 # Non-fatal error
 sub error {
-	output(RED, "error", \@_) if ($verbosity >= 1);
+	output(RED, "error", \@_) if ($config->get("verbosity") >= 1);
 	return 0;
 }
 
 # Usage error
 sub usage {
-	output(YELLOW, "invalid usage", \@_) if ($verbosity >= 1);
+	output(YELLOW, "invalid usage", \@_) if ($config->get("verbosity") >= 1);
 	output(RESET, ["Try `$0 --help` or `$0 --man` for more information"]);
 	main::quit();
 }
 
 # Fatal runtime error
 sub fatal {
-	output(RED, "fatal error", \@_) if ($verbosity >= 0);
+	output(RED, "fatal error", \@_) if ($config->get("verbosity") >= 0);
 	main::quit();
 }
 
@@ -199,6 +199,20 @@ sub status {
 	} else {
 		output_contin(YELLOW, ["[?] ", RESET, $link, " ($extra)"]);
 	}
+}
+
+
+#
+# Other
+#
+
+# Wait a while
+sub wait {
+	my ($wait, $rem, $sec, $min);
+	$wait = $rem = shift or return;
+	($sec,$min) = localtime($wait);
+	info(sprintf("Waiting %d:%02d",$min,$sec));
+	sleep($rem);
 }
 
 # Return

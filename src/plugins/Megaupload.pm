@@ -144,7 +144,7 @@ sub get_data {
 	# Wait
 	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
 	info("Now we can wait for $wait seconds, but we don't have to.");
-	#dwait ($wait);
+	#wait ($wait);
 
 	# Get download url
 	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;

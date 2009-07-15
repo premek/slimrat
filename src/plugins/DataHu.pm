@@ -92,7 +92,6 @@ sub get_filesize {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/f.jlm.ret:\s+(.+)/) {
-			print "yay\n";
 			return $1;
 		} else {
 			return 0;
@@ -127,7 +126,7 @@ sub get_data {
 		if(m#kell:#) {
 			my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
 			error("plugin error (could not extract wait time)") unless $wait;
-			dwait($wait);
+			wait($wait);
 			
 			$res = $self->{MECH}->reload();
 		} else {

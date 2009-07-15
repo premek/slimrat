@@ -135,7 +135,7 @@ sub get_data {
 		# Wait timer?
 		if ($content =~ m/Seconds to wait: (\d+)/) {
 			# Wait
-			dwait($1);
+			wait($1);
 		}
 		
 		# Captcha extraction
@@ -160,7 +160,7 @@ sub get_data {
 		if($content =~ m/some error message/) { #TODO: find what EasyShare does upon wait request
 			my ($wait) = m/extract some (\d+) minutes/sm;		
 			return error("plugin failure (could not extract wait time)") unless $wait;
-			dwait($wait*60);
+			wait($wait*60);
 			$res = $self->{MECH}->reload();
 			next;
 		}
