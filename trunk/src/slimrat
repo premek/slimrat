@@ -89,7 +89,6 @@ my $config = new Configuration;
 $config->add_default("state_file", "/var/run/slimrat.pid");
 $config->add_default("log_file", "/var/log/slimrat.log");
 $config->add_default("mode", "download");
-$config->add_default("verbosity", 3);
 $config->add_default("to", ".");
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
@@ -108,7 +107,7 @@ if (-r $ENV{HOME}."/.slimrat/config") {
 # NOTE: this is the only section where the %options hash should be used. After this, an appropriate action
 #       should have been undertaken, or if the value is needed later on (e.g. the lists file) the value should
 #       be added to the configuration handler. This makes it possible for some entries to originate at other
-#       sources, e.g. the "daemonise" flag could be passed through CLI as well as being specified in /etc/slimrat.conf
+#       sources, e.g. the "daemonize" flag could be passed through CLI as well as being specified in /etc/slimrat.conf
 
 # Process command-line options
 Getopt::Long::Configure("pass_through");
@@ -122,7 +121,6 @@ GetOptions (
 		"list=s",
 		"to=s",
 		"address=s",
-		"wget=s",
 		"daemon!",
 		"kill",
 		"verbose",
@@ -160,11 +158,10 @@ $config->add("mode", "check") if ($options{"check"});
 # Options we might use later on
 $config->add("list", $options{"list"}) if ($options{"list"});
 usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
-$config->add("verbosity", 2) if ($options{"quiet"});
-$config->add("verbosity", 4) if ($options{"verbose"});
+$config->add("log:verbosity", 2) if ($options{"quiet"});
+$config->add("log:verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
 $config->add("address", $options{"address"}) if ($options{"address"});
-$config->add("wget", $options{"wget"}) if ($options{"wget"}); # TODO: remove
 $config->add("to", $options{"to"}) if ($options{"to"});
 
 
@@ -196,14 +193,13 @@ while ($link = shift) {
 }
 $queue->file($config->get("list")) if ($config->get("list"));
 
-# Apply verbosity
-level($config->get("verbosity"));
+# Configure the output
+Log::configure($config->section("log"));
 
-# Set socket local address if needed (TODO: fix)
+# Set socket local address if needed
 if($config->get("address")){
-	no warnings; # avoid a "name used only once" warning
+	no warnings;
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
-	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
 }
 
 # Fork in background
@@ -211,13 +207,6 @@ if ($config->get("daemon")) {
 	debug("becoming a daemon");
 	daemonize();
 	print "\n\n";
-	$config->add("wget", $config->get("wget") . "-q -c");
-	# avoid log file spam and  make wget continue if file exists
-	# this is a temporary fix, because when slimrat receives a sig{int}
-	# when downloading, wget will continue to download the file without
-	# updating the urls-file. this can cause a file in the list to be
-	# already downloaded, and to avoid wget redownload it we use this -c flag
-	# Nasty code, but will be removed later on
 }
 
 
@@ -234,6 +223,7 @@ info("Slimrat started");
 
 if ($config->get("mode") eq "check") {
 	info("Checking URLs");
+	debug("debug");
 	
 	# Get and loop all URLs
 	my $urls_ref = $queue->dump();
@@ -539,10 +529,6 @@ slimrat-cli
 =item B<--address>
 
   Makes the download client bind to a specific address.
-
-=item B<--wget>
-
-  Used to pass additional options to the used wget client.
 
 =item B<--verbose>
 

@@ -141,12 +141,12 @@ sub get_data {
 		$_ = $self->{MECH}->content();
 		my $wait;
 		if (($wait) = m#Please try in\D*(\d+) min#) {
-			dwait($wait*60);
+			wait($wait*60);
 			$self->{MECH}->reload();
 			$_ = $self->{MECH}->content();
 		}
 		elsif (($wait) = m#Please try in\D*(\d+) sec#) {
-			dwait($wait);
+			wait($wait);
 			$self->{MECH}->reload();
 			$_ = $self->{MECH}->content();
 		}
@@ -154,7 +154,7 @@ sub get_data {
 			($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;
 		} else {
 			($wait) = m#show_url\((\d+)\)#;
-			dwait($wait);
+			wait($wait);
 			($download) = m#$re#;
 			return error("plugin error (could not extract download link)") unless $download;
 		}

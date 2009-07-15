@@ -134,7 +134,7 @@ sub get_data {
 	
 	# Wait
 	my($wait) = $wait1+$wait2;
-        dwait($wait);
+        wait($wait);
         
         # Click the button
 	$self->{MECH}->form_number(2); # free;

@@ -45,9 +45,6 @@ use Exporter;
 use strict;
 use warnings;
 
-# Modules
-use Log;
-
 # Fake a user agent
 our $useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Gecko/2009042316 Firefox/3.0.10";
 
@@ -55,16 +52,6 @@ our $useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Geck
 #
 # Routines
 #
-
-# Wait a while
-sub dwait{
-	my ($wait, $rem, $sec, $min);
-	$wait = $rem = shift or return;
-	$|++; # unbuffered output;
-	($sec,$min) = localtime($wait);
-	info(sprintf("Waiting %d:%02d",$min,$sec));
-	sleep($rem);
-}
 
 # Look for the index of an item in an array (non-numeric contents)
 sub indexof {

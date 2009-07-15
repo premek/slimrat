@@ -159,14 +159,14 @@ sub get_data {
 			print &ptime."Should wait $wait minutes, interval-check in $wait_max minutes\n";
 			$wait = $wait_max;
 		}
-		dwait($wait*60);
+		wait($wait*60);
 		$res = $self->{MECH}->reload();
 	}
 	
 	# Extract the download URL
 	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
 	return error("plugin error (could not extract download link)") unless $download;
-	dwait($wait);
+	wait($wait);
 
 	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
 }

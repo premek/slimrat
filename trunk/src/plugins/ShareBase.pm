@@ -137,12 +137,12 @@ sub get_data {
 		$counter = $counter + 1;
 		if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
 		    info("reached the download limit for free-users (300 MB)");
-		    dwait(($wait+1)*60);
+		    wait(($wait+1)*60);
 		    $res = $self->{MECH}->reload();
 		    $_ = $res->content."\n";
 		} elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
 		    info("something wrong, waiting 60 sec");
-		    dwait(60);
+		    wait(60);
 		} else {
 		    last;
 		}
