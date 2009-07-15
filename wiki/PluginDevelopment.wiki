@@ -11,7 +11,7 @@ This guide is based upon Slimrat 0.9.6, as of 2009-06-29 the *development versio
 
 = Implementation =
 
-Slimrat uses plugins to fetch data from a distant resource. The resource location is specified by a textual string, the Uniform Resource Locator (URL). URLs can point to several types of locations (a webserver like Rapidshare, some FTP server, a MMS multimedia server, ...), and a plugin has to be available to pass Slimrat the resource's data.
+Slimrat uses plugins to fetch data from a remote resource. The resource location is specified by a textual string, the Uniform Resource Locator (URL). URLs can point to several types of locations (a webserver like Rapidshare, some FTP server, a MMS multimedia server, ...), and a plugin has to be available to pass Slimrat the resource's data.
 
 Every plugin has to be implemented in an object-oriented matter, which makes it possible to move certain actions to a constructor. Example: if the get_size as well as the get_filename function require the contents of an identical page, this could be handled in the constructor, or using a data container and flag.
 
@@ -34,29 +34,51 @@ sub new {
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	$self->{CONF} = Configuration->new();
+	
 	bless($self);
 	return $self;
 }
 }}}
-
 The constructor is given the initial URL, which is saved for later use.
 
-When the plugin is essentially not working (e.g. still needed to be ported to a new framework), the next fragment of code should be prepended in the constructor:
+The Configuration object created is to be used for configurable values. You need to specify a default value in the constructor though.
+Example: a plugin uses a configurable interval-check (e.g. the Rapidshare plugin). In order to do so, you need the following code in the constructor:
+{{{
+$self->{CONF} = Configuration->new();
+$self->{CONF}->add_default("interval", 2);
+}}}
+This will create a new configuration entry called "interval", with a default value of 2. In the rest of your application you have to use that Configuration object to get the "interval" value:
+{{{
+sleep($self->{CONF}->get("interval"));
+}}}
+User-defined values will get passed through the config() method (see later on), but as plugin developer you don't have to worry about that: the get($) function automagically returns a default value, or a user-defined value.
+
+When the plugin should not be used yet (experimental, buggy, need to port, ...) the following code can be placed in the constructor:
 {{{
 return error("plugin not ported yet");
 }}}
-This will prevent Slimrat from using the plugin, but won't mark the URLs as "DEAD" though.
+As the constructor's return value is evaluated in the main application (0 for "plugin failure", 1 for "plugin success") and the error($) function always returns a 0, this code will make slimrat skip this URL for now. It won't mark it as "DEAD" though, as it's a plugin error and no link error.
+
+== Config ==
+
+This method will get called by the main program with as argument a Configuration object. In this function the plugins configuration object ($self->{CONF}, contains the default values) will get merged with the user-defined values (passed to config($)). You don't have to worry about the implementation though, as everything is handled in the Configuration.pm package:
+{{{
+# Configure
+sub config {
+	my ($self, $config) = @_;
+	$self->{CONF}->merge($config);
+}
+}}}
 
 == Plugin name ==
 
-This function returns the name of the plugin. This can be descriptive (e.g. "MMS-stream over UDP") and does not have to be unique. This contrary to the package name, which has to be an unique identifier used internally to register the plugins.
+This function returns the name of the plugin. This can be descriptive (e.g. "MMS-stream over UDP") and does not have to be unique. This contrary to the package name, which has to be an unique identifier used internally to register the plugins ("Plugin::get_package($)").
 {{{
 sub get_name {
 	return "Youtube";
 }
 }}}
-
-AMBIGIOUS: Plugin::get_name does this with the package name.
 
 == Filename ==
 
