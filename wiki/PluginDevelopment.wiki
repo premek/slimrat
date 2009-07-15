@@ -127,9 +127,9 @@ Return values analogue to the get_filename method.
 == Check ==
 
 This method should check if the passed URL is up and alive. It differentiates the failure return value however:
-* return -1, when the link is DEAD (the download site reported so)
-* return 0, when the plugin doesn't really know if the URL is deaed (404, or unknown error)
-* return 1, link is up and alive, and can be downloaded.
+ * return -1, when the link is DEAD (the download site reported so)
+ * return 0, when the plugin doesn't really know if the URL is dead (404, or unknown error)
+ * return 1, link is up and alive, and can be downloaded.
 {{{
 sub check {
 	my $self = shift;
@@ -152,9 +152,9 @@ sub check {
 This is the main method of any plugin, and should download the data ant reroute it to the only parameter of the get_data method: a data processor routine.
 
 In case of a HTTP-based download site, the process most of the times consists of three parts
-# Fulfil all prerequisites (click through some forms, fill in a captcha, ...)
-# Generate a final request which will download the file
-# Send the request, and reroute the output to the data processor
+ # Fulfil all prerequisites (click through some forms, fill in a captcha, ...)
+ # Generate a final request which will download the file
+ # Send the request, and reroute the output to the data processor
 
 === Method signature ===
 
