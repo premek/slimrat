@@ -38,8 +38,8 @@
 package Toolbox;
 
 use Exporter;
-@ISA=qw(Exporter);
-@EXPORT=qw(dwait indexof $useragent);
+@ISA = qw(Exporter);
+@EXPORT = qw(dwait indexof $useragent);
 
 # Write nicely
 use strict;
