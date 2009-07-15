@@ -63,6 +63,8 @@ sub new {
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{CONF} = Configuration->new();
 	
+	$self->{CONF}->add_default("enabled", 0);
+	
 	bless($self);
 	return $self;
 }
@@ -103,15 +105,28 @@ sub get_filename {
 sub get_data {
 	my $self = shift;
 	
-	warning("no plugin for this site, downloading using 'Direct' plugin");
-	
 	my $data_processor = shift;
 	$self->{UA}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
+}
+
+# Filesize
+sub get_filesize {
+	my $self = shift;
+	
+	return 0;
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
+	
+	# TODO: maybe move this check to the constructor, new($config, $url) with Plugin::config($config_main) giving config access
+	if ($self->{CONF}->get("enabled")) {
+		warning("no appropriate plugin found, downloading using 'Direct' plugin");
+	} else {
+		error("no appropriate plugin found");
+		return 0;
+	}
 	
 	return 1 if ($self->{UA}->head($self->{URL})->is_success);
 	return -1;
