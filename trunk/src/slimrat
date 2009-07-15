@@ -223,7 +223,6 @@ info("Slimrat started");
 
 if ($config->get("mode") eq "check") {
 	info("Checking URLs");
-	debug("debug");
 	
 	# Get and loop all URLs
 	my $urls_ref = $queue->dump();
@@ -413,7 +412,7 @@ sub daemonize() {
 	# Check current instances
 	if (my $pidr = pid_read()) {
 		if ($pidr && kill 0, $pidr) {	# Signal 0 doesn't do any harm
-			warning("an instance already seems to be running, you will not be able to kill _this_ instance through slimrat's kill switch");
+			fatal("an instance already seems to be running, please specify an alternative state file for this instance");
 		}
 	} else {
 		warning("could not query state file to check for existing instances (harmless at first run)");
@@ -433,16 +432,16 @@ sub daemonize() {
 	
 	# Save the PID
 	if (!pid_save()) {
-		warning("could not write the state file -- slimrat's kill switch won't work on this instance"); # Will enter the log upon failure
+		fatal("could not write the state file");
 	}
 	
 	# Redirect all output
 	my $log_file = $config->get("log_file");
 	if (! open STDOUT, ">>$log_file") { 
 		warning("couldn't redirect output to \"$log_file\" ($!), going silent");
-		open STDOUT, '>>/dev/null' or fatal("couldn't redirect output from /dev/null ($!)");;
+		open STDOUT, '>>/dev/null' or warning("couldn't redirect output from /dev/null ($!)");;
 	}
-	open STDERR, '>&STDOUT' or fatal("couldn't redirect STDERR to STDOUT ($!)");
+	open STDERR, '>&STDOUT' or warning("couldn't redirect STDERR to STDOUT ($!)");
 	
 }
 
