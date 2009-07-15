@@ -111,7 +111,6 @@ if (-r $ENV{HOME}."/.slimrat/config") {
 
 # Process command-line options
 Getopt::Long::Configure("pass_through");
-debug("processing command-line arguments");
 my %options;
 GetOptions (
 		\%options,
@@ -138,7 +137,6 @@ if ($options{"man"}) {
 
 # Kill an instance if requested
 if ($options{"kill"}) {
-	debug("querying state file for an instance to kill");
 	if (my $pid = pid_read()) {
 		if (kill 0, $pid) {
 			info("killing an active instance at PID $pid");
@@ -174,7 +172,7 @@ Log::configure($config->section("log"));
 
 # Make sure slimrat has a proper directory in the users home folder
 if (! -d $ENV{HOME}."/.slimrat") {
-	debug("creating a directory in the home folder");
+	debug("creating directory " . $ENV{HOME} . "/.slimrat");
 	unless (mkdir $ENV{HOME}."/.slimrat") {
 		fatal("could not create slimrat's home directory");
 	}
@@ -204,7 +202,7 @@ if($config->get("address")){
 
 # Fork in background
 if ($config->get("daemon")) {
-	debug("becoming a daemon");
+	info("Forking in background");
 	daemonize();
 	print "\n\n";
 }

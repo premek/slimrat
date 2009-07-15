@@ -38,7 +38,7 @@
 package Queue;
 
 # Modules
-use Toolbox qw/indexof/;
+use Toolbox;
 use Log;
 
 # Write nicely
@@ -72,7 +72,7 @@ sub add {
 sub file {
 	my ($self, $file) = @_;
 	
-	fatal("file `$file' not readable") unless (-r $file);
+	fatal("queue file \"$file\" not readable") unless (-r $file);
 
 	# Configure the file
 	$self->{_file} = $file;
