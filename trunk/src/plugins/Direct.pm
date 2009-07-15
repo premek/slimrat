@@ -39,10 +39,13 @@
 # Package name
 package Direct;
 
-# Modules
-use Toolbox;
-use Log;
+# Packages
 use LWP::UserAgent;
+
+# Custom packages
+use Log;
+use Toolbox;
+use Configuration;
 
 # Write nicely
 use strict;
@@ -58,8 +61,16 @@ sub new {
 	my $self  = {};
 	$self->{URL} = $_[1];
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
+	$self->{CONF} = Configuration->new();
+	
 	bless($self);
 	return $self;
+}
+
+# Configure
+sub config {
+	my ($self, $config) = @_;
+	$self->{CONF}->merge($config);
 }
 
 # Plugin name

@@ -203,8 +203,8 @@ sub file_read($$) {
 			#replace '~' with HOME of user who started slimrat
 			$value =~ s#^~/#$ENV{'HOME'}/#;
 			
-			if ("$key$value" =~ m/(:)/) {
-				warn("ignored configuration entry due to protected string (\"$1\")");
+			if ($key =~ m/(:)/) {
+				warn("ignored configuration entry due to protected string in key (\"$1\")");
 			} else {
 				$self->add($prepend.$key, $value);
 				$self->protect($prepend.$key) if (length($separator) >= 2);
@@ -213,7 +213,7 @@ sub file_read($$) {
 		
 		# Get section identifier
 		elsif (/^\[(.+)\]$/) {
-			my $section = $1;
+			my $section = lc($1);
 			if ($section =~ m/^\w+$/) {
 				$prepend = "$section:";
 			} else {
@@ -232,6 +232,7 @@ sub file_read($$) {
 # Return a section
 sub section($$) {
 	my ($self, $section) = @_;
+	$section = lc($section);
 	
 	# Extract subsection
 	my $config_section = new Configuration;
@@ -340,6 +341,7 @@ identical keys in different sections. The internally used seperation of preposit
 Be warned though that the section Configuration object only contains references to the actual
 entries, so modifying the section object _will_ modify the main configuration object too (unless
 protected offcourse).
+NOTE: section entries are case-insensitive.
 
 =head2 $config->merge($complement)
 
