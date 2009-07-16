@@ -87,7 +87,6 @@ my ($link, @links, @failedlinks, @oklinks);
 # Initialise configuration handler and configure default values
 my $config = new Configuration;
 $config->add_default("state_file", "/var/run/slimrat.pid");
-$config->add_default("log_file", "/var/log/slimrat.log");
 $config->add_default("mode", "download");
 $config->add_default("to", ".");
 
@@ -139,7 +138,7 @@ if ($options{"man"}) {
 if ($options{"kill"}) {
 	if (my $pid = pid_read()) {
 		if (kill 0, $pid) {
-			info("killing an active instance at PID $pid");
+			info("Killing an active instance at PID $pid");
 			kill 2, $pid;
 		} else {
 			warning("no running instance found");
@@ -156,8 +155,8 @@ $config->add("mode", "check") if ($options{"check"});
 # Options we might use later on
 $config->add("list", $options{"list"}) if ($options{"list"});
 usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
-$config->add("log:verbosity", 2) if ($options{"quiet"});
-$config->add("log:verbosity", 4) if ($options{"verbose"});
+$config->add("log:screen_verbosity", 2) if ($options{"quiet"});
+$config->add("log:screen_verbosity", 4) if ($options{"verbose"});
 $config->add("daemon", 1) if ($options{"daemon"});
 $config->add("address", $options{"address"}) if ($options{"address"});
 $config->add("to", $options{"to"}) if ($options{"to"});
@@ -439,13 +438,8 @@ sub daemonize() {
 	}
 	
 	# Redirect all output
-	my $log_file = $config->get("log_file");
-	if (! open STDOUT, ">>$log_file") { 
-		warning("couldn't redirect output to \"$log_file\" ($!), going silent");
-		open STDOUT, '>>/dev/null' or warning("couldn't redirect output from /dev/null ($!)");;
-	}
-	open STDERR, '>&STDOUT' or warning("couldn't redirect STDERR to STDOUT ($!)");
-	
+	info("Muting screen output, make sure a logfile has been configured to output to");
+	$config->add("log:screen", 0);
 }
 
 # Save the PID
@@ -483,7 +477,7 @@ slimrat-cli
 
 =head1 VERSION
 
-0.9.4-99
+0.9.6-trunk
 
 =head1 DESCRIPTION
 
@@ -509,12 +503,13 @@ slimrat-cli
 =item B<--daemon>
 
   Makes slimrat work in the background, by properly forking and redirecting
-  the output to a specified logfile.
+  the output to a specified logfile. Only one file can be backgrounded at a
+  time, to support multiple instances you'll need to specify differend
+  state files to save the instances PID in.
 
 =item B<--kill>
 
-  Kills a single active client (the first one started), by looking up the
-  PID in a predefined state file.
+  Kills a single active client, by looking up the PID in a predefined state file.
 
 =item B<--list>
 
@@ -534,11 +529,15 @@ slimrat-cli
 
 =item B<--verbose>
 
-  Makes slimrat more verbose, printing debug messages.
+  Makes slimrat more verbose, printing debug messages. This only alters the verbosity
+  of the standard output, to control log-file verbosity you need to edit a
+  configuration file.
 
 =item B<--quiet>
 
-  Makes slimrat less verbose, only displaying errors and warnings.
+  Makes slimrat less verbose, only displaying errors and warnings. This only alters the verbosity
+  of the standard output, to control log-file verbosity you need to edit a
+  configuration file.
 
 =back
 

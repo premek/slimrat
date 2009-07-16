@@ -78,7 +78,13 @@ sub init($$) {
 	my $item = new Item;
 	$item->mutable(1);
 	
-	$self->{_items}->{$key} = $item;
+	# Add at right spot (self or parent)
+	if ($self->{_parent}) {
+		$self->{_parent}->init($self->{_section} . ":" . $key);
+		$self->{_items}->{$key} = $self->{_parent}->{_items}->{$self->{_section} . ":" . $key};
+	} else {
+		$self->{_items}->{$key} = $item;
+	}
 	
 	return 1;
 }
@@ -92,6 +98,8 @@ sub init($$) {
 sub new {
 	my $self = {
 		_items		=>	{},	# Anonymous hash
+		_parent		=>	undef,
+		_section	=>	undef,
 	};
 	bless $self, 'Configuration';
 	return $self;
@@ -242,6 +250,10 @@ sub section($$) {
 		}
 	}
 	
+	# Give the section parent access
+	$config_section->{_parent} = $self;
+	$config_section->{_section} = $section;
+	
 	return $config_section;
 }
 
@@ -368,12 +380,4 @@ to update the main Configuration object, as the complement only contains referen
   # The package configuration object shall now contain all user specified entries, with
   # preserved default values. It'll also contain default values for objects not specified
   # by the user.
-  # The main configuration object will contain all user-defined values, with updated
-  # default values. It'll however NOT contain entries which have been specified by the
-  # package (add_default) but not by the user (see NOTE).  
-NOTE: when the package configures a default value which hasn't been user-defined, that value
-will NOT be saved in the main Configuration object. This because it'd need the package to have
-access to the main configuration object, which would undo the configuration separation
-introduced by the sections.
-
 =cut=

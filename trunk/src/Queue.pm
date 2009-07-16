@@ -54,7 +54,7 @@ use warnings;
 sub new {
 	my $self = {
 		_file		=>	undef,
-		_queued		=>	[],	# Anonymous array
+		_queued		=>	[],
 		_processed	=>	[],
 	};
 	bless $self, 'Queue';
@@ -86,7 +86,7 @@ sub file_read {
 	my ($self) = @_;
 	
 	if (defined($self->{_file})) {
-		open(FILE, $self->{_file});
+		open(FILE, $self->{_file}) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
 		while (<FILE>) {
 			# Skip things we don't want
 			next if /^#/;		# Skip comments
