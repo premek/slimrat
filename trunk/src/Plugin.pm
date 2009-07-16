@@ -58,7 +58,7 @@ use warnings;
 my %plugins;
 
 # Static reference to the configuration object
-my $config;
+my $config = new Configuration;
 
 
 #
@@ -78,7 +78,8 @@ sub new {
 
 # Configure the plugin producer
 sub configure {
-	$config = shift;
+	my $complement = shift;
+	$config->merge($complement);
 }
 
 # Register a plugin

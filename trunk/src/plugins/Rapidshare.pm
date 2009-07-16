@@ -66,7 +66,7 @@ sub new {
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
-	$self->{CONF}->add_default("interval", 0);
+	$self->{CONF}->set_default("interval", 0);
 	
 	bless($self);
 	return $self;

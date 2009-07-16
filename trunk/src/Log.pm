@@ -55,13 +55,13 @@ use warnings;
 
 # Base configuration
 my $config = new Configuration;
-$config->add_default("screen", 1);
-$config->add_default("screen_verbosity", 3);
-$config->add_default("screen_mode", "full");
-$config->add_default("file", 1);
-$config->add_default("file_path", $ENV{HOME} . "/.slimrat/log");
-$config->add_default("file_verbosity", 3);
-$config->add_default("file_mode", "log");
+$config->set_default("screen", 1);
+$config->set_default("screen_verbosity", 3);
+$config->set_default("screen_mode", "full");
+$config->set_default("file", 1);
+$config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
+$config->set_default("file_verbosity", 3);
+$config->set_default("file_mode", "log");
 
 # Configure the package
 sub configure {
@@ -165,7 +165,7 @@ sub error {
 # Usage error
 sub usage {
 	output(YELLOW, 1, "invalid usage", \@_, 0);
-	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"]);
+	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"], 0);
 	main::quit();
 }
 

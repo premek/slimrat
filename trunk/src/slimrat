@@ -86,9 +86,9 @@ my ($link, @links, @failedlinks, @oklinks);
 
 # Initialise configuration handler and configure default values
 my $config = new Configuration;
-$config->add_default("state_file", "/var/run/slimrat.pid");
-$config->add_default("mode", "download");
-$config->add_default("to", ".");
+$config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
+$config->set_default("mode", "download");
+$config->set_default("to", ".");
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
@@ -150,16 +150,16 @@ if ($options{"kill"}) {
 }
 
 # Mode (e.g. what slimrat should do)
-$config->add("mode", "check") if ($options{"check"});
+$config->set("mode", "check") if ($options{"check"});
 
 # Options we might use later on
-$config->add("list", $options{"list"}) if ($options{"list"});
+$config->set("list", $options{"list"}) if ($options{"list"});
 usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
-$config->add("log:screen_verbosity", 2) if ($options{"quiet"});
-$config->add("log:screen_verbosity", 4) if ($options{"verbose"});
-$config->add("daemon", 1) if ($options{"daemon"});
-$config->add("address", $options{"address"}) if ($options{"address"});
-$config->add("to", $options{"to"}) if ($options{"to"});
+$config->set("log:screen_verbosity", 2) if ($options{"quiet"});
+$config->set("log:screen_verbosity", 4) if ($options{"verbose"});
+$config->set("daemon", 1) if ($options{"daemon"});
+$config->set("address", $options{"address"}) if ($options{"address"});
+$config->set("to", $options{"to"}) if ($options{"to"});
 
 
 #
@@ -438,7 +438,7 @@ sub daemonize() {
 	
 	# Redirect all output
 	info("Muting screen output, make sure a logfile has been configured to output to");
-	$config->add("log:screen", 0);
+	$config->set("log:screen", 0);
 }
 
 # Save the PID
