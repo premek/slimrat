@@ -13,6 +13,9 @@
       possibilities to configure the verbosity and type of
       output to both of them.
 
+    * configuration (file_read): substitute negatively connoted
+      values by a 0.
+
 
 2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

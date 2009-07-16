@@ -206,11 +206,11 @@ sub summary {
 	
 	if(scalar @oklinks){
 		output(GREEN, 0, "", ["DOWNLOADED:"], 3);
-		output("", 0, "", ["\t", $_]) foreach @oklinks;
+		output("", 0, "", ["\t", $_], 3) foreach @oklinks;
 	}
 	if(scalar @faillinks){
 		output(RED, 0, "", ["FAILED:"], 3);
-		output("", 0, "", ["\t", $_]) foreach @faillinks;
+		output("", 0, "", ["\t", $_], 3) foreach @faillinks;
 	}
 }
 

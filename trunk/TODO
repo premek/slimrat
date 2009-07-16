@@ -10,7 +10,5 @@
     manually added URLs as well as loaded file queue's.
   - Support for loading a specific configuration file through parameters
   - Statusbar
-  - Use ~/.slimrat/log for all output, unless overriden to /var/log/. Also always log everything.
-  - Substitute negativively connoted values (no|off|disabled|false) with a 0.
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
   
