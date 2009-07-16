@@ -43,11 +43,12 @@ my ($root) = dirname($INC{'Plugin.pm'});
 
 # Modules
 use Log;
+use Configuration;
 
 # Export functionality
 use Exporter;
 @ISA=qw(Exporter);
-@EXPORT=qw();
+@EXPORT=qw(configure);
 
 # Write nicely
 use strict;
@@ -55,6 +56,9 @@ use warnings;
 
 # Static hash for plugins
 my %plugins;
+
+# Static reference to the configuration object
+my $config;
 
 
 #
@@ -65,9 +69,16 @@ my %plugins;
 sub new {
 	my $url = $_[1];
 	
+	fatal("cannot create plugin without configuration") unless ($config);
+	
 	my $plugin = get_package($url);
-	my $object = new $plugin $url;
+	my $object = new $plugin ($config->section($plugin), $url);
 	return $object;
+}
+
+# Configure the plugin producer
+sub configure {
+	$config = shift;
 }
 
 # Register a plugin

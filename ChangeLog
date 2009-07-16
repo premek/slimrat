@@ -16,6 +16,10 @@
     * configuration (file_read): substitute negatively connoted
       values by a 0.
 
+    * plugins: cleaner plugin configuration, passed through
+      construction to make certain checks possible as early as
+      possible (e.g. if we can use the Direct plugin, issue 31).
+
 
 2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
