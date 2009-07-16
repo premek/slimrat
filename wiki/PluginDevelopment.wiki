@@ -5,7 +5,7 @@
 
 This page is meant to be a guide on plugin development. It describes which routines should be implemented, what their function signature is, and how they might be implemented.
 
-This guide is based upon Slimrat 0.9.6, as of 2009-06-29 the *development version*. For information on earlier versions, have a look at existing plugins.
+This guide is based upon Slimrat 0.9.6, as of 2009-07-16 the *development version*. For information on earlier versions, have a look at existing plugins.
 
 
 
@@ -30,46 +30,35 @@ The constructor has to create the initial object, initialising any needed object
 {{{
 sub new {
 	my $self  = {};
-	$self->{URL} = $_[1];
+	$self->{CONF} = $_[1];
+	$self->{URL} = $_[2];
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
-	$self->{CONF} = Configuration->new();
+	
+	$self->{CONF}->add_default("interval", 0);
 	
 	bless($self);
 	return $self;
 }
 }}}
-The constructor is given the initial URL, which is saved for later use.
+The constructor is given the initial URL and a configuration object. The URL is saved for later on (get_data), and the configuration object is saved as well and can be used to query for user-configurable values.
 
-The Configuration object created is to be used for configurable values. You need to specify a default value in the constructor though.
-Example: a plugin uses a configurable interval-check (e.g. the Rapidshare plugin). In order to do so, you need the following code in the constructor:
-{{{
-$self->{CONF} = Configuration->new();
-$self->{CONF}->add_default("interval", 2);
-}}}
-This will create a new configuration entry called "interval", with a default value of 2. In the rest of your application you have to use that Configuration object to get the "interval" value:
+When you want to use such user-configurable values, you need to specify a default value in the constructor though. In the constructor above one user-configurable value is registered (the maximal wait interval), and is set to be 0 by default. When a user specifies another interval value, the configuration object will appropriately return that value instead of the default one (don't worry: add_default won't ever overwrite an already saved user-defined value).
+To use the "interval" value, you do as such:
 {{{
 sleep($self->{CONF}->get("interval"));
 }}}
-User-defined values will get passed through the config() method (see later on), but as plugin developer you don't have to worry about that: the get($) function automagically returns a default value, or a user-defined value.
 
 When the plugin should not be used yet (experimental, buggy, need to port, ...) the following code can be placed in the constructor:
 {{{
 return error("plugin not ported yet");
 }}}
-As the constructor's return value is evaluated in the main application (0 for "plugin failure", 1 for "plugin success") and the error($) function always returns a 0, this code will make slimrat skip this URL for now. It won't mark it as "DEAD" though, as it's a plugin error and no link error.
-
-== Config ==
-
-This method will get called by the main program with as argument a Configuration object. In this function the plugins configuration object ($self->{CONF}, contains the default values) will get merged with the user-defined values (passed to config($)). You don't have to worry about the implementation though, as everything is handled in the Configuration.pm package:
+Or when depending on a user-configurable value:
 {{{
-# Configure
-sub config {
-	my ($self, $config) = @_;
-	$self->{CONF}->merge($config);
-}
+return error("plugin disabled") unless $self->{CONF}->get("enabled");
 }}}
+As the constructor's return value is evaluated in the main application (0 for "plugin failure", 1 for "plugin success") and the error($) function always returns a 0, this code will make slimrat skip this URL for now. It won't mark it as "DEAD" though, as it's a plugin error and no link error.
 
 == Plugin name ==
 
@@ -249,11 +238,4 @@ When a plugin needs to report an error, it should do that by returning the error
 return error("this is why the plugin failed")
 }}}
 
-This makes the plugin de-activate immediately, with an error message printed. As the error() function returns "FALSE" by default, the caller will however also detect a failure, and might that way proceed to a next url
-{{{
-while (my $url = read_url()) {
-  if (my $plugin = new Plugin()) {
-  ...
-  }
-}
-}}}
+This makes the plugin de-activate immediately, with an error message printed. As the error() function returns 0 by default, the caller will however also detect a failure, and might that way proceed to a next URL. As the return value is 0 and not -1, the URL won't be marked as "DEAD", but the failure shall be reported as a "plugin error" and the URL will be retried upon a next run.
