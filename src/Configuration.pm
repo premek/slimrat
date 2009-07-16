@@ -56,9 +56,9 @@ use warnings;
 
 # A configuration item
 struct(Item =>	{
-			default		=>	'$',
-			mutable		=>	'$',
-			values		=>	'@',
+		default		=>	'$',
+		mutable		=>	'$',
+		value		=>	'$',
 });
 
 
@@ -116,7 +116,7 @@ sub contains($$) {
 }
 
 # Add a default value
-sub add_default($$$) {
+sub set_default($$$) {
 	my ($self, $key, $value) = @_;
 	
 	# Check if key already exists
@@ -129,48 +129,48 @@ sub add_default($$$) {
 }
 
 # Get a value
-sub get {	# Non-prototypes, as it can take 1 as well as 2 arguments
-	my ($self, $key, $index) = @_;
+sub get($$) {
+	my ($self, $key) = @_;
 	
 	# Check if it contains the key (not present returns false)
 	return 0 unless ($self->contains($key));
 	
-	# Index specified?
-	if ($index) {
-		if ($index == -1) {
-			return $self->{_items}->{$key}->default;
-		} else {
-			return $self->{_items}->{$key}->values->[$index];
-		}
-	}
-	
-	# Index not specified
-	else {
-		if ($self->count($key) > 0) {
-			return $self->{_items}->{$key}->values->[-1];
-		} else {
-			return $self->{_items}->{$key}->default;
-		}
+	# Return value or default
+	if (defined $self->{_items}->{$key}->value) {
+		return $self->{_items}->{$key}->value;
+	} else {
+		return $self->{_items}->{$key}->default;
 	}
 }
 
+# Get the default value
+sub get_default($$) {
+	my ($self, $key) = @_;
+	
+	# Check if it contains the key (not present returns false)
+	return 0 unless ($self->contains($key));
+	
+	# Return default
+	return $self->{_items}->{$key}->default;
+}
+
 # Set a value
-sub add($$$) {
+sub set($$$) {
 	my ($self, $key, $value) = @_;
 	
 	# Check if contains
 	if (!$self->contains($key)) {
-		$self->add_default($key, undef);
+		$self->init($key);
 	}
 	
 	# Check if mutable
 	if (! $self->{_items}->{$key}->mutable) {
-		warn("attempt to modify protected key \"$key\"");
+		warn("attempt to modify protected key '$key'");
 		return 0;
 	}
 	
 	# Modify value
-	push(@{$self->{_items}->{$key}->values}, $value);
+	$self->{_items}->{$key}->value($value);
 	return 1;
 }
 
@@ -184,18 +184,11 @@ sub protect($$) {
 	return 0;
 }
 
-# Get the amount of stacked up items
-sub count($$) {
-	my ($self, $key) = @_;
-	return -1 unless ($self->contains($key));
-	return scalar(@{$self->{_items}->{$key}->values});
-}
-
 # Read a file
 sub file_read($$) {
 	my ($self, $file) = @_;
 	my $prepend = "";	# Used for section seperation
-	open(READ, $file) || die("could not open configuration file \"$file\"");
+	open(READ, $file) || die("could not open configuration file '$file'");
 	while (<READ>) {
 		chomp;
 		
@@ -215,9 +208,9 @@ sub file_read($$) {
 			$value =~ s/^(off|none|disabled|false)$/0/i;
 			
 			if ($key =~ m/(:)/) {
-				warn("ignored configuration entry due to protected string in key (\"$1\")");
+				warn("ignored configuration entry due to protected string in key ('$1')");
 			} else {
-				$self->add($prepend.$key, $value);
+				$self->set($prepend.$key, $value);
 				$self->protect($prepend.$key) if (length($separator) >= 2);
 			}
 		}
@@ -234,7 +227,7 @@ sub file_read($$) {
 		
 		# Invalid entry
 		else {
-			warn("ignored invalid configuration entry \"$_\"");
+			warn("ignored invalid configuration entry '$_'");
 		}
 	}
 	close(READ);
@@ -266,8 +259,8 @@ sub merge($$) {
 	
 	# Process all keys and update the complement
 	foreach my $key (keys %{$self->{_items}}) {
-		warn("base configuration object should not contain actual values, only defaults") if ($self->count($key) > 0);
-		$complement->add_default($key, $self->get($key, -1));
+		warn("merge call only copies defaults") if (defined $self->{_items}->{$key}->value);
+		$complement->set_default($key, $self->get_default($key));
 	}
 	
 	# Update self
@@ -301,33 +294,22 @@ of several inputs for configuration values, including their default values.
 
 This constructs a new configuration object, with initially no contents at all.
 
-=head2 $config->add_default($key, $value)
+=head2 $config->set_default($key, $value)
 
 Adds a new item into the configuration, with $value as default value. This happens
-always, even when the key has been marked as protected.
+always, even when the key has been marked as protected. Any previously entered
+values do not get overwritten, which makes it possible to enter or re-enter a
+default value after actual values has been entered.
 
-=head2 $config->add($key, $value)
+=head2 $config->set($key, $value)
 
-Add a value to a specific key in the configuration. This is kept separated from the
-default value, so one can still access the default value (and all previousely entered
-values!) after adding a new value through this routine.
-If nonexistant, the item gets created, by default mutable with "undef" as default value.
-
-=head2 $config->count($key)
-
-Get the amount of saved values for a specific key. This excludes the default value, and only
-lists manually added values (through add(), or indirectly through file_read()).
+Set a key to a given value. This is separated from the default value, which can still
+be accessed with the default() call.
 
 =head2 $config->get($key)
 
 Return the value for a specific key. Returns 0 if not found, and if found but no values
 are found it returns the default value (which is "undef" if not specified).
-
-=head2 $config->get($key, $index)
-
-This returns a specific value, which can be used in case of multiple values corresponding
-with a single key. Use the count() function to know the amount of values.
-Special index -1 returns the default value.
 
 =head2 $config->contains($key)
 
@@ -370,7 +352,7 @@ to update the main Configuration object, as the complement only contains referen
   
   # A package creates an initial Configuration object (e.g. at construction)
   my $config_package = new Configuration;
-  $config_package->add_default("foo", "bar");
+  $config_package->set_default("foo", "bar");
   
   # The main application reads the user defined values (from file, or manually, ...)
   my $config_main = new Configuration;

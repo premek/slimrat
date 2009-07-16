@@ -64,7 +64,7 @@ sub new {
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	
-	$self->{CONF}->add_default("enabled", 0);
+	$self->{CONF}->set_default("enabled", 0);
 	if ($self->{CONF}->get("enabled")) {
 		warning("no appropriate plugin found, downloading using 'Direct' plugin");
 	} else {

@@ -76,9 +76,9 @@ $SIG{'INT'} = 'quit';
 
 # Initialise configuration handler and configure default values
 my $config = new Configuration;
-$config->add_default("terminal", 'xterm -T SlimRat -e "%1$s; bash"&');
-$config->add_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
-$config->add_default("glade_file",  $RealBin.'/slimrat.glade');
+$config->set_default("terminal", 'xterm -T SlimRat -e "%1$s; bash"&');
+$config->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
+$config->set_default("glade_file",  $RealBin.'/slimrat.glade');
 
 # Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
 if (-r "/etc/slimrat.conf") {
