@@ -5,6 +5,14 @@
 
     * Direct: should be manually enabled now.
 
+    * configuration (init): parent object gets appropriately altered
+      upon initialisation of a configuration entry in a
+      subsection.
+
+    * log: support for log and screen output, and some basic
+      possibilities to configure the verbosity and type of
+      output to both of them.
+
 
 2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

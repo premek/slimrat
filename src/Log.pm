@@ -31,9 +31,6 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
-# TODO: make Log.pm alter it's behaviour when outputting to a log (no
-# progress, no colours, ...)
-
 #
 # Configuration
 #
@@ -50,7 +47,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(timestamp bytes_readable level debug info warning error usage fatal progress summary status wait);
+@EXPORT = qw(bytes_readable level debug info warning error usage fatal progress summary status wait);
 
 # Write nicely
 use strict;
@@ -58,7 +55,13 @@ use warnings;
 
 # Base configuration
 my $config = new Configuration;
-$config->add_default("verbosity", 3);
+$config->add_default("screen", 1);
+$config->add_default("screen_verbosity", 3);
+$config->add_default("screen_mode", "full");
+$config->add_default("file", 1);
+$config->add_default("file_path", $ENV{HOME} . "/.slimrat/log");
+$config->add_default("file_verbosity", 3);
+$config->add_default("file_mode", "log");
 
 # Configure the package
 sub configure {
@@ -72,15 +75,40 @@ sub configure {
 #
 
 # Print a message
-sub output {
-	print shift, &timestamp, @_==2?uc(shift).": ":"";
-	print while ($_ = shift(@{$_[0]}));
-	print RESET, "\n";
+sub output_raw {
+	my ($filehandle, $colour, $timestamp, $category, $messages, $verbosity) = @_;
+	
+	print $filehandle $colour if ($colour);
+	print $filehandle $timestamp?&timestamp:(" " x length(&timestamp));
+	print $filehandle uc($category).": " if ($category);
+	print $filehandle $_ foreach (@{$messages});
+	print $filehandle RESET if ($colour);
+	print $filehandle "\n";
 }
-sub output_contin {
-	print shift, " " x length(&timestamp), @_==2?uc(shift).": ":"";
-	print while ($_ = shift(@{$_[0]}));
-	print RESET, "\n";
+
+# Print a message
+sub output {
+	my ($colour, $timestamp, $category, $messages, $verbosity) = @_;
+	
+	# Screen output
+	if ($config->get("screen") && $config->get("screen_verbosity") >= $verbosity) {
+		my @args = @_;
+		$args[0] = "" if ($config->get("screen_mode") eq "log");
+		my $fh;
+		open($fh, ">&STDOUT");
+		output_raw($fh, @args);
+		close($fh);
+	}
+	
+	# File output
+	if ($config->get("file") && $config->get("file_verbosity") >= $verbosity) {
+		my @args = @_;
+		$args[0] = "" if ($config->get("file_mode") eq "log");
+		my $fh;
+		open($fh, ">>".$config->get("file_path")) || die("could not open given logfile");
+		output_raw($fh, @args);
+		close($fh);	
+	}
 }
 
 
@@ -112,38 +140,38 @@ sub bytes_readable
 
 # Debug message
 sub debug {
-	output(GREEN, "debug", \@_) if ($config->get("verbosity") >= 4);
+	output(GREEN, 1, "debug", \@_, 4);
 	return 0;
 }
 
 # Informative message
 sub info {
-	output(RESET, \@_) if ($config->get("verbosity") >= 3);
+	output("", 1, "", \@_, 3);
 	return 0;
 }
 
 # Warning
 sub warning {
-	output(YELLOW, "warning", \@_) if ($config->get("verbosity") >= 2);
+	output(YELLOW, 1, "warning", \@_, 2);
 	return 0;
 }
 
 # Non-fatal error
 sub error {
-	output(RED, "error", \@_) if ($config->get("verbosity") >= 1);
+	output(RED, 1, "error", \@_, 1);
 	return 0;
 }
 
 # Usage error
 sub usage {
-	output(YELLOW, "invalid usage", \@_) if ($config->get("verbosity") >= 1);
-	output(RESET, ["Try `$0 --help` or `$0 --man` for more information"]);
+	output(YELLOW, 1, "invalid usage", \@_, 0);
+	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"]);
 	main::quit();
 }
 
 # Fatal runtime error
 sub fatal {
-	output(RED, "fatal error", \@_) if ($config->get("verbosity") >= 0);
+	output(RED, 1, "fatal error", \@_, 0);
 	main::quit();
 }
 
@@ -152,7 +180,7 @@ sub fatal {
 # Complex Slimrat-specific routines
 #
 
-# Progress bar (TODO: ETA)
+# Progress bar (TODO: ETA + screen|file_mode)
 sub progress {
 	my ($done, $total, $time) = @_;
 	if ($total) {
@@ -177,12 +205,12 @@ sub summary {
 	}
 	
 	if(scalar @oklinks){
-		output_contin(GREEN, ["DOWNLOADED:"]);
-		output_contin(RESET, ["\t", $_]) foreach @oklinks;
+		output(GREEN, 0, "", ["DOWNLOADED:"], 3);
+		output("", 0, "", ["\t", $_]) foreach @oklinks;
 	}
 	if(scalar @faillinks){
-		output_contin(RED, ["FAILED:"]);
-		output_contin(RESET, ["\t", $_]) foreach @faillinks;
+		output(RED, 0, "", ["FAILED:"], 3);
+		output("", 0, "", ["\t", $_]) foreach @faillinks;
 	}
 }
 
@@ -193,11 +221,11 @@ sub status {
 	my $extra = shift;
 
 	if ($status>0) {
-		output_contin(GREEN, ["[ALIVE] ", RESET, $link, " ($extra)"]);
+		output(GREEN, 0, "", ["[ALIVE] ", RESET, $link, " ($extra)"], 3);
 	} elsif ($status<0) {
-		output_contin(RED, ["[DEAD] ", RESET, $link, " ($extra)"]);
+		output(RED, 0, "", ["[DEAD] ", RESET, $link, " ($extra)"], 3);
 	} else {
-		output_contin(YELLOW, ["[?] ", RESET, $link, " ($extra)"]);
+		output(YELLOW, 0, "", ["[?] ", RESET, $link, " ($extra)"], 3);
 	}
 }
 
@@ -228,11 +256,8 @@ Log
 
   use Log;
 
-  # Set the verbosity level to 2 (only print warnings, errors or fatal errors)
-  level(2);
-
   # Print some messages
-  info("this is a informational message, hidden due to verbosity settings");
+  info("this is a informational message");
   warning("something bad is going to happen");
   fatal("and here it is");
   error("this poor error will never be shown");
@@ -252,11 +277,15 @@ or hidden depending to a globally set verbosity level.
 
 =head1 METHODS
 
-=head2 output($prefix, $optional_subject, \@messages)
+=head2 output($colour, $timestamp, $category, \@messages, $verbosity))
 
 This is the main function of the Log module, but mustn't be used directly. It prints
-a set of messages, prefixed by $prefix (e.g. to colourize the message), and optionally
-adds in a subject notice (e.g. DEBUG, or FATAL ERROR) after having it uppercased.
+a set of messages, prefixed by $colour (to colourize the message), and optionally
+adds in a category notice (e.g. DEBUG, or FATAL ERROR) after having it uppercased.
+The message can get hidden when the verbosity is greater than the configured
+verbosity level. The $timestamp value controls whether a timestamp is printed, when
+absent spaces pad the message to line it out ($timestamp=0 is thus ideally for
+a multiline message).
 
 =head2 timestamp()
 
