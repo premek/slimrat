@@ -208,8 +208,11 @@ sub file_read($$) {
 		# Get the key/value pair
 		if (my($key, $separator, $value) = /^(.+?)\s*(=+)\s*(.+?)$/) {		# The extra "?" makes perl prefer a shorter match (to avoid "\w " keys)
 
-			#replace '~' with HOME of user who started slimrat
+			# Replace '~' with HOME of user who started slimrat
 			$value =~ s#^~/#$ENV{'HOME'}/#;
+			
+			# Substitute negatively connoted values
+			$value =~ s/^(off|none|disabled|false)$/0/i;
 			
 			if ($key =~ m/(:)/) {
 				warn("ignored configuration entry due to protected string in key (\"$1\")");
