@@ -60,22 +60,16 @@ use warnings;
 # Constructor
 sub new {
 	my $self  = {};
-	$self->{URL} = $_[1];
+	$self->{CONF} = $_[1];
+	$self->{URL} = $_[2];
 	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
-	$self->{CONF} = Configuration->new();
 	
 	$self->{CONF}->add_default("interval", 0);
 	
 	bless($self);
 	return $self;
-}
-
-# Configure
-sub config {
-	my ($self, $config) = @_;
-	$self->{CONF}->merge($config);
 }
 
 # Plugin name

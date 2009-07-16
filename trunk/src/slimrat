@@ -169,6 +169,9 @@ $config->add("to", $options{"to"}) if ($options{"to"});
 # Configure the output
 Log::configure($config->section("log"));
 
+# Configure the plugin producer
+Plugin::configure($config);
+
 # Make sure slimrat has a proper directory in the users home folder
 if (! -d $ENV{HOME}."/.slimrat") {
 	debug("creating directory " . $ENV{HOME} . "/.slimrat");
@@ -230,10 +233,7 @@ if ($config->get("mode") eq "check") {
 		unless ($plugin = Plugin->new($link)) {
 			status($link, 0, "plugin failure");
 		}
-		else {
-			# Configure plugin
-			$plugin->config($config->section($plugin->get_name()));
-			
+		else {			
 			# Check status
 			my $status = $plugin->check();
 			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($plugin->get_filesize()||"unknown filesize"));
@@ -314,7 +314,6 @@ sub download($) {
 	# Load plugin
 	my $plugin = Plugin->new($link) || return 0;
 	my $pluginname = $plugin->get_name();
-	$plugin->config($config->section($pluginname));
 	debug("downloading \"$link\" using the $pluginname-plugin");
 	
 	# Check if link is valid

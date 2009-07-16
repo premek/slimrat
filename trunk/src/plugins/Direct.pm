@@ -59,20 +59,21 @@ use warnings;
 # Constructor
 sub new {
 	my $self  = {};
-	$self->{URL} = $_[1];
+	$self->{CONF} = $_[1];
+	$self->{URL} = $_[2];
+	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
-	$self->{CONF} = Configuration->new();
 	
 	$self->{CONF}->add_default("enabled", 0);
+	if ($self->{CONF}->get("enabled")) {
+		warning("no appropriate plugin found, downloading using 'Direct' plugin");
+	} else {
+		error("no appropriate plugin found");
+		return 0;
+	}
 	
 	bless($self);
 	return $self;
-}
-
-# Configure
-sub config {
-	my ($self, $config) = @_;
-	$self->{CONF}->merge($config);
 }
 
 # Plugin name
@@ -119,14 +120,6 @@ sub get_filesize {
 # Check if the link is alive
 sub check {
 	my $self = shift;
-	
-	# TODO: maybe move this check to the constructor, new($config, $url) with Plugin::config($config_main) giving config access
-	if ($self->{CONF}->get("enabled")) {
-		warning("no appropriate plugin found, downloading using 'Direct' plugin");
-	} else {
-		error("no appropriate plugin found");
-		return 0;
-	}
 	
 	return 1 if ($self->{UA}->head($self->{URL})->is_success);
 	return -1;
