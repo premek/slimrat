@@ -1,11 +1,16 @@
+2009-07-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * mediafire: fixed issue 44 - mediafire plugin
+
+
 2009-07-13  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
-	* slimrat: fixed issue 38 - daemonization
+    * slimrat: fixed issue 38 - daemonization
 
 
 2009-07-06  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
-	* slimrat: fixed issue 36 - "download to" option
+    * slimrat: fixed issue 36 - "download to" option
 
 
 2009-07-01  Tim Besard  <tim-dot-besard-at-gmail-dot-com>

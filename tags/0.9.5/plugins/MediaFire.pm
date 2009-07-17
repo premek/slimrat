@@ -83,14 +83,16 @@ sub download {
 		
 	$_ = $res->decoded_content."\n";
 	
-	# Extract download parameters
-	my ($mL,$mH,$mY) = m/var mL='(.+?)';var mH='(\w+)';var mY='(.+?)';.*/sm;
-	my ($varname) = m#href=\\"http://"\+mL\+'/'\+ (\w+) \+'g/'\+mH\+'/'\+mY\+'"#sm;
-	my ($var) = m#var $varname = '(\w+)';#sm;
-	return error("plugin error (could not extract download parameters)") unless ($mL && $mH && $mY && $var);
+	# Save all variables in a hashmap
+	my %variables;
+	while (s/var ([^= ]+)\s*=\s*'([^']*)';//) {
+		$variables{$1} = $2;
+	}
 	
-	# Generate the download URL
-	my $download = "http://$mL/${var}g/$mH/$mY";
+	# Construct URL
+	my ($url_constr) = m/sServer \+'\/' \+(.+)\+ 'g\/'/;
+	$url_constr =~ s/(\w+)\+*/$variables{$1}/g;
+	my $download = 'http://' . $variables{"sServer"} . '/' . $url_constr . 'g/' . $variables{"sQk"} . '/' . $variables{"sFile"};
 	return $download;
 }
 
