@@ -11,4 +11,4 @@
   - Support for loading a specific configuration file through parameters
   - Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
-  
+  - Log::dump($info, $data), upon plugin error dump all -> tar.bz if --debug, upload for help
