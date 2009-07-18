@@ -155,8 +155,8 @@ $config->set("mode", "check") if ($options{"check"});
 # Options we might use later on
 $config->set("list", $options{"list"}) if ($options{"list"});
 usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
-$config->set("log:screen_verbosity", 2) if ($options{"quiet"});
-$config->set("log:screen_verbosity", 4) if ($options{"verbose"});
+$config->section("log")->set("screen_verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("screen_verbosity", 4) if ($options{"verbose"});
 $config->set("daemon", 1) if ($options{"daemon"});
 $config->set("address", $options{"address"}) if ($options{"address"});
 $config->set("to", $options{"to"}) if ($options{"to"});
@@ -438,7 +438,7 @@ sub daemonize() {
 	
 	# Redirect all output
 	info("Muting screen output, make sure a logfile has been configured to output to");
-	$config->set("log:screen", 0);
+	$config->section("log")->set("screen", 0);
 }
 
 # Save the PID

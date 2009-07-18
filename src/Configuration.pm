@@ -238,6 +238,9 @@ sub section($$) {
 	my ($self, $section) = @_;
 	$section = lc($section);
 	
+	# Prohibit double (or more) hiërarchies
+	return error("can only split section from top-level configuration object") if ($self->{_section});
+	
 	# Extract subsection
 	my $config_section = new Configuration;
 	foreach my $key (keys %{$self->{_items}}) {
@@ -265,6 +268,77 @@ sub merge($$) {
 	
 	# Update self
 	$self->{_items} = $complement->{_items};
+}
+
+# Save a value to a configuration file
+sub save($$) {
+	my ($self, $key, $current) = @_;	
+	return error("cannot save undefined key '$key'") if (!$self->contains($key));
+	my $temp = $current.".temp";
+	
+	# Case 1: configuration file does not exist, create new one
+	if (! -f $current) {
+		open(WRITE, ">$current");
+		print WRITE "[" . $self->{_section} . "]\n" if (defined $self->{_section});
+		print WRITE $key . " = " . $self->get($key);
+		close(WRITE);
+	}
+	
+	# Case 2: configuration file exists, re-read
+	else {
+		open(READ, "<$current");
+		open(WRITE, ">$temp");
+		
+		# Look for a match and update it
+		my $temp_section;
+		while (<READ>) {
+			chomp;
+		
+			# Get the key/value pair
+			if (my($temp_key) = /^(.+?)\s*=+\s*.+?$/) {
+				if ($key eq $temp_key) {
+					if (  (defined $self->{_section} && defined $temp_section && $self->{_section} eq $temp_section)
+					   || (!defined $self->{_section} && !defined $temp_section) ) {
+						print WRITE $key . " = " . $self->get($key) . "\n";
+						last;
+					}				
+				}
+			}
+		
+			# Get section identifier
+			elsif (/^\[(.+)\]$/) {
+				$temp_section = lc($1);
+			}
+						
+			print WRITE "$_\n";
+		}
+		
+		# No match found, prepend or append key
+		if (eof(READ)) {
+			if (defined $self->{_section}) {
+				print WRITE "\n[" . $self->{_section} . "]\n";
+				print WRITE $key . " = " . $self->get($key) . "\n";
+			} else {
+				# Prepend, when no section defined
+				seek(WRITE, 0, 0);
+				seek(READ, 0, 0);
+				print WRITE $key . " = " . $self->get($key) . "\n";
+				print WRITE while (<READ>);
+					
+			}
+		}
+		
+		# Match found, just copy rest of the file
+		else {
+			print WRITE while (<READ>);
+		}
+		
+		# Clean up
+		close(READ);
+		close(WRITE);
+		unlink $current;
+		rename $temp, $current;	
+	}
 }
 
 # Return
@@ -335,22 +409,29 @@ preventing a malicious plugin to access data (e.g. credentials) of other plugins
 internally identified by the key and a section preposition, which makes it possible to use
 identical keys in different sections. The internally used seperation of preposition and key
 (a ":") is protected in order to avoid a security leak.
-Be warned though that the section Configuration object only contains references to the actual
-entries, so modifying the section object _will_ modify the main configuration object too (unless
-protected offcourse).
+Values in the section object are references to the main object, adjusting them will this
+adjust the main object.
 NOTE: section entries are case-insensitive.
+IMPORTANT NOTE: do _not_ use the ":" token to get/set values within a section, _always_ use
+the section("foo")->get/set construction.
 
 =head2 $config->merge($complement)
 
-Merges two Configuration objects. This is especially usefull in combination with the section()
-routine: a package/objects creates a Configuration object with some default entries at
-BEGIN/construction, but gets passed another Configuration object with some user-defined
-entries. The merge function will read all values in the $self object (the one with the
-default values), and update those values in the passed $complement object. This in order
-to update the main Configuration object, as the complement only contains references.
+This function merges two Configuration objects. This is intent to merge an object with
+default values, with one containing the user-defined values, correctly filling the gaps.
+As the add_default function does not overwrite user-defined values, you should normally
+never need this function, as you can apply defaults upon the configuration object
+containing the user-defined values. E.g., plugins get an configuration object passed
+in the constructor, in which default values get applied.
+
+When however the configuration object is needed before user-defined values get passed (e.g.
+a static package, see Log.pm), there will be a pre-existent configuration object containing
+the default values. Upon configuration, the merge() call can be used to merge that object
+with the passed one containing user-defined values. Again, this should be rarely used, and when
+needed check the usage in Log.pm.
   use Configuration;
   
-  # A package creates an initial Configuration object (e.g. at construction)
+  # A package creates an initial Configuration object (e.g. at BEGIN block)
   my $config_package = new Configuration;
   $config_package->set_default("foo", "bar");
   
@@ -361,8 +442,12 @@ to update the main Configuration object, as the complement only contains referen
   # The package receives the configuration entries it is interested in, and merges them
   # with the existing default values
   $config_package->merge($config_main->section("package"));
-  
-  # The package configuration object shall now contain all user specified entries, with
-  # preserved default values. It'll also contain default values for objects not specified
-  # by the user.
+
+=head2 $config->save($key, $file)
+
+This function will make a configuration entry persistent, by saving it into a given file.
+That file gets parsed, and when possible a key will get updated. When the key doesn't
+exist in the file yet, it will get appended (when within a subsection) or prepended (when
+not within a subsection). When the file does not exist, a new one will get created.
+
 =cut=
