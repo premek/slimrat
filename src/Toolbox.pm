@@ -39,7 +39,7 @@ package Toolbox;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof $useragent);
+@EXPORT = qw(dwait indexof rand_str $useragent);
 
 # Write nicely
 use strict;
@@ -60,6 +60,19 @@ sub indexof {
 		return $i if $$arrayref[$i] eq $value;
 	}
 	return -1;
+}
+
+# Generate a random string
+sub rand_str
+{
+	my $length = shift;
+
+	my @chars=('a'..'z','A'..'Z','0'..'9','_');
+	my $random_string;
+	foreach (1 .. $length) {
+		$random_string.=$chars[rand @chars];
+	}
+	return $random_string;
 }
 
 # Return

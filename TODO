@@ -12,3 +12,5 @@
   - Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
   - Log::dump($info, $data), upon plugin error dump all -> tar.bz if --debug, upload for help
+  - Append a verbose log to the dumps, maybe pack all "dumps" options and verbosity and autolog
+    options in a --debug option which does it all
