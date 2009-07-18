@@ -76,6 +76,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		my $res = $self->{MECH}->get($self->{URL});
 		if ($res->decoded_content =~ m/Filename:<\/font> <font[^>]*>([^<]+)<\/font/) {
 			return $1;
 		} else {
@@ -91,6 +92,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
 		if ($res->decoded_content =~ m/File size:<\/font> <font[^>]*>([^<]+)<\/font/) {
 			return $1;
 		} else {
@@ -105,8 +107,11 @@ sub check {
 	my $self = shift;
 	
 	my $res = $self->{MECH}->get($self->{URL});
-	return -1 if ($res->is_success && $res->decoded_content =~ m#link you have clicked is not available#);
-	return 1 if($res->decoded_content =~ m#gencap.php#);
+	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
+		return -1 if ($res->is_success && $res->decoded_content =~ m#link you have clicked is not available#);
+		return 1 if($res->decoded_content =~ m#gencap.php#);
+	}
 	return 0;
 }
 
@@ -116,9 +121,11 @@ sub get_data {
 	my $data_processor = shift;
 	
 	my $res;
-	do {
+	while ($res->decoded_content !~ m#downloadlink#) {
+		# Primary page
 		$res = $self->{MECH}->get($self->{URL});
 		return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+		dump_add($self->{MECH}->content(), "html");
 
 		$_ = $res->decoded_content;
 
@@ -141,7 +148,8 @@ sub get_data {
 		# submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
-	} while ($res->decoded_content !~ m#downloadlink#);
+		$res = $self->{MECH}->get($self->{URL});
+	}
 
 	# Wait
 	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;

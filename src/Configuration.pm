@@ -456,4 +456,8 @@ That file gets parsed, and when possible a key will get updated. When the key do
 exist in the file yet, it will get appended (when within a subsection) or prepended (when
 not within a subsection). When the file does not exist, a new one will get created.
 
+=head1 AUTHOR
+
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
 =cut=

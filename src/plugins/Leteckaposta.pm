@@ -81,6 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
 		if ($res->decoded_content =~ m/<a[^>]*class='download-link'>([^<]+)<\/a>/) {
 			return $1;
 		} else {
@@ -96,6 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
 		if ($res->decoded_content =~ m/Velikost souboru: ([^<]+)<\/p>/) {
 			return $1;
 		} else {
@@ -109,10 +111,13 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{UA}->get($self->{URL});
-	return -1 unless ($res->is_success);
-	return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
-	return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
+		return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
+		return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
+	}
+	return 0;
 }
 
 # Download data
@@ -120,18 +125,14 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 
-	my $res = $self->{UA}->get($self->{URL});
+	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	dump_add($self->{MECH}->content(), "html");
 	
 	# Extract the download URL
-	my ($download, $filename) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>(.+?)</a>#;
+	my ($download) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>.+?</a>#;
 	return error("plugin error (could not extract download link)") unless $download;
 	$download = "http://leteckaposta.cz$download";
-
-	if ($filename){
-		warning("This can overwrite your files with the same name.");
-		$download .= "\" -O \"".$filename;
-	}
 	
 	# Download the data
 	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);

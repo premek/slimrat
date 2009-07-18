@@ -6,6 +6,9 @@
     * log (dump_*): framework to generate and save dump files,
       very handy to debug issues.
 
+    * log (dump_*): finetuned the dumping process, and added
+      some sample dumps in all plugins.
+
 
 2009-07-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

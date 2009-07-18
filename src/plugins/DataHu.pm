@@ -81,6 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
 		if ($res->decoded_content =~ m/<div class="download_filename">\s+([^<]+?)\s+<\/div>/s) {
 			return $1;
 		} else {
@@ -96,6 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
 		if ($res->decoded_content =~ m/f.jlm.ret:\s+(.+)/) {
 			return $1;
 		} else {
@@ -111,6 +113,7 @@ sub check {
 	
 	$self->{MECH}->get($self->{URL});
 	$_ = $self->{MECH}->content();
+	dump_add($self->{MECH}->content(), "html");
 	return -1 if(m#error_box#);
 	return 1;
 }
@@ -123,6 +126,7 @@ sub get_data {
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	dump_add($self->{MECH}->content(), "html");
 	
 	while (1) {
 		$_ = $res->decoded_content."\n"; 
@@ -134,6 +138,7 @@ sub get_data {
 			wait($wait);
 			
 			$res = $self->{MECH}->reload();
+			dump_add($self->{MECH}->content(), "html");
 		} else {
 			last;
 		}

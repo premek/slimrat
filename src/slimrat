@@ -121,7 +121,7 @@ GetOptions (
 		"address=s",
 		"daemon!",
 		"kill",
-		"verbose",
+		"debug",
 		"quiet",
 );
 
@@ -154,12 +154,15 @@ $config->set("mode", "check") if ($options{"check"});
 
 # Options we might use later on
 $config->set("list", $options{"list"}) if ($options{"list"});
-usage("cannot combine --verbose with --quiet option") if ($options{"quiet"} && $options{"verbose"});
-$config->section("log")->set("screen_verbosity", 2) if ($options{"quiet"});
-$config->section("log")->set("screen_verbosity", 4) if ($options{"verbose"});
 $config->set("daemon", 1) if ($options{"daemon"});
 $config->set("address", $options{"address"}) if ($options{"address"});
 $config->set("to", $options{"to"}) if ($options{"to"});
+usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
+$config->section("log")->set("screen_verbosity", 2) if ($options{"quiet"});
+if ($options{"debug"}) {
+	$config->section("log")->set("screen_verbosity", 4);
+	$config->section("log")->set("dumps", 1);
+}
 
 
 #
@@ -239,6 +242,8 @@ if ($config->get("mode") eq "check") {
 			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($plugin->get_filesize()||"unknown filesize"));
 		}
 	}
+	
+	quit();
 }
 
 
@@ -289,7 +294,7 @@ elsif ($config->get("mode") eq "download") {
 		system($command);
 	}
 
-	&quit;
+	quit();
 }
 
 
@@ -299,6 +304,7 @@ elsif ($config->get("mode") eq "download") {
 
 else {
 	usage("unrecognised mode");
+	quit();
 }
 
 
@@ -529,11 +535,11 @@ slimrat-cli
 
   Makes the download client bind to a specific address.
 
-=item B<--verbose>
+=item B<--debug>
 
-  Makes slimrat more verbose, printing debug messages. This only alters the verbosity
-  of the standard output, to control log-file verbosity you need to edit a
-  configuration file.
+  Makes slimrat enable several debugging options. This includes highest verbosity for screen
+  output, and enables generation of dump files into the temporary folder /tmp. To control log-file
+  verbosity, or location of dumps: see the configuration file.
 
 =item B<--quiet>
 
