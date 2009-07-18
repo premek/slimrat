@@ -58,15 +58,12 @@ use warnings;
 
 # Base configuration
 my $config = new Configuration;
+$config->set_default("verbosity", 3);
+$config->set_default("mode", "full");
 $config->set_default("screen", 1);
-$config->set_default("screen_verbosity", 3);
-$config->set_default("screen_mode", "full");
 $config->set_default("file", 1);
 $config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
-$config->set_default("file_verbosity", 3);
-$config->set_default("file_mode", "log");
-$config->set_default("dumps", 0);
-$config->set_default("dumps_folder", "/tmp");
+$config->set_default("dump_folder", "/tmp");
 
 # Dump cache
 struct(Dump =>	{
@@ -98,10 +95,15 @@ sub output_raw {
 sub output {
 	my ($colour, $timestamp, $category, $messages, $verbosity) = @_;
 	
+	# Verbosity
+	return unless ($config->get("verbosity") >= $verbosity);
+	
+	# Mode
+	my @args = @_;
+	$args[0] = "" if ($config->get("screen_mode") eq "log");
+	
 	# Screen output
-	if ($config->get("screen") && $config->get("screen_verbosity") >= $verbosity) {
-		my @args = @_;
-		$args[0] = "" if ($config->get("screen_mode") eq "log");
+	if ($config->get("screen")) {
 		my $fh;
 		open($fh, ">&STDOUT");
 		output_raw($fh, @args);
@@ -109,9 +111,7 @@ sub output {
 	}
 	
 	# File output
-	if ($config->get("file") && $config->get("file_verbosity") >= $verbosity) {
-		my @args = @_;
-		$args[0] = "" if ($config->get("file_mode") eq "log");
+	if ($config->get("file")) {
 		my $fh;
 		open($fh, ">>".$config->get("file_path")) || die("could not open given logfile");
 		output_raw($fh, @args);
@@ -259,7 +259,7 @@ sub wait {
 # Dump data for debugging purposes
 sub dump_add($$) {
 	my ($data, $type) = @_;
-	return unless $config->get("dumps");
+	return unless ($config->get("verbosity") >= 5);
 	my $hierarchy = (caller(1))[3] . ", line " . (caller(0))[2];
 	
 	# Save dump
@@ -274,7 +274,7 @@ sub dump_add($$) {
 
 # Write the dumped data
 sub dump_write() {
-	return unless $config->get("dumps");
+	return unless ($config->get("verbosity") >= 5);
 	
 	# Generate temporary folder
 	my $tempfolder = "/tmp/" . rand_str(5);

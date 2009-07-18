@@ -9,6 +9,8 @@
     * log (dump_*): finetuned the dumping process, and added
       some sample dumps in all plugins.
 
+    * log: several simplifications.
+
 
 2009-07-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

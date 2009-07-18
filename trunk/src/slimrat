@@ -158,11 +158,8 @@ $config->set("daemon", 1) if ($options{"daemon"});
 $config->set("address", $options{"address"}) if ($options{"address"});
 $config->set("to", $options{"to"}) if ($options{"to"});
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
-$config->section("log")->set("screen_verbosity", 2) if ($options{"quiet"});
-if ($options{"debug"}) {
-	$config->section("log")->set("screen_verbosity", 4);
-	$config->section("log")->set("dumps", 1);
-}
+$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("verbosity", 5) if ($options{"debug"});
 
 
 #
@@ -537,15 +534,12 @@ slimrat-cli
 
 =item B<--debug>
 
-  Makes slimrat enable several debugging options. This includes highest verbosity for screen
-  output, and enables generation of dump files into the temporary folder /tmp. To control log-file
-  verbosity, or location of dumps: see the configuration file.
+  Enables maximal verbosity, which includes a lot of text on the screen and the generation
+  of an additional dump archive.
 
 =item B<--quiet>
 
-  Makes slimrat less verbose, only displaying errors and warnings. This only alters the verbosity
-  of the standard output, to control log-file verbosity you need to edit a
-  configuration file.
+  Makes slimrat less verbose, only displaying errors and warnings.
 
 =back
 
