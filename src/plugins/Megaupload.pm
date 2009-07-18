@@ -121,7 +121,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	my $res;
-	while ($res->decoded_content !~ m#downloadlink#) {
+	do {
 		# Primary page
 		$res = $self->{MECH}->get($self->{URL});
 		return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
@@ -149,7 +149,7 @@ sub get_data {
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
 		$res = $self->{MECH}->get($self->{URL});
-	}
+	} while ($res->decoded_content !~ m#downloadlink#);
 
 	# Wait
 	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
