@@ -319,12 +319,18 @@ sub save($$) {
 				print WRITE "\n[" . $self->{_section} . "]\n";
 				print WRITE $key . " = " . $self->get($key) . "\n";
 			} else {
-				# Prepend, when no section defined
+				# Prepend before first section, when not defined
 				seek(WRITE, 0, 0);
 				seek(READ, 0, 0);
-				print WRITE $key . " = " . $self->get($key) . "\n";
-				print WRITE while (<READ>);
-					
+				my $written = 0;
+				while (<READ>) {
+					if (!$written && /^\[(.+)\]$/) {
+						print WRITE $key . " = " . $self->get($key) . "\n";
+						$written = 1;
+					}
+					print WRITE;
+				}
+				print WRITE $key . " = " . $self->get($key) . "\n" unless ($written);					
 			}
 		}
 		
