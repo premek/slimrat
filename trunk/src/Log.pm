@@ -71,9 +71,9 @@ $config->set_default("dumps_folder", "/tmp");
 # Dump cache
 struct(Dump =>	{
 		time		=>	'$',
-		name		=>	'$',
-		filename	=>	'$',
-		data		=>	'$'
+		type		=>	'$',
+		data		=>	'$',
+		hierarchy	=>	'$'
 });
 my @dumps;
 
@@ -242,7 +242,7 @@ sub status {
 #
 
 # Configure the package
-sub configure {
+sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
 }
@@ -257,21 +257,23 @@ sub wait {
 }
 
 # Dump data for debugging purposes
-sub dump_add {
-	my ($name, $filename, $data) = @_;
+sub dump_add($$) {
+	my ($data, $type) = @_;
 	return unless $config->get("dumps");
+	my $hierarchy = (caller(1))[3] . ", line " . (caller(0))[2];
 	
-	debug("adding $name as '$filename' to dump cache");
+	# Save dump
+	debug("adding $type dump " . (scalar(@dumps)+1) . " from $hierarchy");
 	my $dump = new Dump;
 	$dump->time(time);
-	$dump->name($name);
-	$dump->filename($filename);
 	$dump->data($data);
+	$dump->type($type);
+	$dump->hierarchy($hierarchy);
 	push @dumps, $dump;
 }
 
 # Write the dumped data
-sub dump_write {
+sub dump_write() {
 	return unless $config->get("dumps");
 	
 	# Generate temporary folder
@@ -284,20 +286,18 @@ sub dump_write {
 	open(INFO, ">$tempfolder/info");
 	my $counter = 1;
 	foreach my $dump (@dumps) {
-		print INFO $counter++, ") ", $dump->name, "\n";
-		print INFO "\t- Generated at ", localtime($dump->time), "\n";
-		my $filename = $dump->filename;
-		my $origfilename = $filename;
-		my $i = 1;
-		while (-f "$tempfolder/$filename") {
-			$filename = ($i++) . "-" . $filename;
-		}
+		print INFO $counter, ") ", $dump->hierarchy, "\n";
+		my ($sec,$min,$hour) = localtime($dump->time);
+		print INFO "\t- Generated at ", (sprintf "%02d:%02d:%02d",$hour,$min,$sec), "\n";
+		my $filename = $counter . "." . $dump->type;
 		print INFO "\t- Filename: $filename\n";
 		print INFO "\n";
 		
-		open(DATA, ">$tempfolder/$filename");
+		open(DATA, ">:utf8", "$tempfolder/$filename");
 		print DATA $dump->data;
 		close(DATA);
+		
+		$counter++;
 	}
 	close(INFO);
 	
@@ -409,6 +409,18 @@ This prints a download summary, given two refs to arrays with actual links.
 
 Print a one-line status indication for a given download URL, with some extra information
 between brackets.
+
+=head2 dump_add($data, $type)
+
+Adds data to the dump cache, which will later on be saved in a file ending on $type. Disabled
+when the "dumps" config variable is not set.
+
+=head2 dump_write()
+
+Writes the dump cache to a persistent file. Firstly a temporary folder is created in /tmp in which
+all files get dumped, after which "tar" and "bzip2" are used to compress the folder and place the
+resulting file in a directory specified by the "dumps_folder" variable. Disabled when "dumps" variabele
+not set. Temporary folder does not get removed, this should be the task of the OS upon reboot/shutdown.
 
 =head1 AUTHOR
 

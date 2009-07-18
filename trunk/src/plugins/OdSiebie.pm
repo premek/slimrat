@@ -78,6 +78,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		$res = $self->{MECH}->get($self->{URL});
 		if ($res->decoded_content =~ m/Pobierasz plik: ([^<]+)<\/div>/) {
 			return $1;
 		} else {
@@ -93,6 +94,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		$res = $self->{MECH}->get($self->{URL});
 		if ($res->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s) {
 			return $1;
 		} else {
@@ -106,10 +108,13 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	$self->{MECH}->get($self->{URL});
-	return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
-	# TODO: detect the 302 redirect to the upload form and return -1, otherwise 0
-	return -1;
+	my $res = $self->{MECH}->get($self->{URL});
+	if ($res->is_success) {
+		dump_add($self->{MECH}->content(), "html");
+		#return -1 if  detect the 302 redirect to the upload form 
+		return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
+	}
+	return 0;
 }
 
 # Download data
@@ -117,17 +122,21 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Get the page
+	# Primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	dump_add($self->{MECH}->content(), "html");
 	
+	# Click to the secondary page
 	$_ = $self->{MECH}->content;
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
-	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj' );
+	dump_add($self->{MECH}->content(), "html");
+	
+	# Click the download link and extract it
+	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj');
 	if ($res->content_is_html) { error("plugin failure (an unspecified error occured)"); return 0;}
 	my $dfilename = $self->{MECH}->response()->filename;
-	
-	my $download = $self->{MECH}->uri()."\n";
+	my $download = $self->{MECH}->uri();
 	
 	# Download the data
 	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
