@@ -39,15 +39,18 @@
 package Log;
 
 # Packages
+use Class::Struct;
 use Term::ANSIColor qw(:constants);
+use Cwd;
 
 # Custom packages
+use Toolbox;
 use Configuration;
 
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(bytes_readable level debug info warning error usage fatal progress summary status wait);
+@EXPORT = qw(bytes_readable level debug info warning error usage fatal progress summary status wait dump_add dump_write);
 
 # Write nicely
 use strict;
@@ -62,12 +65,17 @@ $config->set_default("file", 1);
 $config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
 $config->set_default("file_verbosity", 3);
 $config->set_default("file_mode", "log");
+$config->set_default("dumps", 0);
+$config->set_default("dumps_folder", "/tmp");
 
-# Configure the package
-sub configure {
-	my $complement = shift;
-	$config->merge($complement);
-}
+# Dump cache
+struct(Dump =>	{
+		time		=>	'$',
+		name		=>	'$',
+		filename	=>	'$',
+		data		=>	'$'
+});
+my @dumps;
 
 
 #
@@ -110,7 +118,6 @@ sub output {
 		close($fh);	
 	}
 }
-
 
 # Generate a timestamp
 sub timestamp {
@@ -234,6 +241,12 @@ sub status {
 # Other
 #
 
+# Configure the package
+sub configure {
+	my $complement = shift;
+	$config->merge($complement);
+}
+
 # Wait a while
 sub wait {
 	my ($wait, $rem, $sec, $min);
@@ -241,6 +254,60 @@ sub wait {
 	($sec,$min) = localtime($wait);
 	info(sprintf("Waiting %d:%02d",$min,$sec));
 	sleep($rem);
+}
+
+# Dump data for debugging purposes
+sub dump_add {
+	my ($name, $filename, $data) = @_;
+	return unless $config->get("dumps");
+	
+	debug("adding $name as '$filename' to dump cache");
+	my $dump = new Dump;
+	$dump->time(time);
+	$dump->name($name);
+	$dump->filename($filename);
+	$dump->data($data);
+	push @dumps, $dump;
+}
+
+# Write the dumped data
+sub dump_write {
+	return unless $config->get("dumps");
+	
+	# Generate temporary folder
+	my $tempfolder = "/tmp/" . rand_str(5);
+	$tempfolder = "/tmp/" . rand_str(5) while (-d $tempfolder);
+	mkdir $tempfolder || return error("could not create temporary folder to dump files");
+	
+	# Dump files
+	debug("dumping " . scalar(@dumps) . " file(s) to disk in temporary folder '$tempfolder'");	
+	open(INFO, ">$tempfolder/info");
+	my $counter = 1;
+	foreach my $dump (@dumps) {
+		print INFO $counter++, ") ", $dump->name, "\n";
+		print INFO "\t- Generated at ", localtime($dump->time), "\n";
+		my $filename = $dump->filename;
+		my $origfilename = $filename;
+		my $i = 1;
+		while (-f "$tempfolder/$filename") {
+			$filename = ($i++) . "-" . $filename;
+		}
+		print INFO "\t- Filename: $filename\n";
+		print INFO "\n";
+		
+		open(DATA, ">$tempfolder/$filename");
+		print DATA $dump->data;
+		close(DATA);
+	}
+	close(INFO);
+	
+	# Generate archive
+	my ($sec,$min,$hour) = localtime;
+	debug("compressing dump to '" . $config->get("dumps_folder") . "/$hour$min$sec-slimrat_dump.tar.bz2'");
+	my $cwd = getcwd;
+	chdir($tempfolder) || return error("could not chdir to dump directory");
+	system("tar -cjf \"" . $config->get("dumps_folder") . "/$hour$min$sec-slimrat_dump.tar.bz2\" *") && return error("could not create archive");
+	chdir($cwd);
 }
 
 # Return

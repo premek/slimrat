@@ -403,6 +403,9 @@ sub quit() {
 	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
 	
+	# Write the dump
+	dump_write();
+	
 	# Hard exit, for when &quit gets called out of sig{int}	
 	info("Slimrat finished");
 	exit(0);

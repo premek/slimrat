@@ -3,6 +3,9 @@
     * configuration (save): suppot for saving values back into
       a configuration file.
 
+    * log (dump_*): framework to generate and save dump files,
+      very handy to debug issues.
+
 
 2009-07-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
