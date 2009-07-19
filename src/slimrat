@@ -35,8 +35,6 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
-
-
 #################
 # CONFIGURATION #
 #################
@@ -83,16 +81,12 @@ config_readfiles();
 &config_cli->set_default("to", ".");
 
 # Global variables
-my ($link, @links, @failedlinks, @oklinks);
+my (@failedlinks, @oklinks);
+
 
 #
 # Command-line options
 #
-
-# NOTE: this is the only section where the %options hash should be used. After this, an appropriate action
-#       should have been undertaken, or if the value is needed later on (e.g. the lists file) the value should
-#       be added to the configuration handler. This makes it possible for some entries to originate at other
-#       sources, e.g. the "daemonize" flag could be passed through CLI as well as being specified in /etc/slimrat.conf
 
 # Process command-line options
 Getopt::Long::Configure("pass_through");
@@ -162,7 +156,7 @@ if (!scalar @ARGV && !&config_cli->get("list")) {
 
 # Initialise a link queue
 my $queue = new Queue();
-while ($link = shift) {
+while (my $link = shift) {
 	if ($link =~ /^\w+:\/\//) {
 		$queue->add($link);
 	} else {

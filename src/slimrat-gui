@@ -35,8 +35,6 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
-
-
 #################
 # CONFIGURATION #
 #################
@@ -186,7 +184,7 @@ sub saveque {
 # parse links from text input or clipboard and add them
 sub links_parse_add {
 	my $links = shift;
-	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_name($_), $_] foreach split /\n+/, $links; # TODO mezery na začátku;
+	push @{$slist->{data}}, [ $slist->render_icon ("gtk-dialog-question", 'menu'), Plugin::get_package($_), $_] foreach split /\n+/, $links; # TODO mezery na začátku;
 
 }
 
@@ -261,13 +259,13 @@ sub on_btnCheck_clicked {
 	foreach my $rownum ($slist->get_selected_indices){
 		my $row = @{$slist->{data}}[$rownum];
 		my $link = @{$row}[COL_LINK];
-		my $pluginname = Plugin::get_name($link);
-		my $check = eval $pluginname."::check('$link')";
+		my $plugin = new Plugin($link);
+		my $check = $plugin->check();
 		my $ico;
-		if($check>0) { #live
+		if ($check>0) { #live
 			$ico="gtk-yes";
 			$slist->unselect($rownum);
-		} elsif($check<0) { # dead
+		} elsif ($check<0) { # dead
 			$ico="gtk-no";
 			$slist->select($rownum);
 		} else { #?
