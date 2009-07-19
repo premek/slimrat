@@ -255,7 +255,7 @@ elsif ($config->get("mode") eq "download") {
  		# Download the URL and check the result
  		my $failure = 0;
 		my $result = download($link);
-		if ($result) {
+		if ($result > 0) {
 			push @oklinks, $link;
 			$queue->file_update($link, "DONE");
 
@@ -331,7 +331,7 @@ sub download($) {
 	}
 	
 	# Get destination filename
-	my $filename = $plugin->get_filename() || return 0;
+	my $filename = $plugin->get_filename() || return error("could not deduce output filename");
 	my $filepath = $config->get("to") . "\/$filename";
 	debug("file will be saved as \"$filepath\"");
 	
