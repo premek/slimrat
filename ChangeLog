@@ -1,3 +1,8 @@
+2009-07-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: Uploading.com plugin, fixed issue 39.
+
+
 2009-07-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * configuration (save): suppot for saving values back into

@@ -1,6 +1,6 @@
-# slimrat - OdSiebie plugin
+# slimrat - Rapidshare plugin
 #
-# Copyright (c) 2009 Yunnan
+# Copyright (c) 2008-2009 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
@@ -29,7 +29,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Yunnan <www.yunnan.tk>
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 
@@ -38,12 +38,15 @@
 #
 
 # Package name
-package OdSiebie;
+package Uploading;
 
-# Modules
+# Packages
+use WWW::Mechanize;
+
+# Custom packages
 use Log;
 use Toolbox;
-use WWW::Mechanize;
+use Configuration;
 
 # Write nicely
 use strict;
@@ -69,7 +72,7 @@ sub new {
 
 # Plugin name
 sub get_name {
-	return "OdSiebie";
+	return "Uploading";
 }
 
 # Filename
@@ -78,8 +81,8 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		$res = $self->{MECH}->get($self->{URL});
-		if ($res->decoded_content =~ m/Pobierasz plik: ([^<]+)<\/div>/) {
+		dump_add($self->{MECH}->content(), "html");
+		if ($res->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/) {
 			return $1;
 		} else {
 			return 0;
@@ -94,8 +97,8 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		$res = $self->{MECH}->get($self->{URL});
-		if ($res->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s) {
+		dump_add($self->{MECH}->content(), "html");
+		if ($res->decoded_content =~ m/File size: ([^<]+)<br/) {
 			return $1;
 		} else {
 			return 0;
@@ -108,11 +111,16 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
+	# Download the page
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
+		# Check if the download button is present
 		dump_add($self->{MECH}->content(), "html");
-		#return -1 if  detect the 302 redirect to the upload form 
-		return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
+		if ($res->decoded_content =~ m/class="downloadbutton"/) {
+			return 1;
+		} else {
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -122,26 +130,40 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Primary page
+	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
+	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content(), "html");
 	
-	# Click to the secondary page
-	$_ = $self->{MECH}->content;
-	$self->{MECH}->follow_link( text => 'Pobierz plik' );
+	# Click the "Download" button
+	$self->{MECH}->form_id("downloadform");
+	$res = $self->{MECH}->submit_form();
+	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content(), "html");
 	
-	# Click the download link and extract it
-	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj');
-	return error("plugin failure (an unspecified error occured)") if ($res->content_is_html);
-	my $download = $self->{MECH}->uri();
+	# Process the resulting page
+	while(1) {
+		my $wait;
+		$_ = $res->decoded_content."\n";
+		
+		if (m/setTimeout\('countdown2\(\)',(\d+)\)/) {
+			wait($1/10);
+			last;
+		}
+		else {
+			return error("plugin error(could not find match)");
+		}
+		$res = $self->{MECH}->reload();
+		dump_add($self->{MECH}->content(), "html");
+	}
 	
-	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	# Click the "Free Download" button
+	my $form = $self->{MECH}->form_name("downloadform");
+	my $request = $form->make_request;
+	$self->{MECH}->request($request, $data_processor);
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?odsiebie.com");
+# Register the plugin
+Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?uploading.com");
 
 1;
-
