@@ -2,6 +2,8 @@
 
     * plugins: Uploading.com plugin, fixed issue 39.
 
+    * slimrat: split into Common.cm code.
+
 
 2009-07-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

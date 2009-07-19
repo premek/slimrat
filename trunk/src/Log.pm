@@ -81,26 +81,26 @@ my @dumps;
 
 # Print a message
 sub output_raw {
-	my ($filehandle, $colour, $timestamp, $category, $messages, $verbosity) = @_;
+	my ($filehandle, $colour, $timestamp, $category, $messages, $verbosity, $omit_endl) = @_;
 	
 	print $filehandle $colour if ($colour);
 	print $filehandle $timestamp?&timestamp:(" " x length(&timestamp));
 	print $filehandle uc($category).": " if ($category);
 	print $filehandle $_ foreach (@{$messages});
 	print $filehandle RESET if ($colour);
-	print $filehandle "\n";
+	print $filehandle "\n" unless ($omit_endl);
 }
 
 # Print a message
 sub output {
-	my ($colour, $timestamp, $category, $messages, $verbosity) = @_;
+	my ($colour, $timestamp, $category, $messages, $verbosity, $omit_endl) = @_;
 	
 	# Verbosity
 	return unless ($config->get("verbosity") >= $verbosity);
 	
 	# Mode
 	my @args = @_;
-	$args[0] = "" if ($config->get("screen_mode") eq "log");
+	$args[0] = "" if ($config->get("mode") eq "log");
 	
 	# Screen output
 	if ($config->get("screen")) {
@@ -157,6 +157,11 @@ sub info {
 	return 0;
 }
 
+# Progress indication (same verbosity as info, but omitted when mode=log)
+sub progress {
+	output("", 0, "", ["\r", &timestamp, @_], 3, 1) unless ($config->get("mode") eq "log");
+}
+
 # Warning
 sub warning {
 	output(YELLOW, 1, "warning", \@_, 2);
@@ -186,17 +191,6 @@ sub fatal {
 #
 # Complex Slimrat-specific routines
 #
-
-# Progress bar (TODO: ETA + screen|file_mode)
-sub progress {
-	my ($done, $total, $time) = @_;
-	if ($total) {
-		my $perc = $done / $total;
-		print "\r", &timestamp, "Downloaded: ", int($perc*10000)/100, "%      ";
-	} else {
-		print "\r", &timestamp, "Downloaded ", bytes_readable($done);
-	}
-}
 
 # Download summary
 sub summary {
