@@ -136,7 +136,9 @@ sub get_data {
 	dump_add($self->{MECH}->content(), "html");
 	
 	# Click the "Download" button
-	$self->{MECH}->form_id("downloadform");
+	#$self->{MECH}->form_id("downloadform"); # my version of WWW::Mechanize can't do form_id()
+	$self->{MECH}->form_name("form_pass"); #another form (accessible by name) but it works too
+	#$self->{MECH}->form_number(2); # or access it by number
 	$res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content(), "html");
