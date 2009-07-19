@@ -57,6 +57,7 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 
 # Custom packages
+use Common;
 use Clipboard;
 use Plugin;
 use Toolbox;
@@ -74,30 +75,27 @@ use strict;
 # Register signals
 $SIG{'INT'} = 'quit';
 
-# Initialise configuration handler and configure default values
-my $config = new Configuration;
-$config->set_default("terminal", 'xterm -T SlimRat -e "%1$s; bash"&');
-$config->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
-$config->set_default("glade_file",  $RealBin.'/slimrat.glade');
-
-# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
-if (-r "/etc/slimrat.conf") {
-	$config->file_read("/etc/slimrat.conf");
-}
-if (-r $ENV{HOME}."/.slimrat/config") {
-	$config->file_read($ENV{HOME}."/.slimrat/config");
-}
-
-# Make sure slimrat has a proper directory in the users home folder
-if (! -d $ENV{HOME}."/.slimrat") {
-	debug("creating a directory in the home folder");
-	unless (mkdir $ENV{HOME}."/.slimrat") {
-		fatal("could not create slimrat's home directory");
-	}
-}
+# Initialise configuration
+config_readfiles();
+&config_gui->set_default("terminal", 'xterm -T SlimRat -e "%1$s; bash"&');
+&config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
+&config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade');
 
 # Global variables
 my $ctrl;
+
+
+#
+# Apply configuration
+#
+
+# Configure other packages and stuff
+config_other();
+
+
+#
+# GUI
+#
 
 # Keypresses
 use constant KEY_CTRL	=> 65507;
@@ -108,7 +106,7 @@ use constant KEY_INSERT	=> 65379;
 use constant KEY_ENTER	=> 65293;
 
 # Construct the GUI
-my $gui = Gtk2::GladeXML->new($config->get("glade_file"), 'mainWindow');
+my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'mainWindow');
 $gui->signal_autoconnect_from_package('main');
 
 # Treeview
@@ -145,7 +143,7 @@ $gui->get_widget('mainwin')->show_all;
 
 # Load queue'd URLs
 # TODO: move to the Queue structure, we'll need a save_queue (selective dump + filename save) to support this
-open(QUEUE, "+<" . $config->get("queue_file"));
+open(QUEUE, "+<" . &config_gui->get("queue_file"));
 while (<QUEUE>){
 	chomp;
 	my @newRow;
@@ -180,7 +178,7 @@ sub quit {
 
 # Save the queue
 sub saveque {
-	open(QUEUE, "> " . $config->get("queue_file"));
+	open(QUEUE, "> " . &config_gui->get("queue_file"));
 	print QUEUE @{$_}[COL_LINK]."\n" foreach @{$slist->{data}};
 	close(QUEUE);
 }
@@ -250,7 +248,7 @@ sub on_btnStart1_clicked {
 		$unpack = "-u";
 		@{$_}[COL_PASS] and $unpack.=" -p ".@{$_}[COL_PASS] foreach @{$slist->{data}};
 	}
-	my $command = sprintf $config->get("terminal"), "$RealBin/slimrat -l '".$config->get("queue_file"). "' -t '$download_to' $unpack";
+	my $command = sprintf &config_gui->get("terminal"), "$RealBin/slimrat -l '".&config_gui->get("queue_file"). "' -t '$download_to' $unpack";
 	system($command);
 	&quit;
 }
@@ -289,7 +287,7 @@ sub on_btnAddClip_clicked {
 # Add
 my ($addDialog, $addDialogBuff);
 sub on_btnAdd1_clicked {
-	my $gui = Gtk2::GladeXML->new($config->get("glade_file"), 'addDialog');
+	my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'addDialog');
 	$gui->signal_autoconnect_from_package('main');
 	$addDialog = $gui->get_widget('addDialog');
 	$addDialogBuff = $gui->get_widget('addLinks')->get_buffer();
@@ -300,7 +298,7 @@ my $confirmDialog;
 sub on_btnRemove1_clicked{
 	if(scalar $slist->get_selected_indices > 0){
 		# Confirm dialog
-		my $gui = Gtk2::GladeXML->new($config->get("glade_file"), 'confirmDelete');
+		my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'confirmDelete');
 		$gui->signal_autoconnect_from_package('main');
 		$confirmDialog = $gui->get_widget('confirmDelete');
 	}

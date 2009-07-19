@@ -47,7 +47,6 @@
 
 # Packages
 use Getopt::Long;
-use POSIX 'setsid';
 use Pod::Usage;
 
 # Find root for custom packages
@@ -55,11 +54,16 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 
 # Custom packages
+use Common;
 use Plugin;
 use Toolbox;
 use Queue;
 use Log;
 use Configuration;
+
+# Function prototypes
+sub quit();
+sub download($$$);
 
 # Write nicely
 use strict;
@@ -73,31 +77,13 @@ use warnings;
 # Register signals
 $SIG{'INT'} = 'quit';
 
-# Function prototypes
-sub check($);
-sub download($);
-sub quit();
-sub daemonize();
-sub pid_save();
-sub pid_read();
+# Initialise configuration
+config_readfiles();
+&config_cli->set_default("mode", "download");
+&config_cli->set_default("to", ".");
 
 # Global variables
 my ($link, @links, @failedlinks, @oklinks);
-
-# Initialise configuration handler and configure default values
-my $config = new Configuration;
-$config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
-$config->set_default("mode", "download");
-$config->set_default("to", ".");
-
-# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
-if (-r "/etc/slimrat.conf") {
-	$config->file_read("/etc/slimrat.conf");
-}
-if (-r $ENV{HOME}."/.slimrat/config") {
-	$config->file_read($ENV{HOME}."/.slimrat/config");
-}
-
 
 #
 # Command-line options
@@ -150,38 +136,27 @@ if ($options{"kill"}) {
 }
 
 # Mode (e.g. what slimrat should do)
-$config->set("mode", "check") if ($options{"check"});
+&config_cli->set("mode", "check") if ($options{"check"});
 
 # Options we might use later on
-$config->set("list", $options{"list"}) if ($options{"list"});
-$config->set("daemon", 1) if ($options{"daemon"});
-$config->set("address", $options{"address"}) if ($options{"address"});
-$config->set("to", $options{"to"}) if ($options{"to"});
+&config_cli->set("list", $options{"list"}) if ($options{"list"});
+&config_cli->set("daemon", 1) if ($options{"daemon"});
+&config_cli->set("address", $options{"address"}) if ($options{"address"});
+&config_cli->set("to", $options{"to"}) if ($options{"to"});
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
-$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
-$config->section("log")->set("verbosity", 5) if ($options{"debug"});
+config_verbosity(2) if ($options{"quiet"});
+config_verbosity(5) if ($options{"debug"});
 
 
 #
 # Apply configuration
 #
 
-# Configure the output
-Log::configure($config->section("log"));
-
-# Configure the plugin producer
-Plugin::configure($config);
-
-# Make sure slimrat has a proper directory in the users home folder
-if (! -d $ENV{HOME}."/.slimrat") {
-	debug("creating directory " . $ENV{HOME} . "/.slimrat");
-	unless (mkdir $ENV{HOME}."/.slimrat") {
-		fatal("could not create slimrat's home directory");
-	}
-}
+# Configure other packages and stuff
+config_other();
 
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
-if (!scalar @ARGV && !$config->get("list")) {
+if (!scalar @ARGV && !&config_cli->get("list")) {
 	usage("no input URLs");
 }
 
@@ -194,16 +169,16 @@ while ($link = shift) {
 		usage("unrecognised option \"$link\"");
 	}
 }
-$queue->file($config->get("list")) if ($config->get("list"));
+$queue->file(&config_cli->get("list")) if (&config_cli->get("list"));
 
 # Set socket local address if needed
-if($config->get("address")){
+if(&config_cli->get("address")){
 	no warnings;
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
 }
 
 # Fork in background
-if ($config->get("daemon")) {
+if (&config_cli->get("daemon")) {
 	info("Forking in background");
 	daemonize();
 	print "\n\n";
@@ -221,7 +196,7 @@ info("Slimrat started");
 # Check
 #
 
-if ($config->get("mode") eq "check") {
+if (&config_cli->get("mode") eq "check") {
 	info("Checking URLs");
 	
 	# Get and loop all URLs
@@ -248,19 +223,29 @@ if ($config->get("mode") eq "check") {
 # Download
 #
 
-elsif ($config->get("mode") eq "download") {
+elsif (&config_cli->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
  		info("Downloading ", $link);
  		
- 		# Download the URL and check the result
+ 		# Download the URL with custom progress indication
  		my $failure = 0;
-		my $result = download($link);
+		my $result = download($link, &config_cli->get("to"), sub {
+			my ($done, $total, $time) = @_;
+			if ($total) {
+				my $perc = $done / $total;
+				progress("Downloaded: ", int($perc*10000)/100, "%      ");
+			} else {
+				progress("Downloaded ", bytes_readable($done));
+			}
+		});
+		
+		# Check result
 		if ($result > 0) {
 			push @oklinks, $link;
 			$queue->file_update($link, "DONE");
 
 			# Command after successful download
-			if (my $command = $config->get("post_download")) {
+			if (my $command = &config_cli->get("post_download")) {
 				system($command);
 			}
 		}
@@ -277,7 +262,7 @@ elsif ($config->get("mode") eq "download") {
 			push @failedlinks, $link;
 
 			# Command after failed download
-			if (my $command = $config->get("post_failure")) {
+			if (my $command = &config_cli->get("post_failure")) {
 				system($command);
 			}
 		}
@@ -287,7 +272,7 @@ elsif ($config->get("mode") eq "download") {
 	}
 
 	# Command after all downloads
-	if (my $command = $config->get("post_all")) {
+	if (my $command = &config_cli->get("post_all")) {
 		system($command);
 	}
 
@@ -310,97 +295,6 @@ else {
 # ROUTINES #
 ############
 
-# Redirect download() call to the correct plugin
-sub download($) {
-	$link = shift;
-	
-	# Load plugin
-	my $plugin = Plugin->new($link) || return 0;
-	my $pluginname = $plugin->get_name();
-	debug("downloading \"$link\" using the $pluginname-plugin");
-	
-	# Check if link is valid
-	my $status = $plugin->check();
-	if ($status < 0){
-		error("check failed (dead link)");
-		return $status;
-	}
-	elsif ($status == 0) {
-		warning("check failed (unknown reason)");
-		return $status;
-	}
-	
-	# Get destination filename
-	my $filename = $plugin->get_filename() || return error("could not deduce output filename");
-	my $filepath = $config->get("to") . "\/$filename";
-	debug("file will be saved as \"$filepath\"");
-	
-	# Check if exists
-	if (-e $filepath) {
-		warning("file exists, renaming");
-		rename($filepath, "$filepath.old");
-	}
-	
-	# Download status counters
-	my $size;
-	my $t_start = time;
-	my $t_prev = 0;
-	my $size_downloaded = 0;
-	
-	# Get data
-	my $flag = 0;
-	$|++; # unbuffered output
-	$plugin->get_data( sub {	# TODO: catch errors
-		# Fetch server response
-		my $res = $_[1];
-		
-		# Do one-time stuff
-		unless ($flag) {
-			# Save length and print
-			$size = $res->content_length;
-			if ($size)
-			{
-				info("Filesize: ", bytes_readable($size));
-			} else {
-				info("Filesize unknown");
-			}
-			
-			# Open file
-			open(FILE, ">$filepath");
-			unless (-w FILE) {
-				error("could not open file to write");
-				return 0;
-			}
-			binmode FILE;
-			
-			$flag = 1;
-		}
-		
-		# Write the data
-		print FILE $_[0];
-		
-		# Download indication
-		$size_downloaded += length($_[0]);	
-		if ($t_prev+1 < time) {	# don't update too often
-			$t_prev = time;
-			progress($size_downloaded, $size, 0);
-		}
-	});
-	if ($size) {
-		progress(1, 1, 0);
-	} else {
-		progress($size_downloaded, 0, 0);
-	}
-	print "\r\n";
-	
-	# Close file
-	close(FILE);
-	
-	# Download finished
-	info("File downloaded");
-	return 1;
-}
-
 # Finish
 sub quit() {
 	# Print a download summary
@@ -412,64 +306,6 @@ sub quit() {
 	# Hard exit, for when &quit gets called out of sig{int}	
 	info("Slimrat finished");
 	exit(0);
-}
-
-# Fork into the background
-sub daemonize() {
-	# Check current instances
-	if (my $pidr = pid_read()) {
-		if ($pidr && kill 0, $pidr) {	# Signal 0 doesn't do any harm
-			fatal("an instance already seems to be running, please specify an alternative state file for this instance");
-		}
-	} else {
-		warning("could not query state file to check for existing instances (harmless at first run)");
-	}
-	
-	# Regular daemon householding
-	chdir '/' or fatal("couldn't chdir to / ($!)");
-	open STDIN, '/dev/null' or fatal("couldn't redirect input from /dev/null ($!)");
-	
-	# Create a child
-	defined(my $pid = fork) or fatal("couldn't fork ($!)");
-	exit if $pid;
-	debug("child has been forked off at PID $$");
-	
-	# Start a new session
-	setsid or fatal("couldn't start a new session ($!)");
-	
-	# Save the PID
-	if (!pid_save()) {
-		fatal("could not write the state file");
-	}
-	
-	# Redirect all output
-	info("Muting screen output, make sure a logfile has been configured to output to");
-	$config->section("log")->set("screen", 0);
-}
-
-# Save the PID
-sub pid_save() {
-	my $state_file = $config->get("state_file");
-	open(WRITE, ">$state_file") || return 0;	# Open and check existance
-	return 0 unless (-w WRITE);			# Check write access
-	print WRITE $$;
-	close(WRITE);
-	return 1;
-}
-
-# Extract an PID
-sub pid_read() {
-	# Check existance and read access
-	my $state_file = $config->get("state_file");
-	return 0 unless (-f $state_file && -r $state_file);
-	
-	# Read PID
-	open(PIDR, $state_file);
-	my $pid = <PIDR> || return 0;
-	close(PIDR);
-	
-	return 0 if ($pid !~ /^\d+$/);	
-	return $pid;
 }
 
 __END__
