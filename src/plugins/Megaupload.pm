@@ -148,7 +148,6 @@ sub get_data {
 		# submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
-		$res = $self->{MECH}->get($self->{URL});
 	} while ($res->decoded_content !~ m#downloadlink#);
 
 	# Wait

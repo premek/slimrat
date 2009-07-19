@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#
 # Common.pm - Slimrat functionality shared between CLI and GUI
 #
 # Copyright (c) 2008-2009 Přemek Vyhnal
