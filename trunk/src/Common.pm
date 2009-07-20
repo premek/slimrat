@@ -233,7 +233,7 @@ sub download($$$) {
 
 			# If plugin didn't tell us name of the file, we can get it from http response or request.
 			if(!$filename) {
-				if ($res->headers->{'content-disposition'} =~ /filename=(.+)$/i) {$filename = $1}
+				if ($res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
 				elsif($res->request->uri =~ m{/([^\/]+?)((\?|#).*)?$}) {$filename = $&}
 				else {$filename = "slimrat_downloaded_file";}
 			}
