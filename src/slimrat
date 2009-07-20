@@ -205,7 +205,8 @@ if (&config_cli->get("mode") eq "check") {
 		else {			
 			# Check status
 			my $status = $plugin->check();
-			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($plugin->get_filesize()||"unknown filesize"));
+			my $size = $plugin->get_filesize();
+			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($size ? bytes_readable($size) : "unknown filesize"));
 		}
 	}
 	

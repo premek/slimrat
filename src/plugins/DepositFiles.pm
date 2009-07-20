@@ -115,7 +115,7 @@ sub get_filesize {
 		if ($res->decoded_content =~ m/File size: <b[^>]*>([^<]+)<\/b>/) {
 			my $size = $1;
 			$size =~ s/\&nbsp;/ /;
-			return $size;
+			return readable2bytes($size);
 		} else {
 			return 0;
 		}

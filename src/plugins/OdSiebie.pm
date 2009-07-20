@@ -96,7 +96,7 @@ sub get_filesize {
 	if ($res->is_success) {
 		$res = $self->{MECH}->get($self->{URL});
 		if ($res->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}

@@ -101,7 +101,7 @@ sub get_filesize {
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}
@@ -165,7 +165,7 @@ sub get_data {
 		}
 		
 		if ($self->{CONF}->get("interval") && $wait > $self->{CONF}->get("interval")) {
-			print &ptime."Should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes\n";
+			info("Should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes");
 			$wait = $self->{CONF}->get("interval");
 		}
 		wait($wait*60);
