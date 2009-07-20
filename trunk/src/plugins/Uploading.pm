@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/) {
 			return $1;
 		} else {
@@ -97,7 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/File size: ([^<]+)<br/) {
 			return $1;
 		} else {
@@ -115,7 +115,7 @@ sub check {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		# Check if the download button is present
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/class="downloadbutton"/) {
 			return 1;
 		} else {
@@ -133,7 +133,7 @@ sub get_data {
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click the "Download" button
 	#$self->{MECH}->form_id("downloadform"); # my version of WWW::Mechanize can't do form_id()
@@ -141,7 +141,7 @@ sub get_data {
 	#$self->{MECH}->form_number(2); # or access it by number
 	$res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Process the resulting page
 	while(1) {
@@ -156,7 +156,7 @@ sub get_data {
 			return error("plugin error(could not find match)");
 		}
 		$res = $self->{MECH}->reload();
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 	}
 	
 	# Click the "Free Download" button

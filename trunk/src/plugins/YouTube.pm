@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<title>YouTube - ([^<]+)<\/title>/) {
 			return $1."\.flv";
 		} else {
@@ -102,7 +102,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<div class="errorBox">/) {
 			return -1;
 		} else {
@@ -119,7 +119,7 @@ sub get_data {
 	
 	# Extract data from SWF loading script
 	my ($v, $t) = $self->{MECH}->get($self->{URL})->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	return error("plugin error (could not extract video properties)") unless ($v && $t);
 	my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
 	

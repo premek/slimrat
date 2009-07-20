@@ -79,7 +79,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/You are requesting<strong> ([^<]+)<\/strong>/) {
 			return $1;
 		} else {
@@ -95,7 +95,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/You are requesting<strong>[^<]+<\/strong> \(([^)]+)\)/) {
 			return $1;
 		} else {
@@ -111,7 +111,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/msg-err/) {
 			return -1;
 		} else {
@@ -129,13 +129,13 @@ sub get_data {
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click the "Free" button
 	$self->{MECH}->form_number(1);
 	$res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Process the resulting page
 	my $code;
@@ -155,7 +155,7 @@ sub get_data {
 			return error("plugin failure (could not extract captcha code)") unless $code;
 			
 			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-			dump_add($self->{MECH}->content(), "html");
+			dump_add($self->{MECH}->content());
 			last;
 		}
 		
@@ -164,7 +164,7 @@ sub get_data {
 			$code = $1;
 			print "Got captcha directly: $code\n";
 			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-			dump_add($self->{MECH}->content(), "html");
+			dump_add($self->{MECH}->content());
 			last;
 		}
 		
@@ -174,7 +174,7 @@ sub get_data {
 			return error("plugin failure (could not extract wait time)") unless $wait;
 			wait($wait*60);
 			$res = $self->{MECH}->reload();
-			dump_add($self->{MECH}->content(), "html");
+			dump_add($self->{MECH}->content());
 			next;
 		}
 		
@@ -185,7 +185,7 @@ sub get_data {
 	# Get the third page
 	$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
 	return error("plugin failure (page 3 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Extract the download URL
 	$_ = $res->decoded_content."\n";

@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/You requested: ([^(]+) \(/) {
 			return $1;
 		} else {
@@ -97,7 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/You requested: [^(]+ \(([^)]+)\)/) {
 			return $1;
 		} else {
@@ -113,7 +113,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/) {
 			return 1;
 		} else {
@@ -131,7 +131,7 @@ sub get_data {
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	$_ = $res->decoded_content."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
@@ -143,7 +143,7 @@ sub get_data {
 	# Get the secondary page
 	$res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 		
 	$_ = $res->decoded_content."\n";
 	

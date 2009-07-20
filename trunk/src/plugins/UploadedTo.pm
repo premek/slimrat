@@ -76,7 +76,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Filename: \&nbsp;<\/td><td><b>\s*([^<]+?)\s+<\/b>/s) {
 			return $1;
 		} else {
@@ -92,7 +92,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Filesize: \&nbsp;<\/td><td>\s*([^<]+?)\s*<\/td>/) {
 			return $1;
 		} else {
@@ -108,7 +108,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m#File doesn't exist#) {
 			return -1;
 		} else {
@@ -126,7 +126,7 @@ sub get_data {
 	# Get primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	$_ = $res->content."\n";
 
 	# TODO: actually wait here

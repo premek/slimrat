@@ -2,6 +2,9 @@
 
     * DepositFiles: fixed issue 43, forcing English language.
 
+    * Log (dump_*): added "extra information" parameter, and
+      added default value "html" to "type" parameter.
+
 
 2009-07-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

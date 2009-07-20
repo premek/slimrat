@@ -11,4 +11,3 @@
   - Support for loading a specific configuration file through parameters
   - Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
-  
