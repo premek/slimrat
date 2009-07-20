@@ -201,6 +201,9 @@ sub download($$$) {
 		warning("check failed (unknown reason)");
 		return $status;
 	}
+
+	# Check if we can write to "to" directory
+	return error("Directory '$to' not writable") unless (-d $to && -w $to);
 	
 	# Get destination filename
 	my $filename = $plugin->get_filename();
@@ -216,12 +219,14 @@ sub download($$$) {
 	# Get data
 	my $flag = 0;
 	$|++; # unbuffered output
-	$plugin->get_data( sub {	# TODO: catch errors
+	# store (and later return) return value of get_data()
+	my $plugin_result = $plugin->get_data( sub {	# TODO: catch errors
 		# Fetch server response
 		my $res = $_[1];
 
 		# Do one-time stuff
 		unless ($flag) {
+
 			# Save length and print
 			$size = $res->content_length;
 			if ($size)
@@ -238,7 +243,8 @@ sub download($$$) {
 				else {$filename = "slimrat_downloaded_file";}
 			}
 
-			$filepath = $to . "\/$filename";
+			$to .= '/' if ($to !~ m{/$});
+			$filepath = $to . $filename;
 
 			# Check if exists
 			# add .1 at the end or increase the number if it is already there
@@ -248,11 +254,7 @@ sub download($$$) {
 	
 
 			# Open file
-			open(FILE, ">$filepath");
-			unless (-w FILE) {
-				error("could not open file to write");
-				return 0;
-			}
+			open(FILE, ">$filepath") or return error("could not open file to write"); 
 			binmode FILE;
 			
 			$flag = 1;
@@ -279,8 +281,8 @@ sub download($$$) {
 	close(FILE);
 	
 	# Download finished
-	info("File downloaded");
-	return 1;
+	info("File downloaded") if $plugin_result;
+	return $plugin_result;
 }
 
 1;

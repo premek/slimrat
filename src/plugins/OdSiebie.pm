@@ -134,7 +134,7 @@ sub get_data {
 	
 	# Click the download link and extract it
 	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj');
-	return error("plugin failure (an unspecified error occured)") if ($res->content_is_html);
+	#return error("plugin failure (an unspecified error occured)") if ($res->content_is_html);
 	my $download = $self->{MECH}->uri();
 	
 	# Download the data
