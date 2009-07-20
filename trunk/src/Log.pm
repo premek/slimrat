@@ -297,10 +297,11 @@ sub dump_write() {
 	
 	# Generate archive
 	my ($sec,$min,$hour) = localtime;
-	debug("compressing dump to '" . $config->get("dump_folder") . "/$hour$min$sec-slimrat_dump.tar.bz2'");
+	my $filename = (sprintf "%02d%02d%02d",$hour,$min,$sec) . "-slimrat_dump.tar.bz2";
+	debug("compressing dump to '" . $config->get("dump_folder") . "/$filename'");
 	my $cwd = getcwd;
 	chdir($tempfolder) || return error("could not chdir to dump directory");
-	system("tar -cjf \"" . $config->get("dump_folder") . "/$hour$min$sec-slimrat_dump.tar.bz2\" *") && return error("could not create archive");
+	system("tar -cjf \"" . $config->get("dump_folder") . "/$filename\" *") && return error("could not create archive");
 	chdir($cwd);
 }
 
