@@ -39,7 +39,7 @@ package Toolbox;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof rand_str $useragent);
+@EXPORT = qw(dwait indexof rand_str readable2bytes $useragent);
 
 # Write nicely
 use strict;
@@ -73,6 +73,19 @@ sub rand_str
 		$random_string.=$chars[rand @chars];
 	}
 	return $random_string;
+}
+
+# Converts human readable size to bytes 
+# 10.5 KB  10M  10 B  ...
+# Case insensitive! k=K=2**10, b=B=byte - FIXME?? 
+sub readable2bytes {
+	$_ = shift;
+	s/\s+//g;
+	s/(\d+),(\d+)/$1.$2/;
+	my %mul = (K=>2**10, M=>2**20, G=>2**30);
+	if    (/(\d+(?:\.\d+)?)([KMG])B?/i) { return $1 * $mul{uc($2)} }
+	elsif (/(\d+(?:\.\d+)?)B?/i)        { return $1 }
+	else {return 0}
 }
 
 # Return

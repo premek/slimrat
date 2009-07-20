@@ -94,7 +94,7 @@ sub get_filesize {
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Filesize: \&nbsp;<\/td><td>\s*([^<]+?)\s*<\/td>/) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}

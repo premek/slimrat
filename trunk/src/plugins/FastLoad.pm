@@ -101,7 +101,7 @@ sub get_filesize {
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<\/span> \(([^)]+)\)<\/p>/) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}

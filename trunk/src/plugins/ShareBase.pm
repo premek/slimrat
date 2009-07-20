@@ -96,7 +96,7 @@ sub get_filesize {
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Download: <\/span><span[^>]*>[^<]+ <\/span>\(([^)]+)\)<\/td>/) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}
@@ -111,10 +111,11 @@ sub check {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		return -1 if($res =~ m/The download doesnt exist/);
-		return -1 if($res =~ m/Der Download existiert nicht/);
-		return -1 if($res =~ m/Upload Now !/);
-		return 1  if($res =~ m/Download Now !/);
+		$_ = $res->decoded_content;
+		return -1 if(m/The download doesnt exist/);
+		return -1 if(m/Der Download existiert nicht/);
+		return -1 if(m/Upload Now !/);
+		return 1  if(m/Download Now !/);
 	}
 	return 0;
 }

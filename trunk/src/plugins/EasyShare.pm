@@ -80,7 +80,7 @@ sub get_filename {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/You are requesting<strong> ([^<]+)<\/strong>/) {
+		if ($res->decoded_content =~ m/You are requesting ([^<]+) \(/) {
 			return $1;
 		} else {
 			return 0;
@@ -96,8 +96,8 @@ sub get_filesize {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/You are requesting<strong>[^<]+<\/strong> \(([^)]+)\)/) {
-			return $1;
+		if ($res->decoded_content =~ m/You are requesting [^<]+ \(([^)]+)\)/) {
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}
