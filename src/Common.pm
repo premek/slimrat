@@ -203,16 +203,10 @@ sub download($$$) {
 	}
 	
 	# Get destination filename
-	my $filename = $plugin->get_filename() || return error("could not deduce output filename");
-	my $filepath = $to . "\/$filename";
-	debug("file will be saved as \"$filepath\"");
-	
-	# Check if exists
-	if (-e $filepath) {
-		warning("file exists, renaming");
-		rename($filepath, "$filepath.old");
-	}
-	
+	my $filename = $plugin->get_filename();
+	my $filepath;
+
+
 	# Download status counters
 	my $size;
 	my $t_start = time;
@@ -225,7 +219,7 @@ sub download($$$) {
 	$plugin->get_data( sub {	# TODO: catch errors
 		# Fetch server response
 		my $res = $_[1];
-		
+
 		# Do one-time stuff
 		unless ($flag) {
 			# Save length and print
@@ -236,7 +230,23 @@ sub download($$$) {
 			} else {
 				info("Filesize unknown");
 			}
-			
+
+			# If plugin didn't tell us name of the file, we can get it from http response or request.
+			if(!$filename) {
+				if ($res->headers->{'content-disposition'} =~ /filename=(.+)$/i) {$filename = $1}
+				elsif($res->request->uri =~ m{/([^\/]+?)((\?|#).*)?$}) {$filename = $&}
+				else {$filename = "slimrat_downloaded_file";}
+			}
+
+			$filepath = $to . "\/$filename";
+
+			# Check if exists
+			# add .1 at the end or increase the number if it is already there
+			$filepath =~ s/(?:\.(\d+))?$/".".(($1 or 0)+1)/e while(-e $filepath);
+
+			info("File will be saved as \"$filepath\"");
+	
+
 			# Open file
 			open(FILE, ">$filepath");
 			unless (-w FILE) {
