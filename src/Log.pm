@@ -70,7 +70,8 @@ struct(Dump =>	{
 		time		=>	'$',
 		type		=>	'$',
 		data		=>	'$',
-		hierarchy	=>	'$'
+		hierarchy	=>	'$',
+		extra		=>	'$'
 });
 my @dumps;
 
@@ -251,8 +252,9 @@ sub wait {
 }
 
 # Dump data for debugging purposes
-sub dump_add($$) {
-	my ($data, $type) = @_;
+sub dump_add {
+	my ($data, $extra, $type) = @_;
+	$type = "html" unless $type;
 	return unless ($config->get("verbosity") >= 5);
 	my $hierarchy = (caller(1))[3] . ", line " . (caller(0))[2];
 	
@@ -263,6 +265,7 @@ sub dump_add($$) {
 	$dump->data($data);
 	$dump->type($type);
 	$dump->hierarchy($hierarchy);
+	$dump->extra($extra) if $extra;
 	push @dumps, $dump;
 }
 
@@ -285,6 +288,7 @@ sub dump_write() {
 		print INFO "\t- Generated at ", (sprintf "%02d:%02d:%02d",$hour,$min,$sec), "\n";
 		my $filename = $counter . "." . $dump->type;
 		print INFO "\t- Filename: $filename\n";
+		print INFO "\t- Extra information: " . $dump->extra . "\n" if $dump->extra;
 		print INFO "\n";
 		
 		open(DATA, ">:utf8", "$tempfolder/$filename");
@@ -405,10 +409,11 @@ This prints a download summary, given two refs to arrays with actual links.
 Print a one-line status indication for a given download URL, with some extra information
 between brackets.
 
-=head2 dump_add($data, $type)
+=head2 dump_add($data, $extra, $type)
 
 Adds data to the dump cache, which will later on be saved in a file ending on $type. Disabled
-when the "dumps" config variable is not set.
+when the "dumps" config variable is not set. $extra indicates extra information and can be
+omitted, as well as $type which then defaults to "html".
 
 =head2 dump_write()
 

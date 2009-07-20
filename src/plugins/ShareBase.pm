@@ -78,7 +78,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Download: <\/span><span[^>]*>([^<]+) <\/span>\(/) {
 			return $1;
 		} else {
@@ -94,7 +94,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Download: <\/span><span[^>]*>[^<]+ <\/span>\(([^)]+)\)<\/td>/) {
 			return $1;
 		} else {
@@ -110,7 +110,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		return -1 if($res =~ m/The download doesnt exist/);
 		return -1 if($res =~ m/Der Download existiert nicht/);
 		return -1 if($res =~ m/Upload Now !/);
@@ -127,14 +127,14 @@ sub get_data {
 	# Get the primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click the button to the secondary page
 	$_ = $res->content."\n";
 	my ($asi) = m/name="asi" value="([^\"]+)">/s;	
 	$res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	$_ = $res->content."\n";
 	
 	# Process the secondary page which leads to the download
@@ -146,7 +146,7 @@ sub get_data {
 		    info("reached the download limit for free-users (300 MB)");
 		    wait(($wait+1)*60);
 		    $res = $self->{MECH}->reload();
-		    dump_add($self->{MECH}->content(), "html");
+		    dump_add($self->{MECH}->content());
 		    $_ = $res->content."\n";
 		} elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
 		    info("something wrong, waiting 60 sec");

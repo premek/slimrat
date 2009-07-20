@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/die Datei "<b>([^<]+)<\/b>"/) {
 			return $1;
 		} else {
@@ -97,7 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/die Datei "<b>[^<]+<\/b>" <i>\(([^)]+)\)<\/i>/) {
 			return $1;
 		} else {
@@ -112,7 +112,7 @@ sub check {
 	my $self = shift;
 	
 	$self->{MECH}->get($self->{URL});
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	return -1 if($self->{MECH}->content() =~ m/No filename specified or the file has been deleted!/);
 	return 1  if($self->{MECH}->content() =~ m/klicken sie bitte auf Download!/);
 	return 0;
@@ -125,7 +125,7 @@ sub get_data {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click the button
 	$self->{MECH}->form_number(0);

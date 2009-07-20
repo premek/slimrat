@@ -110,7 +110,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		#return -1 if  detect the 302 redirect to the upload form 
 		return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
 	}
@@ -125,12 +125,12 @@ sub get_data {
 	# Primary page
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click to the secondary page
 	$_ = $self->{MECH}->content;
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Click the download link and extract it
 	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj');

@@ -95,7 +95,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content(), $self->{URL});
 		if ($res->decoded_content =~ m/File name: <b[^>]*>([^<]+)<\/b>/) {
 			return $1;
 		} else {
@@ -111,7 +111,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/File size: <b[^>]*>([^<]+)<\/b>/) {
 			my $size = $1;
 			$size =~ s/\&nbsp;/ /;
@@ -129,7 +129,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/does not exist/) {
 			return -1;
 		} else {
@@ -146,7 +146,7 @@ sub get_data {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	$_ = $self->{MECH}->content();
 	if (m/slots for your country are busy/) { error("all downloading slots for your country are busy"); return 0;}
@@ -157,20 +157,20 @@ sub get_data {
 		$self->{MECH}->form_number(2);
 		$self->{MECH}->submit_form();
 		$_ = $self->{MECH}->content();
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		
 		my $wait;
 		if (($wait) = m#Please try in\D*(\d+) min#) {
 			wait($wait*60);
 			$self->{MECH}->reload();
 			$_ = $self->{MECH}->content();
-			dump_add($self->{MECH}->content(), "html");
+			dump_add($self->{MECH}->content());
 		}
 		elsif (($wait) = m#Please try in\D*(\d+) sec#) {
 			wait($wait);
 			$self->{MECH}->reload();
 			$_ = $self->{MECH}->content();
-			dump_add($self->{MECH}->content(), "html");
+			dump_add($self->{MECH}->content());
 		}
 		if (m/Try downloading this file again/) {
 			($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;

@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<h2[^>]*>Downloading ([^<]+) \([^)]+\)<\/h2>/) {
 			return $1;
 		} else {
@@ -97,7 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<h2[^>]*>Downloading [^<]+ \(([^)]+)\)<\/h2>/) {
 			return $1;
 		} else {
@@ -113,7 +113,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if($res->is_success){
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		return 1  if($self->{MECH}->content() =~ m/Downloading/);
 		return -1 unless length($self->{MECH}->content()); # server returns 0-sized page on dead links
 	}
@@ -127,7 +127,7 @@ sub get_data {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	$_ = $self->{MECH}->content();
 	
@@ -148,7 +148,7 @@ sub get_data {
         # Click the button
 	$self->{MECH}->form_number(2); # free;
 	$self->{MECH}->submit_form();
-	dump_add($self->{MECH}->content(), "html");	
+	dump_add($self->{MECH}->content());	
 	
 	# Extract the download URL
 	my $download = $self->{MECH}->find_link( text => 'Click here to download' )->url();

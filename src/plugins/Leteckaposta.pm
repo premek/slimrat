@@ -81,7 +81,7 @@ sub get_filename {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/<a[^>]*class='download-link'>([^<]+)<\/a>/) {
 			return $1;
 		} else {
@@ -97,7 +97,7 @@ sub get_filesize {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		if ($res->decoded_content =~ m/Velikost souboru: ([^<]+)<\/p>/) {
 			return $1;
 		} else {
@@ -113,7 +113,7 @@ sub check {
 	
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
-		dump_add($self->{MECH}->content(), "html");
+		dump_add($self->{MECH}->content());
 		return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
 		return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
 	}
@@ -127,7 +127,7 @@ sub get_data {
 
 	my $res = $self->{MECH}->get($self->{URL});
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content(), "html");
+	dump_add($self->{MECH}->content());
 	
 	# Extract the download URL
 	my ($download) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>.+?</a>#;
