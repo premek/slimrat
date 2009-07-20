@@ -57,7 +57,13 @@ my $mech = WWW::Mechanize->new(agent => $useragent );
 #  -1: dead
 #   0: don't know
 sub check {
-	my $res = $mech->get(shift);
+	my $file = shift;
+        if ($file =~ m/(^.+depositfiles\.com\/)(files\/.+$)/) {
+                $file = $1 . 'en/' . $2;
+        } elsif ($file =~ m/(^.+depositfiles\.com\/)(\w\w\/)(files\/.+$)/) {
+                $file = $1 . 'en/' . $3;
+        }
+	my $res = $mech->get($file);
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/does not exist/) {
 			return -1;
@@ -71,6 +77,12 @@ sub check {
 
 sub download {
 	my $file = shift;
+        if ($file =~ m/(^.+depositfiles\.com\/)(files\/.+$)/) {
+                $file = $1 . 'en/' . $2;
+        } elsif ($file =~ m/(^.+depositfiles\.com\/)(\w\w\/)(files\/.+$)/) {
+                $file = $1 . 'en/' . $3;
+        }
+
 	my $res = $mech->get($file);
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
