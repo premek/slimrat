@@ -92,9 +92,10 @@ Again, a return value of 0 will result in a "unknown filename".
 
 == Filesize ==
 
-TODO: require parsing
+This method returns the filesize in bytes. Returns 0 if unknown.
 
-This method fetches a alphanumeric string indicating the filesize. Returns 0 if unknown.
+Function Toolbox::readable2bytes() can help with parsing values like '105 KB'.
+
 {{{
 sub get_filesize {
 	my $self = shift;
@@ -102,7 +103,7 @@ sub get_filesize {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/Filesize: (.+)/) {
-			return $1;
+			return readable2bytes($1);
 		} else {
 			return 0;
 		}
