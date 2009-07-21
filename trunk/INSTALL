@@ -24,7 +24,13 @@ Gentoo
 ======
 
 Step 1: Install Layman
-	- See here: http://www.gentoo.org/proj/en/overlays/userguide.xml
+	- Run the following commands (If layman is not already installed)
+	- NOTE: Only run the first command, if the git use flag is not enabled.
+	The subversion use flag is also recommended for layman. You can remove
+	it if subversion is not needed.
+
+	echo "app-portage/layman git subversion" >> /etc/portage/package.use
+	emerge layman
 
 Step 2: Add the Custom Overlay
 	- Open /etc/layman/layman.cfg
@@ -39,6 +45,11 @@ Step 2: Add the Custom Overlay
 	  layman -a belak.gentoo
 
 Step 3: Install slimrat
+	- NOTE: For the first command, you may use ** in place of ~x86 to use
+	the "hard mask", which draws files right from the repositories. This
+	does require subversion. A hard mask will not update automaticly.
+	
+	echo "net-misc/slimrat ~x86" >> /etc/portage/package.keywords
 	emerge slimrat
 
 NOTE: Overlays will not update themselves. You must run layman -S,
