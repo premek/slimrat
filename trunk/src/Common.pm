@@ -189,7 +189,9 @@ sub download($$$) {
 	# Load plugin
 	my $plugin = Plugin->new($link) || return 0;
 	my $pluginname = $plugin->get_name();
-	debug("downloading \"$link\" using the $pluginname-plugin");
+
+	info("Downloading ", $link);
+	debug("Downloading \"$link\" using the $pluginname-plugin");
 	
 	# Check if link is valid
 	my $status = $plugin->check();

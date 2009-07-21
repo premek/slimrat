@@ -220,7 +220,6 @@ if (&config_cli->get("mode") eq "check") {
 
 elsif (&config_cli->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
- 		info("Downloading ", $link);
  		
  		# Download the URL with custom progress indication
  		my $failure = 0;
@@ -349,7 +348,7 @@ slimrat-cli
 
 =item B<--list>
 
-  Uses te given file as a queue-file containing URLs.
+  Uses the given file as a queue-file containing URLs.
 
 =item B<--check>
 

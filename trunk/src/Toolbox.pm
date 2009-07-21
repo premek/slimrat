@@ -63,6 +63,7 @@ sub indexof {
 }
 
 # Generate a random string
+# UNUSED?
 sub rand_str
 {
 	my $length = shift;

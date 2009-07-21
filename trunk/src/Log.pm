@@ -42,6 +42,8 @@ package Log;
 use Class::Struct;
 use Term::ANSIColor qw(:constants);
 use Cwd;
+use File::Temp qw/ tempfile tempdir /;;
+
 
 # Custom packages
 use Toolbox;
@@ -127,6 +129,7 @@ sub timestamp {
 }
 
 # Convert a raw amount of bytes to a more human-readable form
+# Log or Toolbox?
 sub bytes_readable
 {
 	my $bytes = shift;
@@ -273,10 +276,12 @@ sub dump_add {
 sub dump_write() {
 	return unless ($config->get("verbosity") >= 5);
 	
+	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
+	$year += 1900;
+	my $filename = "slimrat_dump_" . (sprintf "%04d-%02d-%02dT%02d-%02d-%02d",$year,$mon,$mday,$hour,$min,$sec);
+
 	# Generate temporary folder
-	my $tempfolder = "/tmp/" . rand_str(5);
-	$tempfolder = "/tmp/" . rand_str(5) while (-d $tempfolder);
-	mkdir $tempfolder || return error("could not create temporary folder to dump files");
+	my $tempfolder = tempdir ( $filename."_XXXXX", TMPDIR => 1 );
 	
 	# Dump files
 	debug("dumping " . scalar(@dumps) . " file(s) to disk in temporary folder '$tempfolder'");	
@@ -284,8 +289,8 @@ sub dump_write() {
 	my $counter = 1;
 	foreach my $dump (@dumps) {
 		print INFO $counter, ") ", $dump->hierarchy, "\n";
-		my ($sec,$min,$hour) = localtime($dump->time);
-		print INFO "\t- Generated at ", (sprintf "%02d:%02d:%02d",$hour,$min,$sec), "\n";
+		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->time); $year+=1900;
+		print INFO "\t- Generated at ", (sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$mon,$mday,$hour,$min,$sec), "\n";
 		my $filename = $counter . "." . $dump->type;
 		print INFO "\t- Filename: $filename\n";
 		print INFO "\t- Extra information: " . $dump->extra . "\n" if $dump->extra;
@@ -299,9 +304,8 @@ sub dump_write() {
 	}
 	close(INFO);
 	
-	# Generate archive
-	my ($sec,$min,$hour) = localtime;
-	my $filename = (sprintf "%02d%02d%02d",$hour,$min,$sec) . "-slimrat_dump.tar.bz2";
+	# Generate archive	
+	$filename .= ".tar.bz2";
 	debug("compressing dump to '" . $config->get("dump_folder") . "/$filename'");
 	my $cwd = getcwd;
 	chdir($tempfolder) || return error("could not chdir to dump directory");
