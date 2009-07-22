@@ -77,8 +77,9 @@ use strict;
 
 # Global variables
 my $ctrl;
-my $die : shared = 0;
-my $thread;
+my $die:shared=0;
+my $download_thread;
+my $check_thread;
 
 
 
@@ -198,8 +199,8 @@ sub on_mainWindow_destroy { &quit; }
 # Quit the application
 sub quit {
 	&saveque;
-	$die = 1;
-	$thread->join if defined $thread;
+	$_->join() foreach (threads->list(threads::joinable));
+	$_->detach() foreach (threads->list(threads::running));
 	Gtk2->main_quit;
 }
 
@@ -277,82 +278,100 @@ sub on_addDialog_key_release_event {goto &key_release;}
 
 # Start download
 sub on_btnStart1_clicked {
-	my $download_to = $gui->get_widget('downto')->get_filename();
+	my $button = shift;
+	if($button->get_active) {
+		my $download_to = $gui->get_widget('downto')->get_filename();
+
+		$download_thread = threads->new(sub{
+			for(my $rownum = 0; $rownum < scalar @{$slist->{data}}; $rownum++) {
 
 
-	$thread = threads->new(sub{
-		my $rownum = -1;
-		while(++$rownum < scalar @{$slist->{data}}){
 
-			my $row = @{$slist->{data}}[$rownum];
-			my $link = @{$row}[COL_LINK];
+				my $row = @{$slist->{data}}[$rownum];
+				next if(@{$row}[COL_PROGR] >= 100);
 
-			my $result = download($link, $download_to, sub {
-				my ($done, $total, $time) = @_;
+				my $link = @{$row}[COL_LINK];
 
-				if($die == 1) {
-					destroy_objects_on_die();
-					return;
-				};
+				my $result = download($link, $download_to, sub {
+					my ($done, $total, $time) = @_;
 
-				if ($total) {
-					my $perc = int(($done / $total)*10000)/100;
-					$row->[COL_PROGR] = $perc; # progressbar isn't updated when window is not active or cursor is not moving
-					progress("Downloaded: ", $perc, "%      ");
-				} else {
-					$row->[COL_PROGR] = -1; # TODO show size downloaded
-					progress("Downloaded ", bytes_readable($done)."      ");
+					if ($total) {
+						my $perc = int(($done / $total)*10000)/100;
+						$row->[COL_PROGR] = $perc; # progressbar isn't updated when window is not active or cursor is not moving
+						progress("Downloaded: ", $perc, "%      ");
+					} else {
+						$row->[COL_PROGR] = -1; # TODO show size downloaded
+						progress("Downloaded ", bytes_readable($done)."      ");
+					}
+				});
+
+				if($die){
+					$die=0;
+					$rownum = scalar @{$slist->{data}} # this is last loop
 				}
-			});
-		}
 
-	},
+			}
+
+			$button->set_active(0);
+			threads->detach();
+
+		},
 #	\$slist, $download_to
-	);
+		);
 
-
+	} else { # download switched off
+		$die=1;
+	}
 }
 
-sub destroy_objects_on_die
-{
-        $slist->destroy();
-}
 
 
 # Check selected URLs
 # if no link selected, check all
 # DEAD links will remain SELECTED (do we want this? or do we want to keep the selection?)
 sub on_btnCheck_clicked {
+	my $button = shift;
+	#$button->set_state('insensitive');
+
 	select_all() if(scalar $slist->get_selected_indices == 0);
-	foreach my $rownum ($slist->get_selected_indices){
-		my $row = @{$slist->{data}}[$rownum];
-		my $link = @{$row}[COL_LINK];
 
-		# Load plugin
-		my $plugin;
-		my $check = 0;
-		if ($plugin = Plugin->new($link)) {
-			# Check status
-			$check = $plugin->check();
+	$check_thread = threads->new(sub{
+
+		foreach my $rownum ($slist->get_selected_indices){
+			my $row = @{$slist->{data}}[$rownum];
+			my $link = @{$row}[COL_LINK];
+
+			# Load plugin
+			my $plugin;
+			my $check = 0;
+			if ($plugin = Plugin->new($link)) {
+				# Check status
+				$check = $plugin->check();
+			}
+			my $ico;
+			if ($check>0) { #live
+				$ico="gtk-yes";
+				$slist->unselect($rownum);
+
+				$row->[COL_FNAME] = $plugin->get_filename() || "";
+				my $size = $plugin->get_filesize();
+				$row->[COL_FSIZE] = ($size ? bytes_readable($size) : "?");
+
+			} elsif ($check<0) { # dead
+				$ico="gtk-no";
+				$slist->select($rownum);
+			} else { #?
+				$ico="gtk-dialog-question";
+				$slist->unselect($rownum);
+			}
+			$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
+
 		}
-		my $ico;
-		if ($check>0) { #live
-			$ico="gtk-yes";
-			$slist->unselect($rownum);
 
-			$row->[COL_FNAME] = $plugin->get_filename() || "";
-			my $size = $plugin->get_filesize();
-			$row->[COL_FSIZE] = ($size ? bytes_readable($size) : "?");
+		$gui->get_widget('btnCheck')->set_state('active'); # FIXME 
+		threads->detach();
 
-		} elsif ($check<0) { # dead
-			$ico="gtk-no";
-			$slist->select($rownum);
-		} else { #?
-			$ico="gtk-dialog-question";
-			$slist->unselect($rownum);
-		}
-		$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
-	}
+	});
 }
 
 # Add from clipboard
