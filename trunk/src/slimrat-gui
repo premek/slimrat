@@ -88,9 +88,8 @@ $SIG{'INT'} = 'quit';
 
 # Initialise configuration
 config_readfiles();
-&config_gui->set_default("terminal", 'xterm -T SlimRat -e "%1$s; bash"&');
 &config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
-&config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade'); # is this needed to be in config?
+my $glade_file = $RealBin.'/slimrat.glade';
 
 
 #
@@ -101,9 +100,11 @@ config_readfiles();
 config_other();
 
 
-#
-# GUI
-#
+
+
+#######
+# GUI #
+#######
 
 # Keypresses
 use constant KEY_CTRL	=> 65507;
@@ -116,7 +117,7 @@ use constant KEY_ENTER	=> 65293;
 
 # Construct the GUI
 Glib::Object->set_threadsafe (TRUE);
-my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'mainWindow');
+my $gui = Gtk2::GladeXML->new($glade_file, 'mainWindow');
 $gui->signal_autoconnect_from_package('main');
 
 # Treeview
@@ -151,6 +152,7 @@ my $slist = Gtk2::SimpleList->new(
 	'Filename'	=> 'text',
 	'Size'		=> 'text',
 );
+
 $slist->get_selection->set_mode ('multiple');
 $slist->get_column($_)->set_resizable(1) foreach (COL_PROGR, COL_STATUS, COL_TYPE, COL_LINK, COL_FNAME, COL_FSIZE);
 $slist->get_column($_)->set_reorderable(1) foreach (COL_PROGR, COL_STATUS, COL_TYPE, COL_LINK, COL_FNAME, COL_FSIZE);
@@ -160,12 +162,17 @@ $slist->set_search_equal_func(sub { # search (as-you-type) links in the list not
 	my($store,$col,$pat,$iter)=@_;
 	return $store->get($iter,$col) !~ m/\Q$pat\E/i;
 });
+
+# set "Download to" default from config
+$gui->get_widget('downto')->set_filename(&config_gui->get("to")) if (&config_gui->get("to"));
+
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
 
 # Statusbar
 # TODO
 #$gui->get_widget('statusbar')->push(0,"AAAA");
+
 
 # Load queue'd URLs
 # TODO: move to the Queue structure, we'll need a save_queue (selective dump + filename save) to support this
@@ -382,7 +389,7 @@ sub on_btnAddClip_clicked {
 # Add
 my ($addDialog, $addDialogBuff);
 sub on_btnAdd1_clicked {
-	my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'addDialog');
+	my $gui = Gtk2::GladeXML->new($glade_file, 'addDialog');
 	$gui->signal_autoconnect_from_package('main');
 	$addDialog = $gui->get_widget('addDialog');
 	$addDialogBuff = $gui->get_widget('addLinks')->get_buffer();
@@ -393,7 +400,7 @@ my $confirmDialog;
 sub on_btnRemove1_clicked{
 	if(scalar $slist->get_selected_indices > 0){
 		# Confirm dialog
-		my $gui = Gtk2::GladeXML->new(&config_gui->get("glade_file"), 'confirmDelete');
+		my $gui = Gtk2::GladeXML->new($glade_file, 'confirmDelete');
 		$gui->signal_autoconnect_from_package('main');
 		$confirmDialog = $gui->get_widget('confirmDelete');
 	}
