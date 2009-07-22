@@ -3,6 +3,9 @@
 
 _*NOTE*: the most up-to-date installation instructions are to be found in [http://code.google.com/p/slimrat/source/browse/trunk/INSTALL the repository]._
 
+!!! *upgrade from 0.9.4 to 0.9.5*: remove your ~/.slimrat before upgrade
+
+
 =Unix=
 
 ==RPM==
