@@ -43,6 +43,7 @@ use Class::Struct;
 use Term::ANSIColor qw(:constants);
 use Cwd;
 use File::Temp qw/ tempfile tempdir /;;
+use File::Basename;
 
 
 # Custom packages
@@ -114,7 +115,7 @@ sub output {
 	}
 	
 	# File output
-	if ($config->get("file")) {
+	if ($config->get("file") && -d dirname($config->get("file_path")) && -w dirname($config->get("file_path"))) {
 		my $fh;
 		open($fh, ">>".$config->get("file_path")) || die("could not open given logfile");
 		output_raw($fh, @args);
@@ -275,7 +276,8 @@ sub dump_add {
 # Write the dumped data
 sub dump_write() {
 	return unless ($config->get("verbosity") >= 5);
-	
+	return unless scalar(@dumps);
+
 	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
 	$year += 1900;
 	my $filename = "slimrat_dump_" . (sprintf "%04d-%02d-%02dT%02d-%02d-%02d",$year,$mon,$mday,$hour,$min,$sec);
