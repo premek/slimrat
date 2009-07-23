@@ -186,8 +186,8 @@ sub pid_read() {
 #
 
 # Redirect download() call to the correct plugin
-sub download($$$) {
-	my ($link, $to, $progress) = @_;
+sub download($$$$) {
+	my ($link, $to, $progress, $read_captcha) = @_;
 	
 	# Load plugin
 	my $plugin = Plugin->new($link) || return 0;
@@ -274,7 +274,8 @@ sub download($$$) {
 			$t_prev = time;
 			&$progress($size_downloaded, $size, 0);
 		}
-	});
+	}, $read_captcha);
+
 	if ($size) {
 		&$progress(1, 1, 0);
 	} else {
