@@ -119,8 +119,9 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	my $read_captcha = shift;
 	
-	my $res;
+	my ($res, $captcha);
 	do {
 		# Primary page
 		$res = $self->{MECH}->get($self->{URL});
@@ -129,26 +130,20 @@ sub get_data {
 
 		$_ = $res->decoded_content;
 
-		#if(my($minutes) = m#Or wait (\d+) minutes!#) { error("Your Free-Traffic is exceeded, wait $minutes minutes."); return 0; }
-
 		# Download & view captcha image
 		my ($captchaimg) = m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
 		return error("can't get captcha image") unless ($captchaimg);
-		
-		system("wget -q '$captchaimg' -O /tmp/mu-captcha.tmp");
-		# hmm, hm...
-		system("asciiview -kbddriver stdin -driver stdout /tmp/mu-captcha.tmp"); # TODO config
-		unlink("/tmp/mu-captcha.tmp");
 
-		# Ask the user
-		print "Captcha? ";
-		my $captcha = <>;
-		chomp $captcha;
+		$captcha = &$read_captcha($captchaimg);
+
 
 		# submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
-	} while ($res->decoded_content !~ m#downloadlink#);
+	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
+
+	return error("No captcha code entered") unless $captcha;
+
 
 	# Wait
 	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;

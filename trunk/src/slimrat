@@ -61,7 +61,7 @@ use Configuration;
 
 # Function prototypes
 sub quit();
-sub download($$$);
+sub download($$$$);
 
 # Write nicely
 use strict;
@@ -79,6 +79,7 @@ $SIG{'INT'} = 'quit';
 config_readfiles();
 &config_cli->set_default("mode", "download");
 &config_cli->set_default("to", ".");
+&config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
 
 # Global variables
 my (@failedlinks, @oklinks);
@@ -223,15 +224,31 @@ elsif (&config_cli->get("mode") eq "download") {
  		
  		# Download the URL with custom progress indication
  		my $failure = 0;
-		my $result = download($link, &config_cli->get("to"), sub {
-			my ($done, $total, $time) = @_;
-			if ($total) {
-				my $perc = $done / $total;
-				progress("Downloaded: ", int($perc*10000)/100, "%      ");
-			} else {
-				progress("Downloaded ", bytes_readable($done));
-			}
-		});
+		my $result = download(
+				$link,
+				&config_cli->get("to"),
+				sub { # progress
+					my ($done, $total, $time) = @_;
+					if ($total) {
+						my $perc = $done / $total;
+						progress("Downloaded: ", int($perc*10000)/100, "%      ");
+					} else {
+						progress("Downloaded ", bytes_readable($done));
+					}
+				},
+				sub { # captcha
+					my $captchaimg = shift;
+					# Download & view
+					system("wget -q '$captchaimg' -O /tmp/slimrat-captcha.tmp"); # TODO replace wget
+					system(sprintf &config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
+					unlink("/tmp/slimrat-captcha.tmp");
+					# Ask the user
+					print "Captcha? ";
+					my $captcha = <>;
+					chomp $captcha;
+					return $captcha;
+				}
+		);
 		
 		# Check result
 		if ($result > 0) {
