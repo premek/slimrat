@@ -99,6 +99,9 @@ sub config_other {
 	
 	# Make sure slimrat has a proper directory in the users home folder
 	if (! -d $ENV{HOME}."/.slimrat") {
+		if(-f $ENV{HOME}."/.slimrat" && rename $ENV{HOME}."/.slimrat", $ENV{HOME}."/.slimrat.old"){
+			warning("File '".$ENV{HOME}."/.slimrat' renamed to '".$ENV{HOME}."/.slimrat.old'. This file from old version is not needed anymore. You can probably delete it."); 
+		}
 		debug("creating directory " . $ENV{HOME} . "/.slimrat");
 		unless (mkdir $ENV{HOME}."/.slimrat") {
 			fatal("could not create slimrat's home directory");
@@ -245,8 +248,8 @@ sub download($$$) {
 				else {$filename = "slimrat_downloaded_file";}
 			}
 
-			$to .= '/' if ($to !~ m{/$});
-			$filepath = $to . $filename;
+			$to =~ s/\/$//;
+			$filepath = "$to/$filename";
 
 			# Check if exists
 			# add .1 at the end or increase the number if it is already there

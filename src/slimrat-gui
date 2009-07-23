@@ -64,6 +64,8 @@ use Plugin;
 use Toolbox;
 use Log; 
 use Configuration;
+use Queue;
+
 
 # Write nicely
 use warnings;
@@ -176,16 +178,16 @@ $gui->get_widget('mainwin')->show_all;
 
 # Load queue'd URLs
 # TODO: move to the Queue structure, we'll need a save_queue (selective dump + filename save) to support this
-open(QUEUE, "+<" . &config_gui->get("queue_file"));
-while (<QUEUE>){
-	chomp;
+my $queue = Queue::new();
+$queue->file(&config_gui->get("queue_file"));
+while ($_ = $queue->get){
 	my @newRow;
 	$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
 	$newRow[COL_TYPE] = Plugin::get_package($_);
 	$newRow[COL_LINK] = $_;
 	push @{$slist->{data}},[@newRow];
+	$queue->advance();
 }
-close(QUEUE);
 
 # Activate the GUI
 Gtk2->main;
@@ -212,6 +214,7 @@ sub quit {
 }
 
 # Save the queue
+#TODO: Queue?
 sub saveque {
 	open(QUEUE, "> " . &config_gui->get("queue_file"));
 	print QUEUE @{$_}[COL_LINK]."\n" foreach @{$slist->{data}};
