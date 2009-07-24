@@ -203,7 +203,6 @@ level($config->get("verbosity"));
 if($config->get("address")){
 	no warnings; # avoid a "name used only once" warning
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
-	$options{"wget"} .= " --bind-address='".$options{"address"}."' ";
 }
 
 # Fork in background
@@ -341,6 +340,7 @@ sub download($) {
 			"-U \"$useragent\" ".
 			($config->get("wget") ? $config->get("wget")  : "") .
 			($config->get("to") ? " -P \"".$config->get("to")."\" " : "") .
+			($config->get("address") ? " --bind-address ".$config->get("address") : "") .
 			" \"$fileurl\"";
 		#print $command;
 
