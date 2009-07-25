@@ -59,6 +59,7 @@ use warnings;
 
 # Constructor
 sub new {
+	warning("captcha's not implemented yet, might fail upon big files");
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
