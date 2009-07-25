@@ -156,6 +156,13 @@ sub get_data {
 			wait($1);
 			last;
 		}
+		if (m/currently no free download slots/) {
+			warning("no free download slots");
+			wait(60);
+		}
+		elsif (m/begin yuor download/) {
+			last;
+		}
 		else {
 			return error("plugin error (could not find match)");
 		}
