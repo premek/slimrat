@@ -50,7 +50,7 @@ use WWW::Mechanize;
 use strict;
 use warnings;
 
-my $mech = WWW::Mechanize->new(agent => $useragent ); 
+my $mech = WWW::Mechanize->new(agent => $useragent); 
 
 # return
 #   1: ok
@@ -58,11 +58,7 @@ my $mech = WWW::Mechanize->new(agent => $useragent );
 #   0: don't know
 sub check {
 	my $file = shift;
-        if ($file =~ m/(^.+depositfiles\.com\/)(files\/.+$)/) {
-                $file = $1 . 'en/' . $2;
-        } elsif ($file =~ m/(^.+depositfiles\.com\/)(\w\w\/)(files\/.+$)/) {
-                $file = $1 . 'en/' . $3;
-        }
+	$mech->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	my $res = $mech->get($file);
 	if ($res->is_success) {
 		if ($res->decoded_content =~ m/does not exist/) {
@@ -77,11 +73,7 @@ sub check {
 
 sub download {
 	my $file = shift;
-        if ($file =~ m/(^.+depositfiles\.com\/)(files\/.+$)/) {
-                $file = $1 . 'en/' . $2;
-        } elsif ($file =~ m/(^.+depositfiles\.com\/)(\w\w\/)(files\/.+$)/) {
-                $file = $1 . 'en/' . $3;
-        }
+        $mech->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 
 	my $res = $mech->get($file);
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
