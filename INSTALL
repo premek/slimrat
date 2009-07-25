@@ -17,6 +17,8 @@ You can install Slimrat from AUR:
 Manual installation
 ===================
 
+NOTE: Remove your ~/.slimrat file if upgrading from 0.9.4 to 0.9.5
+
 
 Dependencies
 ------------
