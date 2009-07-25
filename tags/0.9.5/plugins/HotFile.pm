@@ -63,6 +63,8 @@ sub check {
 
 sub download {
 	my $file = shift;
+	warning("HotFile uses captcha's now for big files, your download might fail");
+	
 	my $res = $mech->get($file);
 	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
 	
@@ -84,8 +86,7 @@ sub download {
         
         # Click the button
 	$mech->form_number(2); # free;
-	$mech->submit_form();
-	
+	$mech->submit_form();	
 	
 	# Extract the download URL
 	my $download = $mech->find_link( text => 'Click here to download' )->url();

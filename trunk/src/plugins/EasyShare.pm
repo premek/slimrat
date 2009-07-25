@@ -57,6 +57,7 @@ use warnings;
 
 # Constructor
 sub new {
+	return error("captcha's not implemented yet");
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];

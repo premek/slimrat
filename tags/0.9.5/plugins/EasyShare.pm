@@ -63,6 +63,7 @@ sub check {
 
 sub download {
 	my $file = shift;
+	return error("EasyShare is using captcha's now, which is not supported yet");
 
 	# Get the primary page
 	my $res = $mech->get($file);

@@ -345,7 +345,7 @@ sub download($) {
 		#print $command;
 
 		if(!system($command)){ #success
-			info("file downloaded");
+			info("File downloaded");
 			return 1;
 		} else { # wget failed
 			error("download failed");
@@ -449,7 +449,7 @@ slimrat-cli
 
 =head1 VERSION
 
-0.9.5.3
+0.9.5.4
 
 =head1 DESCRIPTION
 
