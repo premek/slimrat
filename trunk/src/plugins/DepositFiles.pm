@@ -68,17 +68,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	# Force use of English language
-	if ($self->{URL} =~ m/(^.+depositfiles\.com\/)(files\/.+$)/) {
-		$self->{URL} = $1 . 'en/' . $2;
-		debug("english language tag added, URL is now ", $self->{URL});
-	} elsif ($self->{URL} =~ m/(^.+depositfiles\.com\/)(\w\w\/)(files\/.+$)/) {
-		$self->{URL} = $1 . 'en/' . $3;
-		debug("existing language tag ('$3') replaced by english one, URL is now ", $self->{URL});
-	}
-	
 	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	
+	# Fetch the language switch page which gives us a "lang_current=en" cookie
+	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	
 	bless($self);
 	return $self;
