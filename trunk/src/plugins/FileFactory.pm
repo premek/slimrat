@@ -1,4 +1,4 @@
-# slimrat - Uploading plugin
+# slimrat - FileFactory plugin
 #
 # Copyright (c) 2008-2009 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
@@ -38,10 +38,11 @@
 #
 
 # Package name
-package Uploading;
+package FileFactory;
 
 # Packages
 use WWW::Mechanize;
+use HTML::Entities qw(decode_entities);
 
 # Custom packages
 use Log;
@@ -72,7 +73,7 @@ sub new {
 
 # Plugin name
 sub get_name {
-	return "Uploading";
+	return "FileFactory";
 }
 
 # Filename
@@ -82,8 +83,10 @@ sub get_filename {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/) {
-			return $1;
+		if ($res->decoded_content =~ m/<h1><img.+?\/>([^<]+)<\/h1>/) {
+			my $name = decode_entities($1);
+			$name =~ s/^\s+//;
+			return $name;
 		} else {
 			return 0;
 		}
@@ -98,7 +101,7 @@ sub get_filesize {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/File size: ([^<]+)<br/) {
+		if ($res->decoded_content =~ m/<div id="info" class="metadata">\s*<span>(.+) file uploaded/) {
 			return readable2bytes($1);
 		} else {
 			return 0;
@@ -116,11 +119,13 @@ sub check {
 	if ($res->is_success) {
 		# Check if the download button is present
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/class="downloadbutton"/) {
-			return 1;
-		} else {
+		if ($res->decoded_content =~ m/File Not Found/) {
 			return -1;
 		}
+		if ($res->decoded_content =~ m/Free Download/) {
+			return 1;
+		}
+		return 0;
 	}
 	return 0;
 }
@@ -135,10 +140,8 @@ sub get_data {
 	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content());
 	
-	# Click the "Download" button
-	#$self->{MECH}->form_id("downloadform"); # my version of WWW::Mechanize can't do form_id()
-	$self->{MECH}->form_name("form_pass"); #another form (accessible by name) but it works too
-	#$self->{MECH}->form_number(2); # or access it by number
+	# Click the "Free Download" button
+	$self->{MECH}->form_number(3);
 	$res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content());
@@ -148,24 +151,24 @@ sub get_data {
 		my $wait;
 		$_ = $res->decoded_content."\n";
 		
-		if (m/setTimeout\('countdown2\(\)',(\d+)\)/) {
-			wait($1/10);
+		# Countdown
+		if (m/<p id="countdown">(\d+)<\/p>/) {
+			wait($1);
 			last;
 		}
 		else {
-			return error("plugin error(could not find match)");
+			return error("plugin error (could not find match)");
 		}
 		$res = $self->{MECH}->reload();
 		dump_add($self->{MECH}->content());
 	}
 	
-	# Click the "Free Download" button
-	my $form = $self->{MECH}->form_name("downloadform");
-	my $request = $form->make_request;
-	$self->{MECH}->request($request, $data_processor);
+	# Click the "Download" URL
+	my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
+	$self->{UA}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 }
 
 # Register the plugin
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?uploading.com");
+Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?filefactory.com");
 
 1;
