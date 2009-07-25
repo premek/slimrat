@@ -47,6 +47,7 @@ use Exporter;
 
 # Packages
 use POSIX 'setsid';
+use Time::HiRes qw( time );
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -80,13 +81,14 @@ sub config_verbosity {
 	$config->section("log")->set("verbosity", $verbosity);
 }
 
-sub config_readfiles {
+sub config_readfiles { 
 	# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
-	if (-r "/etc/slimrat.conf") {
-		$config->file_read("/etc/slimrat.conf");
-	}
-	if (-r $ENV{HOME}."/.slimrat/config") {
-		$config->file_read($ENV{HOME}."/.slimrat/config");
+	foreach my $file ("/etc/slimrat.conf", $ENV{HOME}."/.slimrat/config", shift) {
+		if ($file && -r $file) {
+			$config->file_read($file);
+			#debug("Reading config file '$file'"); # Log verbosity not configured yet
+			#print "reading $file\n";
+		}
 	}
 }
 
@@ -219,6 +221,7 @@ sub download($$$$) {
 	my $size;
 	my $t_start = time;
 	my $t_prev = 0;
+	my $done_prev = 0;
 	my $size_downloaded = 0;
 	
 	# Get data
@@ -269,17 +272,19 @@ sub download($$$$) {
 		print FILE $_[0];
 		
 		# Download indication
+		$done_prev += length($_[0]);
 		$size_downloaded += length($_[0]);	
 		if ($t_prev+1 < time) {	# don't update too often
+			&$progress($size_downloaded, $size, $done_prev, $t_prev?time-$t_prev:0);
+			$done_prev = 0;
 			$t_prev = time;
-			&$progress($size_downloaded, $size, 0);
 		}
 	}, $read_captcha);
 
 	if ($size) {
-		&$progress(1, 1, 0);
+		&$progress($size, $size, 0, 1);
 	} else {
-		&$progress($size_downloaded, 0, 0);
+		&$progress($size_downloaded, 0, 0, 1);
 	}
 	print "\r\n";
 	

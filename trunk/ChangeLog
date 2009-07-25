@@ -1,6 +1,20 @@
+2009-07-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: download speed and remaining time
+
+    * CLI: support for loading custom config files via command line options
+
+
 2009-07-25  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * plugins: added FileFactory plugin.
+
+
+2009-07-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * GUI: independent of CLI. Spawning a terminal not needed anymore
+
+    * captcha: support in CLI & GUI
 
 
 2009-07-20  Přemek Vyhnal  <premysl.vyhnal gmail com>

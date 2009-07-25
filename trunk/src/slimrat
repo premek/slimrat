@@ -75,11 +75,6 @@ use warnings;
 # Register signals
 $SIG{'INT'} = 'quit';
 
-# Initialise configuration
-config_readfiles();
-&config_cli->set_default("mode", "download");
-&config_cli->set_default("to", ".");
-&config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
 
 # Global variables
 my (@failedlinks, @oklinks);
@@ -91,20 +86,34 @@ my (@failedlinks, @oklinks);
 
 # Process command-line options
 Getopt::Long::Configure("pass_through");
+Getopt::Long::Configure("bundling");
+
 my %options;
 GetOptions (
 		\%options,
-		"help!",
-		"man!",
-		"check!",
-		"list=s",
-		"to=s",
+		"help",
+		"man",
+		"check|c",
+		"list|l=s",
+		"to|t=s",
 		"address=s",
-		"daemon!",
-		"kill",
+		"daemon|d",
+		"kill|k",
 		"debug",
 		"quiet",
+		"config=s",
 );
+
+
+
+# Initialise configuration
+config_readfiles($options{"config"});
+&config_cli->set_default("mode", "download");
+&config_cli->set_default("to", ".");
+&config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
+
+
+
 
 # Give the usage or manual
 if ($options{"man"}) {
@@ -228,15 +237,22 @@ elsif (&config_cli->get("mode") eq "download") {
 				$link,
 				&config_cli->get("to"),
 				sub { # progress
-					my ($done, $total, $time) = @_;
+					my ($done, $total, $last_done, $last_time) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
+					my $speed = $last_done/$last_time if ($last_time); # current speed [B/s] TODO: maybe some average speed?
 					if ($total) {
 						my $perc = $done / $total;
-						progress("Downloaded: ", int($perc*10000)/100, "%      ");
+						push my @progr, "Downloaded: ", int($perc*10000)/100, "% \t "; # TODO: '%' is doubled sometimes on 100% (?)
+						push @progr, "Speed: ", bytes_readable($speed), "/s \t", seconds_readable(($total-$done)/$speed), " remaining      " if ($speed);
+						push @progr, "                                        " unless ($speed);# TODO grrr, format it better
+						progress(@progr);
 					} else {
-						progress("Downloaded ", bytes_readable($done));
+						push my @progr, "Downloaded ", bytes_readable($done);
+						push @progr, "Speed: ", bytes_readable($speed), "/s      " if ($speed);
+						push @progr, "                                        " unless ($speed);# TODO grrr, format it better
+						progress(@progr);
 					}
 				},
-				sub { # captcha
+				sub { # captcha. gets URL of captcha image, returns user entered code.
 					my $captchaimg = shift;
 					# Download & view
 					system("wget -q '$captchaimg' -O /tmp/slimrat-captcha.tmp"); # TODO replace wget

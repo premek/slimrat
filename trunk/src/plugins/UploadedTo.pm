@@ -77,8 +77,8 @@ sub get_filename {
 	my $res = $self->{MECH}->get($self->{URL});
 	if ($res->is_success) {
 		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/Filename: \&nbsp;<\/td><td><b>\s*([^<]+?)\s+<\/b>/s) {
-			return $1;
+		if ($res->decoded_content =~ m/Filename: \&nbsp;<\/td><td><b>\s*([^<]+?)\s+<\/b>.*Filetype: \&nbsp;<\/td><td>\s*([^<]*)\s*<\/td>/s) {
+			return $1.$2;
 		} else {
 			return 0;
 		}
