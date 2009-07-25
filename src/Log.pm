@@ -53,7 +53,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(bytes_readable level debug info warning error usage fatal progress summary status wait dump_add dump_write);
+@EXPORT = qw(bytes_readable seconds_readable level debug info warning error usage fatal progress summary status wait dump_add dump_write);
 
 # Write nicely
 use strict;
@@ -143,6 +143,11 @@ sub bytes_readable
 	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
 	
 	return $bytes_hum;
+}
+
+# Return seconds in m:ss format
+sub seconds_readable {
+	return sprintf('%2$d:%1$02d', localtime(shift or 0));
 }
 
 
@@ -248,11 +253,9 @@ sub configure($) {
 
 # Wait a while
 sub wait {
-	my ($wait, $rem, $sec, $min);
-	$wait = $rem = shift or return;
-	($sec,$min) = localtime($wait);
-	info(sprintf("Waiting %d:%02d",$min,$sec));
-	sleep($rem);
+	my $wait = shift or return;
+	info(sprintf("Waiting ".seconds_readable($wait)));
+	sleep($wait);
 }
 
 # Dump data for debugging purposes
