@@ -191,11 +191,12 @@ sub pid_read() {
 sub download($$$$) {
 	my ($link, $to, $progress, $read_captcha) = @_;
 	
+	info("Downloading ", $link);
+
 	# Load plugin
 	my $plugin = Plugin->new($link) || return 0;
 	my $pluginname = $plugin->get_name();
 
-	info("Downloading ", $link);
 	debug("Downloading \"$link\" using the $pluginname-plugin");
 	
 	# Check if link is valid

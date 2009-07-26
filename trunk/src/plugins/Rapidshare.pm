@@ -67,7 +67,12 @@ sub new {
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
 	$self->{CONF}->set_default("interval", 0);
-	
+
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # response
+	dump_add($self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
+	# return error() unless is_success ??? or leave checking if is_success in all functions?
+	# if we will return 0 here if not success, we can probably remove checking from all other functions
+
 	bless($self);
 	return $self;
 }
@@ -81,10 +86,8 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </) {
+	if ($self->{PRIMARY}->is_success) {
+		if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </) {
 			return $1;
 		} else {
 			return 0;
@@ -97,10 +100,8 @@ sub get_filename {
 sub get_filesize {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
+	if ($self->{PRIMARY}->is_success) {
+		if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
 			return readable2bytes($1);
 		} else {
 			return 0;
@@ -113,12 +114,9 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	# Download the page
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
+	if ($self->{PRIMARY}->is_success) {
 		# Check if the download form is present
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/form id="ff" action/) {
+		if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) {
 			return 1;
 		} else {
 			return -1;
@@ -133,9 +131,8 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Get the primary page
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	my $res = $self->{PRIMARY};
+	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success); # can this happen? check() will stop the download when primary page is not success
 	
 	# Click the "Free" button
 	$self->{MECH}->form_number(1);
@@ -178,7 +175,7 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $download;
 	wait($wait);
 
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 # Register the plugin
