@@ -60,7 +60,7 @@ use Log;
 use Configuration;
 
 # Function prototypes
-sub quit();
+sub quit($);
 sub download($$$$);
 
 # Write nicely
@@ -91,7 +91,7 @@ Getopt::Long::Configure("bundling");
 my %options;
 GetOptions (
 		\%options,
-		"help",
+		"help|h|?",
 		"man",
 		"check|c",
 		"list|l=s",
@@ -100,7 +100,7 @@ GetOptions (
 		"daemon|d",
 		"kill|k",
 		"debug",
-		"quiet",
+		"quiet|q",
 		"config=s",
 );
 
@@ -118,10 +118,10 @@ config_readfiles($options{"config"});
 # Give the usage or manual
 if ($options{"man"}) {
 	pod2usage(-verbose => 2);
-	quit();
+	quit(0);
 } elsif ($options{"help"}) {
 	pod2usage(-verbose => 1);
-	quit();
+	quit(0);
 }
 
 # Kill an instance if requested
@@ -130,13 +130,15 @@ if ($options{"kill"}) {
 		if (kill 0, $pid) {
 			info("Killing an active instance at PID $pid");
 			kill 2, $pid;
+			quit(0);
 		} else {
 			warning("no running instance found");
+			quit(1); # ?
 		}
 	} else {
 		fatal("could not read state file");
+		quit(255);
 	}
-	quit();
 }
 
 # Mode (e.g. what slimrat should do)
@@ -202,25 +204,31 @@ info("Slimrat started");
 
 if (&config_cli->get("mode") eq "check") {
 	info("Checking URLs");
+	my $dead_links = 0;
 	
 	# Get and loop all URLs
-	my $urls_ref = $queue->dump();
-	my @urls = @$urls_ref;
-	foreach my $link (@urls) {
+ 	while (my $link = $queue->get()) {
+		my $alive = 0;
 		# Load plugin
 		my $plugin;
 		unless ($plugin = Plugin->new($link)) {
 			status($link, 0, "plugin failure");
-		}
-		else {			
+		} else {			
 			# Check status
 			my $status = $plugin->check();
 			my $size = $plugin->get_filesize();
-			status($link, $status,  ($plugin->get_filename()||"unknown filename") . ", " . ($size ? bytes_readable($size) : "unknown filesize"));
+			my $extra;
+			$extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
+			status($link, $status, $extra);
+			$alive++ if ($status>0);
+			$queue->file_update($link, "DEAD") if ($status < 0);
 		}
+		$dead_links++ unless ($alive);
+		# Advance to the next URL
+		$queue->advance(); # why $queue->get() does not advance() ? 
 	}
 	
-	quit();
+	quit($dead_links);
 }
 
 
@@ -303,7 +311,7 @@ elsif (&config_cli->get("mode") eq "download") {
 		system($command);
 	}
 
-	quit();
+	quit(scalar @failedlinks);
 }
 
 
@@ -313,7 +321,7 @@ elsif (&config_cli->get("mode") eq "download") {
 
 else {
 	usage("unrecognised mode");
-	quit();
+	quit(255);
 }
 
 
@@ -323,16 +331,19 @@ else {
 ############
 
 # Finish
-sub quit() {
+sub quit($) {
 	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
 	
 	# Write the dump
 	dump_write();
 	
-	# Hard exit, for when &quit gets called out of sig{int}	
 	info("Slimrat finished");
-	exit(0);
+
+	my $return = shift;
+	$return = 255 if ($return !~ /^\d+$/);
+	# Hard exit, for when &quit gets called out of sig{int}	
+	exit($return);
 }
 
 __END__
@@ -394,6 +405,10 @@ slimrat-cli
 =item B<--address>
 
   Makes the download client bind to a specific address.
+
+=item B<--config>
+
+  Load custom configuration file.
 
 =item B<--debug>
 

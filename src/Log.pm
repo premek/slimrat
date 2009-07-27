@@ -90,7 +90,7 @@ sub output_raw {
 	print $filehandle $colour if ($colour);
 	print $filehandle $timestamp?&timestamp:(" " x length(&timestamp));
 	print $filehandle uc($category).": " if ($category);
-	print $filehandle $_ foreach (@{$messages});
+	defined $_ and print $filehandle $_ foreach (@{$messages});
 	print $filehandle RESET if ($colour);
 	print $filehandle "\n" unless ($omit_endl);
 }
@@ -188,13 +188,13 @@ sub error {
 sub usage {
 	output(YELLOW, 1, "invalid usage", \@_, 0);
 	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"], 0);
-	main::quit();
+	main::quit(255);
 }
 
 # Fatal runtime error
 sub fatal {
 	output(RED, 1, "fatal error", \@_, 0);
-	main::quit();
+	main::quit(255);
 }
 
 
@@ -230,13 +230,14 @@ sub status {
 	my $link = shift;
 	my $status = shift;
 	my $extra = shift;
+	$extra = " ($extra)" if $extra;
 
 	if ($status>0) {
-		output(GREEN, 0, "", ["[ALIVE] ", RESET, $link, " ($extra)"], 3);
+		output(GREEN, 0, "", ["[ALIVE] ", RESET, $link, $extra], 3);
 	} elsif ($status<0) {
-		output(RED, 0, "", ["[DEAD] ", RESET, $link, " ($extra)"], 3);
+		output(RED, 0, "", ["[DEAD] ", RESET, $link, $extra], 3);
 	} else {
-		output(YELLOW, 0, "", ["[?] ", RESET, $link, " ($extra)"], 3);
+		output(YELLOW, 0, "", ["[?] ", RESET, $link, $extra], 3);
 	}
 }
 
@@ -336,11 +337,11 @@ Log
   warning("something bad is going to happen");
   fatal("and here it is");
   error("this poor error will never be shown");
-  quit();
+  quit(1);
 
   # Define a quit method (used by the fatal() function)
-  sub quit() {
-    exit(0);
+  sub quit($) {
+    exit(shift);
   }
 
 =head1 DESCRIPTION

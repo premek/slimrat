@@ -1,3 +1,10 @@
+2009-07-27  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * GUI: Statusbar
+
+    * CLI: Return codes (number of failed/dead links or 255 on unexpected end)
+
+
 2009-07-26  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: proposal of fetching the primary page only once at constructor
