@@ -160,7 +160,7 @@ sub get_data {
 			warning("no free download slots");
 			wait(60);
 		}
-		elsif (m/begin yuor download/) {
+		elsif (m/begin your download/) {
 			last;
 		}
 		else {
