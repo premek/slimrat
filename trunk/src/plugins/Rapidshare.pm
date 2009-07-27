@@ -63,15 +63,13 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
-	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+	$self->{MECH} = WWW::Mechanize->new(agent => $useragent);
 	
 	$self->{CONF}->set_default("interval", 0);
 
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # response
-	dump_add($self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
-	# return error() unless is_success ??? or leave checking if is_success in all functions?
-	# if we will return 0 here if not success, we can probably remove checking from all other functions
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -86,43 +84,34 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	if ($self->{PRIMARY}->is_success) {
-		if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </) {
-			return $1;
-		} else {
-			return 0;
-		}
+	if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </) {
+		return $1;
+	} else {
+		return 0;
 	}
-	return 0;
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 	
-	if ($self->{PRIMARY}->is_success) {
-		if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
+	if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/) {
+		return readable2bytes($1);
+	} else {
+		return 0;
 	}
-	return 0;
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	if ($self->{PRIMARY}->is_success) {
-		# Check if the download form is present
-		if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) {
-			return 1;
-		} else {
-			return -1;
-		}
+	# Check if the download form is present
+	if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) {
+		return 1;
+	} else {
+		return -1;
 	}
-	return 0;
 }
 
 # Download data
@@ -130,14 +119,10 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Get the primary page
-	my $res = $self->{PRIMARY};
-	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success); # can this happen? check() will stop the download when primary page is not success
-	
 	# Click the "Free" button
 	$self->{MECH}->form_number(1);
-	$res = $self->{MECH}->submit_form();
-	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+	my $res = $self->{MECH}->submit_form();
+	return error("plugin failure (secondary page error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content());
 	
 	# Process the resulting page
