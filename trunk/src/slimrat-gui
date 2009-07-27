@@ -172,10 +172,6 @@ $gui->get_widget('downto')->set_filename(&config_gui->get("to")) if (&config_gui
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
 
-# Statusbar
-# TODO
-#$gui->get_widget('statusbar')->push(0,"AAAA");
-
 
 # Load queue'd URLs
 # TODO: move to the Queue structure, we'll need a save_queue (selective dump + filename save) to support this
@@ -191,7 +187,9 @@ while ($_ = $queue->get){
 	$queue->advance();
 }
 
+
 # Activate the GUI
+$gui->get_widget('statusbar')->push(0,"Slimrat is ready");
 Gtk2->main;
 
 
@@ -297,14 +295,13 @@ sub on_btnStart1_clicked {
 
 		$download_thread = threads->new(sub{
 			for(my $rownum = 0; $rownum < scalar @{$slist->{data}}; $rownum++) {
-
-
-
 				my $row = @{$slist->{data}}[$rownum];
 				next if(@{$row}[COL_PROGR] >= 100);
 
 				my $link = @{$row}[COL_LINK];
 				$row->[COL_PROGR] = 0;
+
+				$gui->get_widget('statusbar')->push(1,"Downloading $link");
 
 				my $result = download(
 						$link,
@@ -331,13 +328,16 @@ sub on_btnStart1_clicked {
 							$gui->signal_autoconnect_from_package('main');
 							my $captcha_dialog = $gui->get_widget('captchaDialog');
 
-							my $cancelsub = sub {
-								$captcha = 0;
+							my $cptsub =  sub {
+								$captcha = shift;
 								$captcha_dialog->destroy();
-								1 };
-#	$captcha_dialog->signal_connect ( delete_event => $cancelsub ); 
-							$gui->get_widget('captchaBtnCancel')->signal_connect ( clicked => $cancelsub ); 
-							$gui->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { $captcha = $gui->get_widget('captchaTxt')->get_text; $captcha_dialog->destroy(); 1 } ); 
+								1;
+							};
+
+							$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
+							$gui->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
+							$gui->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($gui->get_widget('captchaTxt')->get_text); } ); 
+							$gui->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($gui->get_widget('captchaTxt')->get_text); } ); 
 
 							$gui->get_widget('captchaImage')->set_from_file("/tmp/slimrat-captcha.tmp");
 
@@ -349,6 +349,8 @@ sub on_btnStart1_clicked {
 							return $captcha;
 						}
 				);
+				
+				$gui->get_widget('statusbar')->pop(1);
 
 				if($die){
 					$die=0;
@@ -385,6 +387,7 @@ sub on_btnCheck_clicked {
 		foreach my $rownum ($slist->get_selected_indices){
 			my $row = @{$slist->{data}}[$rownum];
 			my $link = @{$row}[COL_LINK];
+			$gui->get_widget('statusbar')->push(2,"Checking $link");
 
 			# Load plugin
 			my $plugin;
@@ -411,6 +414,7 @@ sub on_btnCheck_clicked {
 			}
 			$row->[COL_STATUS] = $slist->render_icon ($ico, 'menu');
 
+			$gui->get_widget('statusbar')->pop(2);
 		}
 
 		$gui->get_widget('btnCheck')->set_state('active'); # FIXME 

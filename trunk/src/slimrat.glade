@@ -18,22 +18,31 @@
             <property name="visible">True</property>
             <property name="toolbar_style">GTK_TOOLBAR_ICONS</property>
             <child>
+              <widget class="GtkToolItem" id="toolitem1">
+                <property name="visible">True</property>
+                <child>
+                  <widget class="GtkFileChooserButton" id="downto">
+                    <property name="visible">True</property>
+                    <property name="tooltip" translatable="yes">Download to…</property>
+                    <property name="spacing">4</property>
+                    <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
+                    <property name="preview_widget_active">False</property>
+                    <property name="title" translatable="yes">Download to...</property>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkToggleToolButton" id="btnStart1">
                 <property name="visible">True</property>
                 <property name="tooltip" translatable="yes">Start downloading</property>
                 <property name="label" translatable="yes">Download</property>
                 <property name="stock_id">gtk-media-play</property>
                 <signal name="clicked" handler="on_btnStart1_clicked"/>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkToolButton" id="btnStop1">
-                <property name="tooltip" translatable="yes">Stop downloading</property>
-                <property name="stock_id">gtk-media-stop</property>
-                <signal name="clicked" handler="on_btnStop1_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -209,49 +218,13 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkHBox" id="hbox2">
-            <property name="visible">True</property>
-            <child>
-              <widget class="GtkLabel" id="label2">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Download to: </property>
-                <accessibility>
-                  <atkrelation target="downto" type="label-for"/>
-                </accessibility>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="padding">6</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkFileChooserButton" id="downto">
-                <property name="visible">True</property>
-                <property name="spacing">4</property>
-                <property name="preview_widget_active">False</property>
-                <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
-                <property name="title" translatable="yes">Download to...</property>
-                <accessibility>
-                  <atkrelation target="label2" type="labelled-by"/>
-                </accessibility>
-              </widget>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
           <widget class="GtkStatusbar" id="statusbar">
+            <property name="visible">True</property>
             <property name="spacing">2</property>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="position">3</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </widget>

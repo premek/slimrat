@@ -1,13 +1,15 @@
 # GENERAL #
+  - add links to running instance
+    slimrat --add --list list.txt http://link/1 http://link/2
 
 # VERSION SPECIFIC #
 
 * 0.9.6
-  - Make every plugin fetch the primary page once, maybe @ constructor
-  - Split `slimrat` into `slimrat-cli` and `slimrat-common.pm`, and make `slimrat-gui` use those
+  + Done: Make every plugin fetch the primary page once, maybe @ constructor
+  + Done (GUI not perfectly working): Split `slimrat` into `slimrat-cli` and `slimrat-common.pm`, and make `slimrat-gui` use those
     common methods instead of invoking `slimrat(-cli)`
   - Implement some "save queue" and "load queue" methods in Queue.pm, which should take care of
     manually added URLs as well as loaded file queue's.
-  - Support for loading a specific configuration file through parameters
+  - Done? Support for loading a specific configuration file through parameters
   - Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)

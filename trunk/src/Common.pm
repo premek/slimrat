@@ -43,7 +43,7 @@ package Common;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_verbosity config_readfiles config_other config_cli config_gui get_guicfg daemonize download);
+@EXPORT = qw(config_verbosity config_readfiles config_other config_cli config_gui get_guicfg daemonize pid_read download);
 
 # Packages
 use POSIX 'setsid';

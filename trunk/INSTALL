@@ -79,13 +79,16 @@ Install these using your package manager of choice.
   - WWW::Mechanize
   - Gtk2::GladeXML (GUI)
   - Gtk2::SimpleList (GUI)
+  - Spiffy (GUI)
 
 a) On Debian/Ubuntu
-    apt-get install libwww-mechanize-perl libgtk2-gladexml-perl
+    aptitude install libwww-mechanize-perl
+    aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # (GUI)
 b) On FreeBSD
     portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
 c) Manually (through CPAN)
-    perl -MCPAN -e 'install Getopt::Long, Gtk2::GladeXML, Gtk2::SimpleList, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize,';
+    perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
+    perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy'; # (GUI)
 
 
 Installation
