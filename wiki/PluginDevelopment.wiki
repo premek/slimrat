@@ -141,6 +141,8 @@ sub check {
 
 This is the main method of any plugin, and should download the data ant reroute it to the only parameter of the get_data method: a data processor routine.
 
+This method returns 0 when download fails and nonzero value on successful download.
+
 In case of a HTTP-based download site, the process most of the times consists of three parts
  # Fulfil all prerequisites (click through some forms, fill in a captcha, ...)
  # Generate a final request which will download the file
@@ -153,7 +155,10 @@ This is the method description, accepting the extra parameter
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	my $captcha = shift; # if needed
 }}}
+
+Captcha function (if needed by plugin) gets URL of captcha image and returns image content read by user.
 
 === Step 1: prerequisites ===
 
