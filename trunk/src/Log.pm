@@ -387,8 +387,16 @@ has to be 4 or more.
 
 =head2 info(@messages)
 
-This prints all passed arguments as an informational message in the standard colour.
-Verbosity level has to be 3 or more. This is the main function for user-output.
+This prints all passed arguments as an informational message in the standard colou
+
+=head2 progress(@messages)
+
+Print a progress indicating message. Before the messages are printed, the cursor is moved
+back to the begin of the line by printing a carriage return. This feature combined with
+messages not ending on an endline, is a good way to display some progress indication, in
+which every progress() call overwrites the previously progress indication (unless an
+endline has been appended).
+The message does not get print if the output mode is "log" rather than "full".
 
 =head2 warning(@messages)
 
@@ -409,12 +417,6 @@ This prints all passed arguments as a fatalerror in a red colour. Verbosity leve
 to be 0 or more. Such an error indicates something severe has happened, and the
 program cannot continue execution (e.g. configuration file not found). This routine
 calls the main quit() function.
-
-=head2 progress($done, $total, $time)
-
-This generates a evolving progress bar, which expresses the current progress ($done)
-to the final target ($total). An ETA is generated based on the $time needed to get
-to the current progress.
 
 =head2 summary($succeeded, $failed)
 

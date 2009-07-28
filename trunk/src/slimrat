@@ -104,16 +104,11 @@ GetOptions (
 		"config=s",
 );
 
-
-
 # Initialise configuration
 config_readfiles($options{"config"});
 &config_cli->set_default("mode", "download");
 &config_cli->set_default("to", ".");
 &config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
-
-
-
 
 # Give the usage or manual
 if ($options{"man"}) {
