@@ -213,19 +213,23 @@ if (&config_cli->get("mode") eq "check") {
 		my $plugin;
 		unless ($plugin = Plugin->new($link)) {
 			status($link, 0, "plugin failure");
-		} else {			
-			# Check status
+		} else {
 			my $status = $plugin->check();
-			my $size = $plugin->get_filesize();
-			my $extra;
-			$extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
-			status($link, $status, $extra);
-			$alive++ if ($status>0);
-			$queue->file_update($link, "DEAD") if ($status < 0);
+			if ($status < 0) {
+				status($link, $status, "file is dead");
+			} elsif ($status == 0) {
+				status($link, $status, "plugin failure (could not distinguish whether file is up or down)");
+			} elsif ($status > 0) {
+				my $size = $plugin->get_filesize();
+				my $extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
+				status($link, $status, $extra);
+				$alive++
+			}
 		}
 		$dead_links++ unless ($alive);
+		
 		# Advance to the next URL
-		$queue->advance(); # why $queue->get() does not advance() ? 
+		$queue->advance();
 	}
 	
 	quit($dead_links);
@@ -244,28 +248,28 @@ elsif (&config_cli->get("mode") eq "download") {
 		my $result = download(
 				$link,
 				&config_cli->get("to"),
-				sub { # progress
+				sub { # Progress indication
 					my ($done, $total, $last_done, $last_time) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
 					my $speed = $last_done/$last_time if ($last_time); # current speed [B/s] TODO: maybe some average speed?
 					if ($total) {
 						my $perc = $done / $total;
-						push my @progr, "Downloaded: ", int($perc*10000)/100, "% \t "; # TODO: '%' is doubled sometimes on 100% (?)
-						push @progr, "Speed: ", bytes_readable($speed), "/s \t", seconds_readable(($total-$done)/$speed), " remaining      " if ($speed);
-						push @progr, "                                        " unless ($speed);# TODO grrr, format it better
+						push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
+						push @progr, "- speed: ", bytes_readable($speed), "/s - ", seconds_readable(($total-$done)/$speed), " remaining" if ($speed);
 						progress(@progr);
 					} else {
 						push my @progr, "Downloaded ", bytes_readable($done);
-						push @progr, "Speed: ", bytes_readable($speed), "/s      " if ($speed);
-						push @progr, "                                        " unless ($speed);# TODO grrr, format it better
+						push @progr, "- speed: ", bytes_readable($speed), "/s" if ($speed);
 						progress(@progr);
 					}
 				},
-				sub { # captcha. gets URL of captcha image, returns user entered code.
+				sub { # Captcha handler
 					my $captchaimg = shift;
+					
 					# Download & view
 					system("wget -q '$captchaimg' -O /tmp/slimrat-captcha.tmp"); # TODO replace wget
 					system(sprintf &config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
 					unlink("/tmp/slimrat-captcha.tmp");
+					
 					# Ask the user
 					print "Captcha? ";
 					my $captcha = <>;

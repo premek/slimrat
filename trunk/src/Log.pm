@@ -45,7 +45,6 @@ use Cwd;
 use File::Temp qw/ tempfile tempdir /;;
 use File::Basename;
 
-
 # Custom packages
 use Toolbox;
 use Configuration;
@@ -77,6 +76,9 @@ struct(Dump =>	{
 		extra		=>	'$'
 });
 my @dumps;
+
+# Progress length variable
+my $progress_length = 0;
 
 
 #
@@ -169,7 +171,11 @@ sub info {
 
 # Progress indication (same verbosity as info, but omitted when mode=log)
 sub progress {
-	output("", 0, "", ["\r", &timestamp, @_], 3, 1) unless ($config->get("mode") eq "log");
+	my $length = 0;
+	$length += length($_) foreach (@_);
+	my $erase = $progress_length-$length;
+	$progress_length = $length;
+	output("", 0, "", ["\r", &timestamp, @_, " " x $erase], 3, 1) unless ($config->get("mode") eq "log");	# Extra spaces act as eraser
 }
 
 # Warning

@@ -85,8 +85,6 @@ sub get_filename {
 	my $self = shift;
 	
 	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </);
-	#return 0;
-	# or return return $1 if ($self....
 }
 
 # Filesize
@@ -94,16 +92,18 @@ sub get_filesize {
 	my $self = shift;
 	
 	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/);
-	#return 0;
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	# Check if the download form is present
-	return ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) * 2 - 1; # <0;1> => <-1;1>
-	# now it never returns 0. Do we need 3 states? isnt true/false (1/0) enough? "can download"/"cannot download"?
+       # Check if the download form is present
+        if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) {
+                return 1;
+        } else {
+                return -1;
+        }
 }
 
 # Download data
@@ -152,7 +152,7 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $download;
 	wait($wait);
 
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor); #(returned)
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 # Register the plugin
