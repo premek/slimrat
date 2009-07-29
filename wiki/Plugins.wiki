@@ -3,16 +3,16 @@
 
 =Plugin tests=
 ==v. 0.9.5==
-last update: 2009-06-29
+last update: 2009-07-29
 
 || *Plugin*          |||||| *Test*                                              ||
 ||                   || *One 100kB file*   || *Larger file* || *Lot of traffic* ||
 || DataHu            || OK                             || ? || ? ||
 || DepositFiles      || OK                             || ? || ? ||
-|| Direct            || OK                             || ? || ? ||
-|| EasyShare         || OK                             || ? || ? ||
+|| EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
 || FastLoad          || OK                             || ? || ? ||
 || FastShare         || OK                             || ? || ? ||
+|| FileFactory       || OK                             || ? || ? ||
 || HotFile           || OK                             || ? || ? ||
 || Leteckaposta      || OK                             || ? || ? ||
 || MediaFire         || OK                             || ? || ? ||
@@ -21,7 +21,27 @@ last update: 2009-06-29
 || Rapidshare        || OK                             || ? || ? ||
 || ShareBase         || OK                             || ? || ? ||
 || UploadedTo        || OK                             || ? || ? ||
+|| Uploading         || OK                             || ? || ? ||
 || YouTube           || OK                             || ? || ? ||
 
 ==svn==
-?
+last update: 2009-07-29
+
+|| *Plugin*          |||||| *Test*                                              ||
+||                   || *One 100kB file*   || *Larger file* || *Lot of traffic* ||
+|| DataHu            || OK                             || ? || ? ||
+|| DepositFiles      || OK                             || ? || ? ||
+|| EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
+|| FastLoad          || OK                             || ? || ? ||
+|| FastShare         || OK                             || ? || ? ||
+|| FileFactory       || OK                             || ? || ? ||
+|| HotFile           || OK                             || ? || ? ||
+|| Leteckaposta      || OK                             || ? || ? ||
+|| MediaFire         || OK                             || ? || ? ||
+|| Megaupload        || OK                             || ? || ? ||
+|| OdSiebie          || OK                             || ? || ? ||
+|| Rapidshare        || OK                             || ? || ? ||
+|| ShareBase         || OK                             || ? || ? ||
+|| UploadedTo        || OK                             || ? || ? ||
+|| Uploading         || OK                             || ? || ? ||
+|| YouTube           || OK                             || ? || ? ||
