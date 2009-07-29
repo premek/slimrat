@@ -232,6 +232,7 @@ sub download($$$$) {
 	my $plugin_result = $plugin->get_data( sub {	# TODO: catch errors
 		# Fetch server response
 		my $res = $_[1];
+		$res->decode();
 
 		# Do one-time stuff
 		unless ($flag) {

@@ -59,8 +59,8 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
+	$self->{MECH} = $_[3];
 	
-	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
