@@ -12,7 +12,6 @@ last update: 2009-07-29
 || EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
 || FastLoad          || OK                             || ? || ? ||
 || FastShare         || OK                             || ? || ? ||
-|| FileFactory       || OK                             || ? || ? ||
 || HotFile           || OK                             || ? || ? ||
 || Leteckaposta      || OK                             || ? || ? ||
 || MediaFire         || OK                             || ? || ? ||
@@ -21,7 +20,6 @@ last update: 2009-07-29
 || Rapidshare        || OK                             || ? || ? ||
 || ShareBase         || OK                             || ? || ? ||
 || UploadedTo        || OK                             || ? || ? ||
-|| Uploading         || OK                             || ? || ? ||
 || YouTube           || OK                             || ? || ? ||
 
 ==svn==
