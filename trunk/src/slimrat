@@ -249,11 +249,11 @@ elsif (&config_cli->get("mode") eq "download") {
 					if ($total) {
 						my $perc = $done / $total;
 						push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
-						push @progr, "- speed: ", bytes_readable($speed), "/s - ", seconds_readable(($total-$done)/$speed), " remaining" if ($speed);
+						push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable(($total-$done)/$speed), " remaining" if ($speed);
 						progress(@progr);
 					} else {
 						push my @progr, "Downloaded ", bytes_readable($done);
-						push @progr, "- speed: ", bytes_readable($speed), "/s" if ($speed);
+						push @progr, " -- speed: ", bytes_readable($speed), "/s" if ($speed);
 						progress(@progr);
 					}
 				},

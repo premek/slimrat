@@ -58,9 +58,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -73,45 +76,24 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		my $res = $self->{MECH}->get($self->{URL});
-		if ($res->decoded_content =~ m/Filename:<\/font> <font[^>]*>([^<]+)<\/font/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Filename:<\/font> <font[^>]*>([^<]+)<\/font/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/File size:<\/font> <font[^>]*>([^<]+)<\/font/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/File size:<\/font> <font[^>]*>([^<]+)<\/font/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		return -1 if ($res->is_success && $res->decoded_content =~ m#link you have clicked is not available#);
-		return 1 if($res->decoded_content =~ m#gencap.php#);
-	}
+	$_ = $self->{PRIMARY}->decoded_content;
+	return -1 if (m#link you have clicked is not available#);
+	return 1 if(m#gencap\.php#);
 	return 0;
 }
 
@@ -123,12 +105,7 @@ sub get_data {
 	
 	my ($res, $captcha);
 	do {
-		# Primary page
-		$res = $self->{MECH}->get($self->{URL});
-		return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-		dump_add($self->{MECH}->content());
-
-		$_ = $res->decoded_content;
+		$_ = $self->{PRIMARY}->decoded_content;
 
 		# Download & view captcha image
 		my ($captchaimg) = m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
@@ -154,7 +131,7 @@ sub get_data {
 	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");

@@ -62,16 +62,18 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	
 	$self->{CONF}->set_default("enabled", 0);
 	if ($self->{CONF}->get("enabled")) {
 		warning("no appropriate plugin found, downloading using 'Direct' plugin");
 	} else {
-		error("no appropriate plugin found");
-		return 0;
+		return error("no appropriate plugin found");
 	}
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -86,28 +88,17 @@ sub get_filename {
 	my $self = shift;
 	
 	# Get filename through HTTP request
-	my $filename = ($self->{UA}->head($self->{URL})->filename);
+	my $filename = ($self->{MECH}->head($self->{URL})->filename);
 	
 	# If unsuccessfull, deduce from URL
 	unless ($filename) {
-		if ($self->{URL} =~ m/http.+\/([^\/]+)$/)
-		{
+		if ($self->{URL} =~ m/http.+\/([^\/]+)$/) {
 			$filename = $1;
-		}
-		else
-		{
+		} else {
 			return error("could not deduce filename");
 		}
 	}
 	return $filename;
-}
-
-# Download data
-sub get_data {
-	my $self = shift;
-	
-	my $data_processor = shift;
-	$self->{UA}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
 }
 
 # Filesize
@@ -121,9 +112,18 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return 1 if ($self->{UA}->head($self->{URL})->is_success);
+	return 1 if ($self->{MECH}->head($self->{URL})->is_success);
 	return -1;
 }
+
+# Download data
+sub get_data {
+	my $self = shift;
+	my $data_processor = shift;
+	
+	$self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
+}
+
 
 1;
 

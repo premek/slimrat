@@ -2,6 +2,8 @@
   - add links to running instance
     slimrat --add --list list.txt http://link/1 http://link/2
 
+  - make it possible to download more links at same time (every one from different site)
+
 # VERSION SPECIFIC #
 
 * 0.9.6
@@ -10,6 +12,8 @@
     common methods instead of invoking `slimrat(-cli)`
   - Implement some "save queue" and "load queue" methods in Queue.pm, which should take care of
     manually added URLs as well as loaded file queue's.
-  - Done? Support for loading a specific configuration file through parameters
-  - Statusbar
+  + Done? Support for loading a specific configuration file through parameters
+  + Done: Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
+  - Test everything!
+  - Test everything again ;)

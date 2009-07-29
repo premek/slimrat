@@ -68,6 +68,10 @@ sub new {
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -93,10 +97,6 @@ sub check { return 1; # not implemented
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
 	
 	$_ = $self->{MECH}->content();
 
