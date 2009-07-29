@@ -39,14 +39,11 @@ package Toolbox;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof rand_str readable2bytes $useragent);
+@EXPORT = qw(dwait indexof rand_str readable2bytes);
 
 # Write nicely
 use strict;
 use warnings;
-
-# Fake a user agent
-our $useragent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; pl; rv:1.9.0.10) Gecko/2009042316 Firefox/3.0.10";
 
 
 #
