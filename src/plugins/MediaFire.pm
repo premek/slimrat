@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -78,49 +81,23 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/You requested: ([^(]+) \(/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/You requested: ([^(]+) \(/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/You requested: [^(]+ \(([^)]+)\)/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/You requested: [^(]+ \(([^)]+)\)/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
-	return 0;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/);
+	return -1;
 }
 
 # Download data
@@ -128,12 +105,7 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 
-	# Get the primary page
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (page 1 error", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	
-	$_ = $res->decoded_content."\n";
+	$_ = $self->{PRIMARY}->decoded_content."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 	if(!$qk) {
 		error("plugin failure (page 1 error, file doesn't exist or was removed)");
@@ -141,7 +113,7 @@ sub get_data {
 	}
 	
 	# Get the secondary page
-	$res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
+	my $res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content());
 		
@@ -159,7 +131,7 @@ sub get_data {
 	my $download = 'http://' . $variables{"sServer"} . '/' . $url_constr . 'g/' . $variables{"sQk"} . '/' . $variables{"sFile"};
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?mediafire.com");

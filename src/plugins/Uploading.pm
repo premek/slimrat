@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -78,51 +81,23 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/File size: ([^<]+)<br/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/File size: ([^<]+)<br/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	# Download the page
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		# Check if the download button is present
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/class="downloadbutton"/) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
-	return 0;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/class="downloadbutton"/);
+	return -1;
 }
 
 # Download data
@@ -130,16 +105,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Get the primary page
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	
 	# Click the "Download" button
-	#$self->{MECH}->form_id("downloadform"); # my version of WWW::Mechanize can't do form_id()
-	$self->{MECH}->form_name("form_pass"); #another form (accessible by name) but it works too
-	#$self->{MECH}->form_number(2); # or access it by number
-	$res = $self->{MECH}->submit_form();
+	$self->{MECH}->form_id("downloadform");
+	my $res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add($self->{MECH}->content());
 	

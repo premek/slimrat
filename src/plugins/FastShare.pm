@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -79,42 +82,23 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/die Datei "<b>([^<]+)<\/b>"/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/die Datei "<b>([^<]+)<\/b>"/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/die Datei "<b>[^<]+<\/b>" <i>\(([^)]+)\)<\/i>/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/die Datei "<b>[^<]+<\/b>" <i>\(([^)]+)\)<\/i>/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	$self->{MECH}->get($self->{URL});
-	dump_add($self->{MECH}->content());
-	return -1 if($self->{MECH}->content() =~ m/No filename specified or the file has been deleted!/);
-	return 1  if($self->{MECH}->content() =~ m/klicken sie bitte auf Download!/);
+	$_ = $self->{PRIMARY}->decoded_content;
+	return -1 if(m/No filename specified or the file has been deleted!/);
+	return 1  if(m/klicken sie bitte auf Download!/);
 	return 0;
 }
 
@@ -122,10 +106,6 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
 	
 	# Click the button
 	$self->{MECH}->form_number(0);
@@ -137,7 +117,7 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $download;
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fastshare.org");

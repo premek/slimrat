@@ -64,9 +64,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -79,45 +82,24 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/Downloading <b>(.+?)<\/b>/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Downloading <b>(.+?)<\/b>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/Downloading [^|]*| (.+?)<\/span/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/Downloading [^|]*| (.+?)<\/span/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if($res->is_success){
-		dump_add($self->{MECH}->content());
-		return 1  if($self->{MECH}->content() =~ m/Downloading/);
-		return -1 unless length($self->{MECH}->content()); # server returns 0-sized page on dead links
-	}
+	$_ = $self->{PRIMARY}->decoded_content;
+	return 1  if(m/Downloading/);
+	return -1 unless length; # server returns 0-sized page on dead links
 	return 0;
 }
 
@@ -126,27 +108,22 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	
-	$_ = $self->{MECH}->content();
+	$_ = $self->{PRIMARY}->decoded_content;
 	
 	# Extract primary wait timer
 	my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
   document\.getElementById\(\'dwltmr\'\)#;
-	$wait1 = $wait1/1000;
+	$wait1 /= 1000;
 	
 	# Extract secondary wait timer
 	my($wait2) = m#timerend\=d\.getTime\(\)\+([0-9]+);
   document\.getElementById\(\'dwltxt\'\)#;
-	$wait2 = $wait2/1000;
+	$wait2 /= 1000;
 	
 	# Wait
-	my($wait) = $wait1+$wait2;
-        wait($wait);
+    wait($wait1 + $wait2);
         
-        # Click the button
+	# Click the button
 	$self->{MECH}->form_number(2); # free;
 	$self->{MECH}->submit_form();
 	dump_add($self->{MECH}->content());	
@@ -156,7 +133,7 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $download;
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?hotfile.com");

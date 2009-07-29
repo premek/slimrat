@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -78,45 +81,24 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<a[^>]*class='download-link'>([^<]+)<\/a>/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<a[^>]*class='download-link'>([^<]+)<\/a>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/Velikost souboru: ([^<]+)<\/p>/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/Velikost souboru: ([^<]+)<\/p>/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		return -1 if $res->decoded_content =~ m/Soubor neexistuje/;
-		return 1 if $res->decoded_content =~ m/href='([^']+)' class='download-link'/;
-	}
+	$_ = $self->{PRIMARY}->decoded_content;
+	return -1 if m/Soubor neexistuje/;
+	return 1 if m/href='([^']+)' class='download-link'/;
 	return 0;
 }
 
@@ -125,17 +107,13 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	
 	# Extract the download URL
-	my ($download) = $res->decoded_content =~ m#href='([^']+)' class='download-link'>.+?</a>#;
+	my ($download) = $self->{PRIMARY}->decoded_content =~ m#href='([^']+)' class='download-link'>.+?</a>#;
 	return error("plugin error (could not extract download link)") unless $download;
 	$download = "http://leteckaposta.cz$download";
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__, "^[^/]+//(?:www.)?leteckaposta.cz");

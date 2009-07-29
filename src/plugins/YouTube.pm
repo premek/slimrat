@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -78,17 +81,8 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<title>YouTube - ([^<]+)<\/title>/) {
-			return $1."\.flv";
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1."\.flv" if ($self->{PRIMARY}->decoded_content =~ m/<title>YouTube - ([^<]+)<\/title>/);
 }
 
 # Filesize
@@ -100,16 +94,8 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<div class="errorBox">/) {
-			return -1;
-		} else {
-			return 1;
-		}
-	}
-	return 0;
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<div class="errorBox">/);
+	return 1;
 }
 
 # Download data
@@ -118,13 +104,12 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Extract data from SWF loading script
-	my ($v, $t) = $self->{MECH}->get($self->{URL})->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
-	dump_add($self->{MECH}->content());
+	my ($v, $t) = $self->{PRIMARY}->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
 	return error("plugin error (could not extract video properties)") unless ($v && $t);
 	my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//[^.]*\.?youtube\.com/watch[?]v=.+");

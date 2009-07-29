@@ -60,9 +60,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -75,45 +78,23 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		$res = $self->{MECH}->get($self->{URL});
-		if ($res->decoded_content =~ m/Pobierasz plik: ([^<]+)<\/div>/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Pobierasz plik: ([^<]+)<\/div>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		$res = $self->{MECH}->get($self->{URL});
-		if ($res->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		#return -1 if  detect the 302 redirect to the upload form 
-		return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
-	}
+	#return -1 if  ...TODO: detect the 302 redirect to the upload form 
+	return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
 	return 0;
 }
 
@@ -122,23 +103,17 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Primary page
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	
 	# Click to the secondary page
-	$_ = $self->{MECH}->content;
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
 	dump_add($self->{MECH}->content());
 	
 	# Click the download link and extract it
-	$res = $self->{MECH}->follow_link( text => 'kliknij tutaj');
+	$self->{MECH}->follow_link( text => 'kliknij tutaj');
 	#return error("plugin failure (an unspecified error occured)") if ($res->content_is_html);
 	my $download = $self->{MECH}->uri();
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?odsiebie.com");

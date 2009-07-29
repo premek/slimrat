@@ -65,9 +65,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -81,48 +84,22 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/\/fastload\/files\/([^<]+)<\/span>/) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/\/fastload\/files\/([^<]+)<\/span>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<\/span> \(([^)]+)\)<\/p>/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<\/span> \(([^)]+)\)<\/p>/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m#onclick="top\.location='(.+?)';" value#) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
-	return 0;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#onclick="top\.location='(.+?)';" value#);
+	return -1;
 }
 
 # Download data
@@ -130,10 +107,7 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
-	$_ = $res->content."\n";
+	$_ = $self->{PRIMARY}->content."\n";
 	
 	my ($download) = m#onclick="top\.location='(.+?)';" value#;
 	return error("plugin failure (cannot find download url)") unless ($download);
@@ -141,7 +115,7 @@ sub get_data {
 	$download = "http://www.fast-load.net$download";
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?fast-load.net");

@@ -63,9 +63,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	
-	$self->{UA} = LWP::UserAgent->new(agent=>$useragent);
 	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
 	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	dump_add($self->{MECH}->content());
+
 	bless($self);
 	return $self;
 }
@@ -79,42 +82,21 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/<div class="download_filename">\s+([^<]+?)\s+<\/div>/s) {
-			return $1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<div class="download_filename">\s+([^<]+?)\s+<\/div>/s);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 	
-	my $res = $self->{MECH}->get($self->{URL});
-	if ($res->is_success) {
-		dump_add($self->{MECH}->content());
-		if ($res->decoded_content =~ m/f.jlm.ret:\s+(.+)/) {
-			return readable2bytes($1);
-		} else {
-			return 0;
-		}
-	}
-	return 0;
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/f.jlm.ret:\s+(.+)/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	$self->{MECH}->get($self->{URL});
-	$_ = $self->{MECH}->content();
-	dump_add($self->{MECH}->content());
-	return -1 if(m#error_box#);
+	return -1 if($self->{PRIMARY}->decoded_content =~ m#error_box#);
 	return 1;
 }
 
@@ -123,10 +105,7 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;	
 	
-	# Get the primary page
-	my $res = $self->{MECH}->get($self->{URL});
-	return error("plugin failure (", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	my $res = $self->{PRIMARY};
 	
 	while (1) {
 		$_ = $res->decoded_content."\n"; 
@@ -149,7 +128,7 @@ sub get_data {
 	return error("plugin error (could not extract download link)") unless $download;
 	
 	# Download the data
-	$self->{UA}->request(HTTP::Request->new(GET => $download), $data_processor);
+	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?data.hu");

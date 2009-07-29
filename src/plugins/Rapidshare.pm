@@ -97,13 +97,10 @@ sub get_filesize {
 # Check if the link is alive
 sub check {
 	my $self = shift;
-	
-       # Check if the download form is present
-        if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/) {
-                return 1;
-        } else {
-                return -1;
-        }
+
+	# Check if the download form is present
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/);
+	return -1;
 }
 
 # Download data
