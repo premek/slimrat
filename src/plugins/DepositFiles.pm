@@ -67,8 +67,9 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
+	$self->{MECH} = $_[3];
 	
-	$self->{MECH} = WWW::Mechanize->new(agent=>$useragent);
+
 	
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');

@@ -61,6 +61,7 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
+	$self->{MECH} = $_[3];
 	
 	
 	$self->{CONF}->set_default("enabled", 0);
@@ -69,10 +70,7 @@ sub new {
 	} else {
 		return error("no appropriate plugin found");
 	}
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+
 
 	bless($self);
 	return $self;
@@ -121,6 +119,7 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# TODO: does not work with gzip compression
 	$self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
 }
 

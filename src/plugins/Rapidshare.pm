@@ -40,9 +40,6 @@
 # Package name
 package Rapidshare;
 
-# Packages
-use WWW::Mechanize;
-
 # Custom packages
 use Log;
 use Toolbox;
@@ -62,8 +59,7 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-	
-	$self->{MECH} = WWW::Mechanize->new(agent => $useragent);
+	$self->{MECH} = $_[3];
 	
 	$self->{CONF}->set_default("interval", 0);
 
