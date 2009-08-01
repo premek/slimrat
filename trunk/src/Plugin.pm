@@ -41,17 +41,11 @@ package Plugin;
 # Packages
 use WWW::Mechanize;
 
-use File::Basename;
-my ($root) = dirname($INC{'Plugin.pm'});
+use FindBin qw($RealBin);
 
 # Modules
 use Log;
 use Configuration;
-
-# Export functionality
-use Exporter;
-@ISA=qw(Exporter);
-@EXPORT=qw(configure);
 
 # Write nicely
 use strict;
@@ -62,6 +56,7 @@ my %plugins;
 
 # Static reference to the configuration object
 my $config = new Configuration;
+$config->set_default("useragent", "Mozilla/5.0 (X11; U; Linux i686; en-US) Gecko/2009042316 Firefox/3.0.10");
 
 
 my $mech = WWW::Mechanize->new(agent => $config->get("useragent"));
@@ -80,18 +75,18 @@ sub new {
 	
 	fatal("cannot create plugin without configuration") unless ($config);
 
-	my $plugin = get_package($url);
-
-	$config->set_default("useragent", "Mozilla/5.0 (X11; U; Linux i686; en-US) Gecko/2009042316 Firefox/3.0.10");
-
-	my $object = new $plugin ($config->section($plugin), $url, $mech);
-	return $object;
+	if(my $plugin = get_package($url)){
+		my $object = new $plugin ($config->section($plugin), $url, $mech);
+		return $object;
+	}
+	return 0;
 }
 
 # Configure the plugin producer
 sub configure {
 	my $complement = shift;
 	$config->merge($complement);
+	load_plugins();
 }
 
 # Register a plugin
@@ -111,18 +106,17 @@ sub get_package {
 	return "Direct";
 }
 
+sub load_plugins {
+	# load after Log and Configuration is initialized
 
-#
-# "Main"
-#
+	# Let all plugins register themselves
+	my @pluginfiles = glob "$RealBin/plugins/*.pm";
+	do $_ || do{system("perl -c $_"); fatal("plugin $_ failed to load ($!)")} foreach @pluginfiles;
 
-# Let all plugins register themselves
-my @pluginfiles = glob "$root/plugins/*.pm";
-do $_ || do{system("perl -c $_"); fatal("plugin $_ failed to load ($!)")} foreach @pluginfiles;
+	fatal("No plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
+	debug("loaded " . keys(%plugins) . " plugins (", join(", ", values %plugins), ")");
 
-# Print some debug message (yeah the regular way, couldn't port existing print & $, madness to something Log::debug() worthy)
-my $string;
-$string .= $_.", " foreach (values %plugins);
-debug("loaded " . keys(%plugins) . " plugins (", substr($string, 0, length($string)-2), ")");
+	scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
+}
 
-scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
+1;
