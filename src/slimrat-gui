@@ -181,7 +181,7 @@ while ($_ = $queue->get){
 	my @newRow;
 	$newRow[COL_PROGR] = -2;
 	$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
-	$newRow[COL_TYPE] = Plugin::get_package($_);
+	$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 	$newRow[COL_LINK] = $_;
 	push @{$slist->{data}},[@newRow];
 	$queue->advance();
@@ -211,6 +211,11 @@ sub quit {
 	$_->join() foreach (threads->list(threads::joinable));
 	$_->detach() foreach (threads->list(threads::running));
 	Gtk2->main_quit;
+	
+	my $return = shift;
+	$return = 255 if ($return !~ /^\d+$/);
+	# Hard exit, for when &quit gets called out of sig{int}
+	exit($return);
 }
 
 # Save the queue
@@ -231,7 +236,7 @@ sub links_parse_add {
 		my @newRow;
 		$newRow[COL_PROGR] = -2;
 		$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
-		$newRow[COL_TYPE] = Plugin::get_package($_);
+		$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 		$newRow[COL_LINK] = $_;
 		push @{$slist->{data}},[@newRow];
 	}

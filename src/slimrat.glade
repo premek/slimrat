@@ -40,7 +40,7 @@
               <widget class="GtkToggleToolButton" id="btnStart1">
                 <property name="visible">True</property>
                 <property name="tooltip" translatable="yes">Start downloading</property>
-                <property name="label" translatable="yes">Download</property>
+                <property name="label" translatable="yes">Download all</property>
                 <property name="stock_id">gtk-media-play</property>
                 <signal name="clicked" handler="on_btnStart1_clicked"/>
               </widget>
