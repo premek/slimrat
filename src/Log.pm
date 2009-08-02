@@ -149,9 +149,12 @@ sub bytes_readable
 
 # Return seconds in m:ss format
 sub seconds_readable {
-	return sprintf('%2$d:%1$02d', localtime(shift or 0));
+	my $sec = shift || return "0:00";
+	my $s = $sec % 60;
+	my $m = ($sec - $s) / 60;
+	# TODO hours???
+	return sprintf('%d:%02d', $m, $s);
 }
-
 
 #
 # Enhanced print routines

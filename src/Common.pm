@@ -48,6 +48,8 @@ use Exporter;
 # Packages
 use POSIX 'setsid';
 use Time::HiRes qw( time );
+use URI;
+
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -229,6 +231,7 @@ sub download($$$$) {
 	# Download status counters
 	my $size;
 	my $t_start = time;
+
 	my $t_prev = 0;
 	my $done_prev = 0;
 	my $size_downloaded = 0;
@@ -240,7 +243,7 @@ sub download($$$$) {
 	my $plugin_result = $plugin->get_data( sub {	# TODO: catch errors
 		# Fetch server response
 		my $res = $_[1];
-		$res->decode();
+		#$res->decode(); # TODO how to download gzip compressed pages?
 
 		# Do one-time stuff
 		unless ($flag) {
@@ -257,11 +260,14 @@ sub download($$$$) {
 			# If plugin didn't tell us name of the file, we can get it from http response or request.
 			if(!$filename) {
 				if ($res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
-				elsif($res->request->uri =~ m{/([^\/]+?)((\?|#).*)?$}) {$filename = $&}
-				else {$filename = "slimrat_downloaded_file";}
+				else {$filename = (URI->new($res->request->uri)->path_segments)[-1]} # last segment of URI
+				if(!$filename) {$filename = "slimrat_downloaded_file";}
 			}
 
-			$to =~ s/\/$//;
+			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
+
+
+			$to =~ s/\/+$//;
 			$filepath = "$to/$filename";
 
 			# Check if exists
@@ -318,7 +324,7 @@ sub dependency {
 	eval("use $dep $version");
 	return unless $@;
 	if ($version) {
-		fatal("could not meet dependency $dep, additionally at least v$version is required");
+		fatal("could not meet dependency $dep, additionally at least v$version is required by ".(caller)[1]);
 	} else {
 		fatal("could not meet dependency $dep");
 	}
