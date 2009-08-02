@@ -47,7 +47,7 @@ use warnings;
 
 # Custom packages
 # NOTE: this module cannot include any custom package (it be Log.pm, Toolbox.pm, ...) as it is
-#   used by almost any package and would cause circular dependancies. Also, including Log.pm
+#   used by almost any package and would cause circular dependencies. Also, including Log.pm
 #   wouldn't help much as the verbosity etc. hasn't been initialised yet when the configuration
 #   file is being parsed (debug() statements wouldn't matter). Instead, Perls internal
 #   output routines are used (warn & die).

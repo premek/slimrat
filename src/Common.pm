@@ -64,14 +64,6 @@ use Plugin;
 use strict;
 use warnings;
 
-# Check the dependencies
-sub dependency;
-dependency("WWW::Mechanize", "1.52");
-# TODO: fix main::quit() call upon failure (fatal()), as main is here Common
-#       which has no quit() method. 1) make Common::quit which rerouts to cli
-#       or gui, 2) (better option) look for a statement calling the highest class
-#       which should always be gui or cli, or 3) other option.
-
 # Main configuration object
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
@@ -310,24 +302,6 @@ sub download($$$$) {
 	# Download finished
 	info("File downloaded") if $plugin_result;
 	return $plugin_result;
-}
-
-
-#
-# Other
-#
-
-# dependency check
-sub dependency {
-	my $dep = shift;
-	my $version = shift||0;
-	eval("use $dep $version");
-	return unless $@;
-	if ($version) {
-		fatal("could not meet dependency $dep, additionally at least v$version is required by ".(caller)[1]);
-	} else {
-		fatal("could not meet dependency $dep");
-	}
 }
 
 1;
