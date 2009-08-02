@@ -113,7 +113,28 @@ sub load_plugins {
 
 	# Let all plugins register themselves
 	my @pluginfiles = glob "$RealBin/plugins/*.pm";
-	do $_ || do{system("perl -c $_"); fatal("plugin $_ failed to load ($!)")} foreach @pluginfiles;
+	LOOP: foreach my $plugin (@pluginfiles) {
+		# Check for dependencies
+		open(PLUGIN, $plugin);
+		while (<PLUGIN>) {
+			chomp;
+			if ((/^use (.+)/) and not (/strict/ || /warnings/)) {
+				eval;
+				if ($@) {
+					my $module = $1;
+					$module =~ s/ /, version >= /;
+					$module =~ s/;$//;
+					error("plugin '$plugin' shall not be used, due to unmet dependency $module");
+					next LOOP;
+				}
+			}
+
+		}
+		close(PLUGIN);
+		
+		# Execute
+		do $plugin || do{system("perl -c $plugin"); fatal("plugin '$plugin' failed to load ($!)")};
+	}
 
 	fatal("No plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
 	debug("loaded " . keys(%plugins) . " plugins (", join(", ", values %plugins), ")");

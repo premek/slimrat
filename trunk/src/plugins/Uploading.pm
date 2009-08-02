@@ -41,7 +41,7 @@
 package Uploading;
 
 # Packages
-use WWW::Mechanize;
+use WWW::Mechanize 1.59;
 
 # Custom packages
 use Log;
