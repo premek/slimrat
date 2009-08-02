@@ -137,7 +137,7 @@ sub get_data {
 			info("You are already downloading a file from Depositfiles.");
 			$wait = 60;
 		} 
-		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+(?::(\d+))?) (min|sec|hour)/s) {
+		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
 			if ($time eq "min") {$wait *= 60;}
 			elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
 		}

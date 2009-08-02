@@ -133,7 +133,11 @@ sub load_plugins {
 		close(PLUGIN);
 		
 		# Execute
-		do $plugin || do{system("perl -c $plugin"); fatal("plugin '$plugin' failed to load ($!)")};
+		do $plugin;
+		if($@) {
+			debug("\n".$@);
+			fatal("plugin '$plugin' failed to load".($!?" ($!)":""));
+		}
 	}
 
 	fatal("No plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
