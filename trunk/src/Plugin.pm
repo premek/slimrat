@@ -118,7 +118,7 @@ sub load_plugins {
 		open(PLUGIN, $plugin);
 		while (<PLUGIN>) {
 			chomp;
-			if ((/^use (.+)/) and not (/strict/ || /warnings/)) {
+			if ((/^\s*use (.+);/) and not (/strict/ || /warnings/)) {
 				eval;
 				if ($@) {
 					my $module = $1;
