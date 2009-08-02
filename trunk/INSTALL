@@ -1,78 +1,72 @@
-INSTALLATION
-************
-How to install & run slimrat
-
-
-
 RPM-based distro's
-==================
+------------------
 
-RPM (though currently outdated) are available at:
-    http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
+RPMs (though currently outdated) are available at:
+   http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
 
 
 
 Arch Linux
-==========
+----------
 
 You can install Slimrat from AUR:
-    http://aur.archlinux.org/packages.php?ID=20499
+   http://aur.archlinux.org/packages.php?ID=20499
 
 
 
 Gentoo
-======
+------
 
-Step 1: Install Layman
-	- Run the following commands (If layman is not already installed)
-	- NOTE: Only run the first command, if the git use flag is not enabled.
-	The subversion use flag is also recommended for layman. You can remove
-	it if subversion is not needed.
+1) Install Layman
 
-	echo "app-portage/layman git subversion" >> /etc/portage/package.use
-	emerge layman
+Run the following commands (If layman is not already installed)
+   echo "app-portage/layman git subversion" >> /etc/portage/package.use
+   emerge layman
 
-Step 2: Add the Custom Overlay
-	- Open /etc/layman/layman.cfg
-	- Find the line that says "overlays  :
-	  http://www.gentoo.org/proj/en/overlays/layman-global.txt"
-	- Add http://belak.sbboard.com/gentoo/overlay.xml
-	- Sample code:
-	  overlays  : http://www.gentoo.org/proj/en/overlays/layman-global.txt
-	              http://belak.sbboard.com/gentoo/overlay.xml
-	- Run the following commands as root (using either sudo or su)
-	  layman -S
-	  layman -a belak.gentoo
+NOTE: Only run the first command, if the git use flag is not enabled.
+      The subversion use flag is also recommended for layman. You can remove
+      it if subversion is not needed.
 
-Step 3: Install slimrat
-	- NOTE: For the first command, you may use ** in place of ~x86 to use
-	the "hard mask", which draws files right from the repositories. This
-	does require subversion. A hard mask will not update automaticly.
-	
-	echo "net-misc/slimrat ~x86" >> /etc/portage/package.keywords
-	emerge slimrat
+
+2) Add the Custom Overlay
+
+Open /etc/layman/layman.cfg, and find the line that says
+   overlays  : http://www.gentoo.org/proj/en/overlays/layman-global.txt"
+Add "http://belak.sbboard.com/gentoo/overlay.xml"
+Sample code:
+   overlays  : http://www.gentoo.org/proj/en/overlays/layman-global.txt
+	          http://belak.sbboard.com/gentoo/overlay.xml
+
+Run the following commands as root (using either sudo or su)
+   layman -S
+   layman -a belak.gentoo
+
+
+3) Install slimrat
+
+NOTE: For the first command, you may use ** in place of ~x86 to use
+the "hard mask", which draws files right from the repositories. This
+does require subversion. A hard mask will not update automaticly.
+   echo "net-misc/slimrat ~x86" >> /etc/portage/package.keywords
+   emerge slimrat
 
 NOTE: Overlays will not update themselves. You must run layman -S,
-along with emerge --sync to update all ebuilds, then run your update
+      along with emerge --sync to update all ebuilds, then run your update
 
 
 
 Manual installation
-===================
+-------------------
 
+1) Dependencies
 
-Dependencies
-------------
-
-1) Main
+Main
   - Perl
   - wget
   - xclip (optional, handles GUI clipboard extensions)
-
 Install these using your package manager of choice.
 
-
-2) Perl modules
+Perl modules
   - Getopt::Long
   - LWP::UserAgent
   - Term::ANSIColor
@@ -82,64 +76,58 @@ Install these using your package manager of choice.
   - Spiffy (GUI)
 
 a) On Debian/Ubuntu
-    aptitude install libwww-mechanize-perl
-    aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # (GUI)
+      aptitude install libwww-mechanize-perl
+      aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # (GUI)
+      
 b) On FreeBSD
-    portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+      portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+      
 c) Manually (through CPAN)
-    perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
-    perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy'; # (GUI)
+      perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
+      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy'; # (GUI)
 
 
-Installation
-------------
+2) Installation
 
-1) Unpack the tarball at a place you want to. Users wanting to run slimrat do not
-   need to have write access to that folder.
-    tar -xjvf slimrat-x.x.x.tar.bz2 -C /usr/local/bin/
+Unpack the tarball at a place you want to. Users wanting to run slimrat do not
+need to have write access to that folder.
+   tar -xjvf slimrat-x.x.x.tar.bz2 -C /usr/local/bin/
 
-2) Create symlinks to the main slimrat executables.
-    ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
-    ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
+Create symlinks to the main slimrat executables.
+   ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
+   ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
 
-3) Optional: create a system-wide configuration file at /etc/slimrat.conf, a sample
-   configuration file documenting all options is provided under the name "slimrat.conf"
+Optional: create a system-wide configuration file at /etc/slimrat.conf, a sample
+          configuration file documenting all options is provided under the name "slimrat.conf"
 
 
 
 Windows
-=======
+-------
 
 NOTE: the GUI is currently not available on Windows.
 
-Dependencies
-------------
+1) Dependencies
 
-1) Main
+Main
   - Perl
     http://strawberryperl.com/
-  - wget
-    http://www.christopherlewis.com/WGet/WGetFiles.htm
 
-
-2) Perl modules
+Perl modules
   - Getopt::Long
   - LWP::UserAgent
   - Term::ANSIColor
   - WWW::Mechanize
 
-    perl -MCPAN -e "install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize"
+a) Through CPAN
+perl -MCPAN -e "install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize"
+
+b) Through PPM (when using ActiveState Perl)
 
 
-Installation
-------------
+2) Installation
 
-1) Unpack the tarball at a place you want to, you can use Winrar to open the archive.
-
-2) Open up the "slimrat" executable and replace the 'wget' invocation
-       my $command = 'wget '
-   to a 'wget.exe' invocation
-       my $command = 'wget.exe '
+Unpack the tarball at a place you want to, you can use Winrar to open the archive.
 
 NOTE: configuration files are currently also unavailable on Windows, so you'll need to
       specify any options through the command-line.
