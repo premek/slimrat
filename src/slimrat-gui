@@ -66,7 +66,6 @@ use Log;
 use Configuration;
 use Queue;
 
-
 # Write nicely
 use warnings;
 use strict;
@@ -76,14 +75,11 @@ use strict;
 # Essential stuff
 #
 
-
 # Global variables
 my $ctrl;
 my $die:shared=0;
 my $download_thread;
 my $check_thread;
-
-
 
 # Register signals
 $SIG{'INT'} = 'quit';
@@ -103,7 +99,6 @@ config_other();
 
 
 
-
 #######
 # GUI #
 #######
@@ -115,7 +110,6 @@ use constant KEY_V	=> 86;
 use constant KEY_DELETE	=> 65535;
 use constant KEY_INSERT	=> 65379;
 use constant KEY_ENTER	=> 65293;
-
 
 # Construct the GUI
 Glib::Object->set_threadsafe (TRUE);
@@ -131,7 +125,6 @@ use constant { # same order as in 'Configure the listview'
 	COL_FNAME	=> 4,
 	COL_FSIZE	=> 5,
 };
-
 
 Gtk2::SimpleList->add_column_type(
 		'progress', 
@@ -174,9 +167,13 @@ $gui->get_widget('mainwin')->show_all;
 
 
 # Load queue'd URLs
-# TODO: move to the Queue structure, we'll need a save_queue (selective dump + filename save) to support this
-my $queue = Queue::new();
-$queue->file(&config_gui->get("queue_file"));
+my $queue;
+if (-e &config_gui->get("queue_file")) {
+	$queue = Queue::new(&config_gui->get("queue_file"));
+	$queue->restart();
+} else {
+	$queue = Queue::new();
+}
 while ($_ = $queue->get){
 	my @newRow;
 	$newRow[COL_PROGR] = -2;
@@ -207,7 +204,12 @@ sub on_mainWindow_destroy { &quit; }
 
 # Quit the application
 sub quit {
-	&saveque;
+	# Save the queue
+	$queue->reset();
+	$queue->add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
+	$queue->save(&config_gui->get("queue_file"));
+	
+	# Join back all threads and exit the GUI
 	$_->join() foreach (threads->list(threads::joinable));
 	$_->detach() foreach (threads->list(threads::running));
 	Gtk2->main_quit;
@@ -218,15 +220,7 @@ sub quit {
 	exit($return);
 }
 
-# Save the queue
-#TODO: Queue?
-sub saveque {
-	open(QUEUE, "> " . &config_gui->get("queue_file"));
-	print QUEUE @{$_}[COL_LINK]."\n" foreach @{$slist->{data}};
-	close(QUEUE);
-}
-
-# parse links from text input or clipboard and add them
+# Parse links from text input or clipboard and add them
 sub links_parse_add {
 	my $links = shift;
 	foreach (split (/\n+/, $links)) {
@@ -239,6 +233,7 @@ sub links_parse_add {
 		$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 		$newRow[COL_LINK] = $_;
 		push @{$slist->{data}},[@newRow];
+		$queue->add($_);
 	}
 
 }
@@ -458,9 +453,6 @@ sub on_addOkBtn_clicked {
 	$addDialog->destroy();	
 }
 
-
-
-
 # Remove
 sub on_btnRemove1_clicked {
 	my $dialog = Gtk2::MessageDialog->new (
@@ -478,7 +470,6 @@ sub on_btnRemove1_clicked {
 	}
 	$dialog->destroy;
 }
-
 
 # Remove all
 sub on_btnRemoveAll_clicked{
@@ -512,5 +503,4 @@ sub on_btnEnd1_clicked{
 
 # Quit
 sub gtk_main_quit { &quit; }
-
 
