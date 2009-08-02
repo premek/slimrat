@@ -5,6 +5,8 @@
 
     * GUI: make use of the new Queue features.
 
+    * Common: graceful dependancy checking.
+
 
 2009-07-27  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
