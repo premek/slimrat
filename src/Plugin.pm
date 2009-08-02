@@ -41,9 +41,11 @@ package Plugin;
 # Packages
 use WWW::Mechanize;
 
+# Find root for custom packages
 use FindBin qw($RealBin);
+use lib $RealBin;
 
-# Modules
+# Custom packages
 use Log;
 use Configuration;
 
