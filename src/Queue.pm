@@ -56,7 +56,7 @@ sub new {
 	my $file = shift;
 	my $self;
 	if (-f $file) {
-		# TODO: wrap in "Safe" block, or eval
+		# TODO: wrap in "Safe" block, or eval (because this does not work ^^)
 		$self = retrieve($file) || return error("could not retrieve queue out of '$file'");
 	} else {
 		$self = {

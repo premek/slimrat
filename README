@@ -1,0 +1,28 @@
+Release notes
+-------------
+
+1) Home directory
+
+Slimrat now (by default) uses "~/.slimrat" as a home directory,
+and creates that file automatically when absent. Older versions
+however used the file "~/.slimrat" to save certain settings to. When
+creating the home directory, slimrat shall check whether there is
+such a file, and will in that case get renamed to ".slimrat_old".
+
+
+2) Queue file
+
+The queue file, by default "~/.slimrat/queue", has a similar problem:
+as its file format has changed over the releases, slimrat might once
+complain about it not being readable. You might want to backup that
+file (which on older releases contains readable URLs), because slimrat
+shall overwrite it each time when closing down with the new Queue contents
+
+
+
+Installation
+------------
+
+See the INSTALL file for a detailled guide on how to install
+slimrat.
+
