@@ -55,7 +55,7 @@ use warnings;
 sub new {
 	my $file = shift;
 	my $self;
-	if ($file) {
+	if (-f $file) {
 		# TODO: wrap in "Safe" block, or eval
 		$self = retrieve($file) || return error("could not retrieve queue out of '$file'");
 	} else {

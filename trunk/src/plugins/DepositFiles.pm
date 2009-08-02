@@ -118,39 +118,46 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	$_ = $self->{PRIMARY}->decoded_content();
-	if (m/slots for your country are busy/) { error("all downloading slots for your country are busy"); return 0;}
-	my $re = '<div id="download_url"[^>]>\s*<form action="([^"]+)"';
-	
-	my $download;
-	if(!(($download) = m/$re/)) {
-		$self->{MECH}->form_number(2);
-		$self->{MECH}->submit_form();
-		$_ = $self->{MECH}->content();
-		dump_add($self->{MECH}->content());
-		
-		my $wait;
-		if (($wait) = m#Please try in\D*(\d+) min#) {
-			wait($wait*60);
-			$self->{MECH}->reload();
-			$_ = $self->{MECH}->content();
-			dump_add($self->{MECH}->content());
-		}
-		elsif (($wait) = m#Please try in\D*(\d+) sec#) {
-			wait($wait);
-			$self->{MECH}->reload();
-			$_ = $self->{MECH}->content();
-			dump_add($self->{MECH}->content());
-		}
-		if (m/Try downloading this file again/) {
-			($download) = m#<td class="repeat"><a href="([^\"]+)">Try download#;
-		} else {
-			($wait) = m#show_url\((\d+)\)#;
-			wait($wait);
-			($download) = m#$re#;
-			return error("plugin error (could not extract download link)") unless $download;
-		}
+	if ($self->{PRIMARY}->decoded_content() =~ m/slots for your country are busy/) {
+		return error("all downloading slots for your country are busy");
 	}
+	
+
+	my $download;
+	while(1) {
+		my $wait = 0;
+		$download = 0;
+
+		if($self->{MECH}->form_with_fields("gateway_result")) { # TODO There is no form with the requested fields
+			$self->{MECH}->submit_form();
+			dump_add($self->{MECH}->content());
+		} 
+
+		if ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
+			info("You are already downloading a file from Depositfiles.");
+			$wait = 60;
+		} 
+		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+(?::(\d+))?) (min|sec|hour)/s) {
+			if ($time eq "min") {$wait *= 60;}
+			elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
+		}
+		elsif ($self->{MECH}->content() =~ m/"repeat"><a href="([^\"]+)">Try downloading this file again/) {
+			($download) = $1;
+		} elsif ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
+			$wait = $1;
+			($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
+		}
+
+		return error("plugin error (could not extract download link)") unless ($download || $wait);
+
+		if ($wait) {
+			wait($wait);
+			$self->{MECH}->reload();
+			dump_add($self->{MECH}->content());
+		}
+		last if $download;
+	}
+
 	
 	# Download the data
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);

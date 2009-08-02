@@ -169,7 +169,7 @@ $gui->get_widget('mainwin')->show_all;
 # Load queue'd URLs
 my $queue;
 if (-e &config_gui->get("queue_file")) {
-	$queue = Queue::new(&config_gui->get("queue_file"));
+	$queue = Queue::new(&config_gui->get("queue_file")) || Queue::new();
 	$queue->restart();
 } else {
 	$queue = Queue::new();
