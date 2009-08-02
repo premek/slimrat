@@ -40,6 +40,7 @@ package Queue;
 # Modules
 use Toolbox;
 use Log;
+use Storable;
 
 # Write nicely
 use strict;
@@ -52,11 +53,18 @@ use warnings;
 
 # Constructor
 sub new {
-	my $self = {
-		_file		=>	undef,
-		_queued		=>	[],
-		_processed	=>	[],
-	};
+	my $file = shift;
+	my $self;
+	if ($file) {
+		# TODO: wrap in "Safe" block, or eval
+		$self = retrieve($file) || return error("could not retrieve queue out of '$file'");
+	} else {
+		$self = {
+			_file		=>	undef,
+			_queued		=>	[],
+			_processed	=>	[],
+		};
+	}
 	bless $self, 'Queue';
 	return $self;
 }
@@ -170,6 +178,27 @@ sub dump {
 	return \@output;
 }
 
+# Save the state of the queue object
+sub save($$) {
+	my ($self, $file) = @_;
+	store($self, $file) || error("could not serialize queue to '$file'");
+}
+
+# Restart processed downloads
+sub restart($) {
+	my ($self) = @_;
+	$self->{_processed} = [];
+	debug("resetting state of processed URLs");
+}
+
+# Reset the queue
+sub reset($) {
+	my ($self) = @_;
+	$self->{_queued} = [];
+	$self->{_processed} = [];
+	$self->{_file} = undef;
+}
+
 # Return
 1;
 
@@ -211,6 +240,27 @@ updating (= commenting out URL's with a given prefix) URL's from the file.
 
 This constructs a new Queue, with initially no data at all.
 
+=head2 Queue::new($file)
+
+This constructs a new Queue, with data restored from the given file $file. That
+file should contain data which has been saved using the save($file) routine.
+
+=head2 Queue::save($file)
+
+This saves the data from the queue in a file, by serializing it. Can be restored
+through a constructor with given filename.
+
+=head2 Queue::reset()
+
+Resets the queue, by erasing all internal datastructures.
+
+==head2 Queue::restart()
+
+Restarts already processed downloads, by resetting certain internal arrays which
+control which URLs should be processed and which shouldn't. Can be used in combination
+with a file to read URLs from to give URLs which have been processed (and advanced from)
+but not commented out another chance.
+
 =head2 $queue->add()
 
 This adds an URL to the back of the queue.
@@ -231,7 +281,7 @@ URL's make sure they have been added before the file() call.
 
 =head2 $queue->file_read()
 
-Read a single URL from the file. Comments and already processed or enqueued URL's will be
+Read a single URL from the file. Comments and already processed or enqueued URLs will be
 skipped.
 
 =head2 $queue->file_update($url, $status)
