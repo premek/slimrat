@@ -62,9 +62,9 @@ use Plugin;
 use strict;
 use warnings;
 
-# Check the dependancies
-sub dependancy;
-dependancy("WWW::Mechanize", "1.52");
+# Check the dependencies
+sub dependency;
+dependency("WWW::Mechanize", "1.52");
 # TODO: fix main::quit() call upon failure (fatal()), as main is here Common
 #       which has no quit() method. 1) make Common::quit which rerouts to cli
 #       or gui, 2) (better option) look for a statement calling the highest class
@@ -311,8 +311,8 @@ sub download($$$$) {
 # Other
 #
 
-# Dependancy check
-sub dependancy {
+# dependency check
+sub dependency {
 	my $dep = shift;
 	my $version = shift||0;
 	eval("use $dep $version");
