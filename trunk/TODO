@@ -7,7 +7,6 @@
 # VERSION SPECIFIC #
 
 * 1.0
-  - Statusbar
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
   - Test everything!
   - Test everything again ;)
