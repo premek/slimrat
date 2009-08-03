@@ -47,9 +47,9 @@ use Exporter;
 
 # Packages
 use POSIX 'setsid';
-use Time::HiRes qw( time );
+use Time::HiRes qw(time);
 use URI;
-
+use Compress::Zlib;
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -229,17 +229,21 @@ sub download($$$$) {
 	my $size_downloaded = 0;
 	
 	# Get data
+	my $encoding;
+	my $encoding_extra;
 	my $flag = 0;
 	$|++; # unbuffered output
 	# store (and later return) return value of get_data()
-	my $plugin_result = $plugin->get_data( sub {	# TODO: catch errors
+	my $plugin_result = $plugin->get_data( sub {
 		# Fetch server response
 		my $res = $_[1];
-		#$res->decode(); # TODO how to download gzip compressed pages?
 
 		# Do one-time stuff
-		unless ($flag) {
-
+		unless ($flag) {		
+			# Get content encoding
+			$encoding = $res->header("Content-Encoding");
+			debug("content-encoding is $encoding");
+			
 			# Save length and print
 			$size = $res->content_length;
 			if ($size)
@@ -251,33 +255,60 @@ sub download($$$$) {
 
 			# If plugin didn't tell us name of the file, we can get it from http response or request.
 			if(!$filename) {
-				if ($res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
+				if ($res->headers->{'content-disposition'} && $res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
 				else {$filename = (URI->new($res->request->uri)->path_segments)[-1]} # last segment of URI
 				if(!$filename) {$filename = "slimrat_downloaded_file";}
 			}
 
 			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
-
-
 			$to =~ s/\/+$//;
 			$filepath = "$to/$filename";
 
 			# Check if exists
 			# add .1 at the end or increase the number if it is already there
 			$filepath =~ s/(?:\.(\d+))?$/".".(($1 or 0)+1)/e while(-e $filepath);
-
-			info("File will be saved as \"$filepath\"");
-	
+			info("File will be saved as \"$filepath\"");	
 
 			# Open file
-			open(FILE, ">$filepath") or return error("could not open file to write"); 
+			open(FILE, ">$filepath");
+			if (! -w FILE) {
+				error("could not open file to write");
+				goto ERROR;
+			}
 			binmode FILE;
 			
 			$flag = 1;
 		}
 		
 		# Write the data
-		print FILE $_[0];
+		if (!defined $encoding) {
+			print FILE $_[0];		
+		}
+		elsif ($encoding eq "gzip") {
+			my $data = Compress::Zlib::memGunzip($_[0]);
+			if (!$data) {
+				error("could not gunzip data: $!");
+				goto ERROR;
+			}
+			print FILE $data;
+		} elsif ($encoding eq "deflate") {
+			if (!$encoding_extra) {
+				$encoding_extra = inflateInit(WindowBits => - MAX_WBITS) || return error("could not setup inflation handler");
+			}
+			my ($output, $status) = $encoding_extra->inflate($_[0]);
+			if ($status == Z_OK or $status == Z_STREAM_END) {
+				print FILE $output;
+			} else {
+				error("inflation failed with status '$status': ", $encoding_extra->msg());
+				goto ERROR; # TODO: is there a cleaner way to exit this sub? Return doesn't work, and die() quits
+				            # the downloading as documented but makes it undetectable ($plugin_result is
+				            # a HTTP::Resonse object as get_data didn't fail but correctly returns the result
+				            # of the last statement)...
+			}
+		} else {
+			error("unhandled content encoding '$encoding'");
+			goto ERROR;
+		}
 		
 		# Download indication
 		$done_prev += length($_[0]);
@@ -288,20 +319,23 @@ sub download($$$$) {
 			$t_prev = time;
 		}
 	}, $read_captcha);
-
-	if ($size) {
-		&$progress($size, $size, 0, 1);
-	} else {
-		&$progress($size_downloaded, 0, 0, 1);
+	
+	# Finish the progress bar
+	if ($plugin_result) {	
+		if ($size) {
+			&$progress($size, $size, 0, 1);
+		} else {
+			&$progress($size_downloaded, 0, 0, 1);
+		}
 	}
 	print "\r\n";
 	
 	# Close file
 	close(FILE);
 	
-	# Download finished
-	info("File downloaded") if $plugin_result;
-	return $plugin_result;
+	# Return correctly
+	return ($plugin_result?1:0);
+	ERROR: return 0;
 }
 
 1;

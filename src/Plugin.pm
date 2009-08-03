@@ -60,9 +60,9 @@ my %plugins;
 my $config = new Configuration;
 $config->set_default("useragent", "Mozilla/5.0 (X11; U; Linux i686; en-US) Gecko/2009042316 Firefox/3.0.10");
 
-
+# Shared WWW::Mechanize object
 my $mech = WWW::Mechanize->new(agent => $config->get("useragent"));
-$mech->default_header('Accept-Encoding' => scalar HTTP::Message::decodable());
+$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]);
 $mech->default_header('Accept-Language' => "en");
 
 
@@ -78,7 +78,7 @@ sub new {
 	fatal("cannot create plugin without configuration") unless ($config);
 
 	if(my $plugin = get_package($url)){
-		my $object = new $plugin ($config->section($plugin), $url, $mech);
+		my $object = new $plugin ($config->section($plugin), $url, $mech->clone());
 		return $object;
 	}
 	return 0;
