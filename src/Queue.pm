@@ -255,11 +255,11 @@ file should contain data which has been saved using the save($file) routine.
 This saves the data from the queue in a file, by serializing it. Can be restored
 through a constructor with given filename.
 
-=head2 Queue::reset()
+=head2 $queue->reset()
 
 Resets the queue, by erasing all internal datastructures.
 
-==head2 Queue::restart()
+==head2 $queue->restart()
 
 Restarts already processed downloads, by resetting certain internal arrays which
 control which URLs should be processed and which shouldn't. Can be used in combination
