@@ -168,12 +168,7 @@ $gui->get_widget('mainwin')->show_all;
 
 # Load queue'd URLs
 my $queue;
-if (-e &config_gui->get("queue_file")) {
-	$queue = Queue::new(&config_gui->get("queue_file")) || Queue::new();
-	$queue->restart();
-} else {
-	$queue = Queue::new();
-}
+$queue = Queue::new(&config_gui->get("queue_file"));
 while ($_ = $queue->get){
 	my @newRow;
 	$newRow[COL_PROGR] = -2;

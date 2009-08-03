@@ -53,12 +53,17 @@ use warnings;
 
 # Constructor
 sub new {
-	my $file = shift;
 	my $self;
+	
+	# Fetch serialized Queue object
+	my $file = shift;
 	if (-f $file) {
-		# TODO: wrap in "Safe" block, or eval (because this does not work ^^)
-		$self = retrieve($file) || return error("could not retrieve queue out of '$file'");
-	} else {
+		eval { $self = retrieve($file) };
+		error("could not reconstruct queue out of '$file'") if ($@);
+	}
+	
+	# If unsuccessfull (or not required), construct new object
+	if (!$self) {
 		$self = {
 			_file		=>	undef,
 			_queued		=>	[],
