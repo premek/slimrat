@@ -28,6 +28,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #    Přemek Vyhnal <premysl.vyhnal gmail com> 
 #
 
@@ -146,4 +147,70 @@ sub load_plugins {
 	scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
 }
 
+# Return
 1;
+
+__END__
+
+=head1 NAME 
+
+Plugin
+
+=head1 SYNOPSIS
+
+  use Plugin;
+  
+  load_plugins();
+  
+  # To be done in a plugin
+  register("TestPlugin", "http://www.TestSite.com");
+  
+  # Should result in "TestPlugin"
+  my $pluginname = get_package("http://www.TestSite.com/download.php");
+  
+  # Instantiates an object from package TestPlugin
+  my $plugin = Plugin::new("http://www.TestSite.com/download.php");
+
+=head1 DESCRIPTION
+
+Plugin manager, responsible for loading, checking, registering, and
+dispatching plugins.
+
+=head1 METHODS
+
+=head2 Plugin::new($url)
+
+Constructs a new object which is able to download the given URL. This object
+is no instance of this package, but from a plugin which has been registered
+to be able to process a given set of URLs.
+
+=head2 Plugin::configure($config)
+
+Merges the local base config with a set of user-defined configuration
+values.
+
+=head2 Plugin::register($name, $regex)
+
+Should be called by plugins, registers itself to get called when the $regex
+matches. $name should be identical to the package name of the plugin which should
+be called upon match, if not slimrat might die horribly.
+
+=head2 Plugin::get_package($url)
+
+Get the package assigned with a given $url. This is for informational purposes, as
+it does not instantiate an object of that type but merely does a lookup in the
+internal datastructures.
+
+=head2 Plugin::load_plugins()
+
+Scans for plugins, checks their dependancies, and if met executes the plugin
+file which subsequently should call Plugin::register() to get assigned with
+a match of URLs.
+
+=head1 AUTHOR
+
+Přemek Vyhnal <premysl.vyhnal gmail com> 
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
+

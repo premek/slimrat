@@ -362,7 +362,13 @@ or hidden depending to a globally set verbosity level.
 
 =head1 METHODS
 
-=head2 output($colour, $timestamp, $category, \@messages, $verbosity))
+=head2 Log::configure($config)
+
+Merges the local base config with a set of user-defined configuration
+values. This is a static method, and saves the configuration statically,
+which means it applies to all (have been and to be) instantiated objects.
+
+=head2 Log::output($colour, $timestamp, $category, \@messages, $verbosity))
 
 This is the main function of the Log module, but mustn't be used directly. It prints
 a set of messages, prefixed by $colour (to colourize the message), and optionally
@@ -372,27 +378,27 @@ verbosity level. The $timestamp value controls whether a timestamp is printed, w
 absent spaces pad the message to line it out ($timestamp=0 is thus ideally for
 a multiline message).
 
-=head2 timestamp()
+=head2 Log::timestamp()
 
 This generates a timestamp, and is also mainly intended for internal use by the
 output() function.
 
-=head2 level($level)
+=head2 Log::level($level)
 
 This sets the application-wide verbosity level, in which a higher level will print
 more, and a lower level less (see the actual message functions to see which type of
 message each level correlates with).
 
-=head2 debug(@messages)
+=head2 Log::debug(@messages)
 
 This prints all passed arguments as a debug message in a green colour. Verbosity level
 has to be 4 or more.
 
-=head2 info(@messages)
+=head2 Log::info(@messages)
 
 This prints all passed arguments as an informational message in the standard colou
 
-=head2 progress(@messages)
+=head2 Log::progress(@messages)
 
 Print a progress indicating message. Before the messages are printed, the cursor is moved
 back to the begin of the line by printing a carriage return. This feature combined with
@@ -401,42 +407,42 @@ which every progress() call overwrites the previously progress indication (unles
 endline has been appended).
 The message does not get print if the output mode is "log" rather than "full".
 
-=head2 warning(@messages)
+=head2 Log::warning(@messages)
 
 This prints all passed arguments as a warning in a red colour. Verbosity level has
 to be 2 or more. A warning indicates something awkward has happened, but it is not
 severe and the program can continue working (e.g. a suspicious URL redirect).
 
-=head2 error(@messages)
+=head2 Log::error(@messages)
 
 This prints all passed arguments as an error in a red colour. Verbosity level has
 to be 1 or more. An error indicates something quite severe has happened, but is
 not fatal and the program can continue working without much consequences (e.g.
 a plugin has failed).
 
-=head2 fatal(@messages)
+=head2 Log::fatal(@messages)
 
 This prints all passed arguments as a fatalerror in a red colour. Verbosity level has
 to be 0 or more. Such an error indicates something severe has happened, and the
 program cannot continue execution (e.g. configuration file not found). This routine
 calls the main quit() function.
 
-=head2 summary($succeeded, $failed)
+=head2 Log::summary($succeeded, $failed)
 
 This prints a download summary, given two refs to arrays with actual links.
 
-=head2 status($link, $status, $extra)
+=head2 Log::status($link, $status, $extra)
 
 Print a one-line status indication for a given download URL, with some extra information
 between brackets.
 
-=head2 dump_add($data, $extra, $type)
+=head2 Log::dump_add($data, $extra, $type)
 
 Adds data to the dump cache, which will later on be saved in a file ending on $type. Disabled
 when the "dumps" config variable is not set. $extra indicates extra information and can be
 omitted, as well as $type which then defaults to "html".
 
-=head2 dump_write()
+=head2 Log::dump_write()
 
 Writes the dump cache to a persistent file. Firstly a temporary folder is created in /tmp in which
 all files get dumped, after which "tar" and "bzip2" are used to compress the folder and place the

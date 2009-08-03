@@ -205,7 +205,7 @@ sub file_read($$) {
 			$value =~ s#^~/#$ENV{'HOME'}/#;
 			
 			# Substitute negatively connoted values
-			$value =~ s/^(off|none|disabled|false)$/0/i;
+			$value =~ s/^(off|none|disabled|false|no)$/0/i;
 			
 			if ($key =~ m/(:)/) {
 				warn("ignored configuration entry due to protected string in key ('$1')");
