@@ -205,7 +205,7 @@ if (&config_cli->get("mode") eq "check") {
 		my $alive = 0;
 		# Load plugin
 		my $plugin;
-		unless ($plugin = Plugin->new($link)) {
+		unless ($plugin = Plugin->new($link, $mech)) {
 			status($link, 0, "plugin failure");
 		} else {
 			my $status = $plugin->check();

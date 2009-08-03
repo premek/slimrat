@@ -43,7 +43,7 @@ package Common;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_verbosity config_readfiles config_other config_cli config_gui get_guicfg daemonize pid_read download);
+@EXPORT = qw(config_verbosity config_readfiles config_other config_cli config_gui get_guicfg daemonize pid_read download $mech);	# TODO: export of $mech shouldn't be neccesary, move all Plugin->new calls to Common?
 
 # Packages
 use POSIX 'setsid';
@@ -67,6 +67,14 @@ use warnings;
 # Main configuration object
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
+
+# Browser
+our $mech = WWW::Mechanize->new(agent => $config->get("useragent"));
+# $mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
+$mech->default_header('Accept-Language' => "en");
+
+# Proxy manager
+my $proxy = new Proxy($mech);
 
 
 
@@ -100,6 +108,9 @@ sub config_other {
 
 	# Configure the plugin producer
 	Plugin::configure($config);
+	
+	# Configure the proxy manager
+	Proxy::configure($config->section("proxy"));
 	
 	# Make sure slimrat has a proper directory in the users home folder
 	if (! -d $ENV{HOME}."/.slimrat") {
@@ -194,9 +205,10 @@ sub download($$$$) {
 	my ($link, $to, $progress, $read_captcha) = @_;
 	
 	info("Downloading ", $link);
+	$proxy->advance();
 
 	# Load plugin
-	my $plugin = Plugin->new($link) || return 0;
+	my $plugin = Plugin->new($link, $mech) || return 0;
 	my $pluginname = $plugin->get_name();
 
 	debug("Downloading \"$link\" using the $pluginname-plugin");

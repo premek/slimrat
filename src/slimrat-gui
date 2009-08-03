@@ -387,7 +387,7 @@ sub on_btnCheck_clicked {
 			# Load plugin
 			my $plugin;
 			my $check = 0;
-			if ($plugin = Plugin->new($link)) {
+			if ($plugin = Plugin->new($link, $mech)) {
 				# Check status
 				$check = $plugin->check();
 			}

@@ -49,6 +49,7 @@ use lib $RealBin;
 # Custom packages
 use Log;
 use Configuration;
+use Proxy;
 
 # Write nicely
 use strict;
@@ -61,11 +62,6 @@ my %plugins;
 my $config = new Configuration;
 $config->set_default("useragent", "Mozilla/5.0 (X11; U; Linux i686; en-US) Gecko/2009042316 Firefox/3.0.10");
 
-# Shared WWW::Mechanize object
-my $mech = WWW::Mechanize->new(agent => $config->get("useragent"));
-$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]);
-$mech->default_header('Accept-Language' => "en");
-
 
 
 #
@@ -75,11 +71,12 @@ $mech->default_header('Accept-Language' => "en");
 # Get an object
 sub new {
 	my $url = $_[1];
+	my $mech = $_[2];
 	
 	fatal("cannot create plugin without configuration") unless ($config);
 
-	if(my $plugin = get_package($url)){
-		my $object = new $plugin ($config->section($plugin), $url, $mech->clone());
+	if (my $plugin = get_package($url)) {
+		my $object = new $plugin ($config->section($plugin), $url, $mech);
 		return $object;
 	}
 	return 0;
@@ -169,7 +166,7 @@ Plugin
   my $pluginname = get_package("http://www.TestSite.com/download.php");
   
   # Instantiates an object from package TestPlugin
-  my $plugin = Plugin::new("http://www.TestSite.com/download.php");
+  my $plugin = Plugin::new("http://www.TestSite.com/download.php", $browser);
 
 =head1 DESCRIPTION
 
@@ -178,11 +175,13 @@ dispatching plugins.
 
 =head1 METHODS
 
-=head2 Plugin::new($url)
+=head2 Plugin::new($url, $ua)
 
 Constructs a new object which is able to download the given URL. This object
 is no instance of this package, but from a plugin which has been registered
 to be able to process a given set of URLs.
+$ua is the browser (LWP::UserAgent object) which shall be used to download
+the file (upon the plugins get_data call).
 
 =head2 Plugin::configure($config)
 
