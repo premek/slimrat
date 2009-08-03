@@ -75,7 +75,6 @@ use warnings;
 # Register signals
 $SIG{'INT'} = 'quit';
 
-
 # Global variables
 my (@failedlinks, @oklinks);
 
