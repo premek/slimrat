@@ -118,9 +118,7 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	if ($self->{PRIMARY}->decoded_content() =~ m/slots for your country are busy/) {
-		return error("all downloading slots for your country are busy");
-	}
+
 	
 
 	my $download;
@@ -137,6 +135,9 @@ sub get_data {
 			info("You are already downloading a file from Depositfiles.");
 			$wait = 60;
 		} 
+		elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
+			return error("All downloading slots for your country are busy");
+		}
 		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
 			if ($time eq "min") {$wait *= 60;}
 			elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
