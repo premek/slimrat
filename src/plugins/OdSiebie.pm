@@ -116,7 +116,7 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?odsiebie.com");
+Plugin::register("^[^/]+//(?:www.)?odsiebie.com");
 
 1;
 

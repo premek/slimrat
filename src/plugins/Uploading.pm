@@ -134,6 +134,6 @@ sub get_data {
 }
 
 # Register the plugin
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?uploading.com");
+Plugin::register("^([^:/]+://)?([^.]+\.)?uploading.com");
 
 1;

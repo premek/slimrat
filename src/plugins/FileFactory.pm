@@ -149,6 +149,6 @@ sub get_data {
 }
 
 # Register the plugin
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?filefactory.com");
+Plugin::register("^([^:/]+://)?([^.]+\.)?filefactory.com");
 
 1;

@@ -94,8 +94,8 @@ sub configure {
 
 # Register a plugin
 sub register {
-	my ($name,$re) = @_;
-	$plugins{$re}=$name;
+	$plugins{shift()}=(caller)[0];
+	error("Incompatible plugin: ".(caller)[0].". Plugin::register() must be called with regex only now.") if shift; # Remove this later
 }
 
 # Get a plugin's name
@@ -189,11 +189,10 @@ to be able to process a given set of URLs.
 Merges the local base config with a set of user-defined configuration
 values.
 
-=head2 Plugin::register($name, $regex)
+=head2 Plugin::register($regex)
 
 Should be called by plugins, registers itself to get called when the $regex
-matches. $name should be identical to the package name of the plugin which should
-be called upon match, if not slimrat might die horribly.
+matches. 
 
 =head2 Plugin::get_package($url)
 

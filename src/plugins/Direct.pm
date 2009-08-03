@@ -66,7 +66,7 @@ sub new {
 	
 	$self->{CONF}->set_default("enabled", 0);
 	if ($self->{CONF}->get("enabled")) {
-		warning("no appropriate plugin found, downloading using 'Direct' plugin");
+		warning("no appropriate plugin found, using 'Direct' plugin");
 	} else {
 		return error("no appropriate plugin found");
 	}

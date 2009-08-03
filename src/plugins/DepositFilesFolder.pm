@@ -106,6 +106,6 @@ sub get_data {
 	}
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(?:www.)?depositfiles.com/(?:[a-z]{2}/)?folders");
+Plugin::register("^[^/]+//(?:www.)?depositfiles.com/(?:[a-z]{2}/)?folders");
 
 1;
