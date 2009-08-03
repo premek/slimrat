@@ -149,6 +149,6 @@ sub get_data {
 }
 
 # Register the plugin
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?rapidshare.com");
+Plugin::register("^([^:/]+://)?([^.]+\.)?rapidshare.com");
 
 1;

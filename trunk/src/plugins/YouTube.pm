@@ -112,6 +112,6 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//[^.]*\.?youtube\.com/watch[?]v=.+");
+Plugin::register("^[^/]+//[^.]*\.?youtube\.com/watch[?]v=.+");
 
 1;

@@ -172,6 +172,6 @@ sub get_data {
 	$self->{MECH}->request($req, $data_processor);
 }
 
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?easy-share.com");
+Plugin::register("^([^:/]+://)?([^.]+\.)?easy-share.com");
 
 1;

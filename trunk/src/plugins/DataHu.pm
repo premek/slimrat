@@ -131,6 +131,6 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
-Plugin::register(__PACKAGE__,"^([^:/]+://)?([^.]+\.)?data.hu");
+Plugin::register("^([^:/]+://)?([^.]+\.)?data.hu");
 
 1;
