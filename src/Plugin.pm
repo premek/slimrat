@@ -60,7 +60,6 @@ my %plugins;
 
 # Static reference to the configuration object
 my $config = new Configuration;
-$config->set_default("useragent", "Mozilla/5.0 (X11; U; Linux i686; en-US) Gecko/2009042316 Firefox/3.0.10");
 
 
 
@@ -133,7 +132,7 @@ sub load_plugins {
 		# Execute
 		do $plugin;
 		if($@) {
-			debug("\n".$@);
+			error("\n".$@);
 			fatal("plugin '$plugin' failed to load".($!?" ($!)":""));
 		}
 	}
