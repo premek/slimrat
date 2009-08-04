@@ -71,6 +71,7 @@ sub new {
 		return error("no appropriate plugin found");
 	}
 
+	$self->{HEAD} = $self->{MECH}->head($self->{URL});
 
 	bless($self);
 	return $self;
@@ -86,31 +87,24 @@ sub get_filename {
 	my $self = shift;
 	
 	# Get filename through HTTP request
-	my $filename = ($self->{MECH}->head($self->{URL})->filename);
+	my $filename = $self->{HEAD}->filename;
 	
 	# If unsuccessfull, deduce from URL
-	unless ($filename) {
-		if ($self->{URL} =~ m/http.+\/([^\/]+)$/) {
-			$filename = $1;
-		} else {
-			return error("could not deduce filename");
-		}
-	}
+	$filename = ((URI->new($self->{URL})->path_segments)[-1]) unless ($filename);
 	return $filename;
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
-	
-	return 0;
+	return $self->{HEAD}->content_length;
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	return 1 if ($self->{MECH}->head($self->{URL})->is_success);
+	return 1 if ($self->{HEAD}->is_success);
 	return -1;
 }
 
@@ -119,7 +113,6 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# TODO: does not work with gzip compression
 	$self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
 }
 

@@ -69,9 +69,11 @@ my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 
 # Browser
-our $mech = WWW::Mechanize->new(agent => $config->get("useragent"));
+our $mech = WWW::Mechanize->new();
 # $mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
 $mech->default_header('Accept-Language' => "en");
+$mech->agent_alias((WWW::Mechanize::known_agent_aliases())[0]);
+$mech->agent($config->get("useragent")) if($config->get("useragent")); # TODO : I dont have my configuration (from file) here. helpme ;)
 
 # Proxy manager
 my $proxy = new Proxy($mech);
