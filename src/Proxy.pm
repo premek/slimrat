@@ -35,9 +35,13 @@
 # Configuration
 #
 
+# Package name
 package Proxy;
 
-# Modules
+# Packages
+use Class::Struct;
+
+# Custom packages
 use Log;
 use Configuration;
 
@@ -49,10 +53,16 @@ use warnings;
 my $config = new Configuration;
 $config->set_default("limit_downloads", 5);
 $config->set_default("limit_seconds", 0);
-$config->set_default("random", 0);
+$config->set_default("order", "circular");
 
 # Browser
 my $ua;
+
+# A proxy item
+struct(ProxyData =>	{
+		link		=>	'$',
+		protocols	=>	'@',
+});
 
 
 #
@@ -68,7 +78,8 @@ sub new {
 		ua		=>	$ua,
 		downloads	=>	0,
 		starttime	=>	0,
-		uris		=>	[]
+		uris		=>	[],
+		flags		=>	0
 	};
 	
 	bless $self, 'Proxy';
@@ -111,10 +122,12 @@ sub cycle {
 	my ($self) = @_;
 	
 	# Read if empty
-	if (-f $config->get("list")) {
-		error("this stuff ain't working yet, check back later!");
-	} elsif ($config->get("list")) {
-		error("proxy file nonexistant");
+	if ($self->{flags} | 1) {
+		$self->{flags} |= 1;
+		if ($config->get("list")) {
+			return fatal("could not read proxy file") unless (-r $config->get("list"));
+			$self->file_read();
+		}
 	}
 	
 	# Reset counters
@@ -122,22 +135,57 @@ sub cycle {
 	$self->{starttime} = 0;
 	
 	# Pick next proxy
-	if ($config->get("random")) { # by random
+	if ($config->get("order") eq "random") {
 		my $index = rand(scalar(@{$self->{uris}}));
 		my $uri = delete($self->{uris}->[$index]);
 		unshift(@{$self->{uris}}, $uri);
-	} else { # circular
+	} elsif ($config->get("order") eq "circular") {
 		my $uri = shift(@{$self->{uris}});
 		push(@{$self->{uris}}, $uri);
+	} else {
+		return error("unrecognized proxy order '", $config->get("order"), "'");
 	}
 	
+	# Select proxy if available
 	if (scalar(@{$self->{uris}})) {
-		$self->{ua}->proxy(["http", "ftp"], "http://blabla:8080");
+		my $proxy = $self->{uris}->[0];
+		debug("using proxy '", $proxy->link(), "' for protocols ", join(" and ", $proxy->protocols()));
+		$self->{ua}->proxy($proxy->protocols(), $proxy->link());
 		return 1;
 	} else {
+		debug("disabling proxies");
 		$self->{ua}->no_proxy();
 		return 0;
 	}
+}
+
+# Read proxy file
+sub file_read() {
+	my ($self) = @_;
+	debug("reading proxy file '", $config->get("list"), "'");
+
+	open(FILE, $config->get("list")) || fatal("could not read proxy file");
+	while (<FILE>) {
+		# Skip things we don't want
+		next if /^#/;		# Skip comments
+		next if /^\s*$/;	# Skip blank lines
+		
+		# Process a valid proxy
+		if ($_ =~ m/^\s*(\S+)\t(\S+)\s*/) {
+			my $link = $1;
+			my $protocols_string = $2;
+			my @protocols = split(/,/, $protocols_string);
+			
+			my $proxy = ProxyData->new();
+			$proxy->link($link);
+			$proxy->protocols(@protocols);
+			
+			push(@{$self->{uris}}, $proxy);
+		} else {
+			warning("unrecognised line in proxy file: '$_'");
+		}
+	}
+	close(FILE);
 }
 
 # Return

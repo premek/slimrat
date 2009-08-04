@@ -35,12 +35,15 @@
 # Configuration
 #
 
+# Package name
 package Queue;
 
-# Modules
+# Packages
+use Storable;
+
+# Custom packages
 use Toolbox;
 use Log;
-use Storable;
 
 # Write nicely
 use strict;
@@ -85,7 +88,7 @@ sub add {
 sub file {
 	my ($self, $file) = @_;
 	
-	fatal("queue file \"$file\" not readable") unless (-r $file);
+	fatal("queue file '$file' not readable") unless (-r $file);
 
 	# Configure the file
 	$self->{_file} = $file;
@@ -97,6 +100,7 @@ sub file {
 # Add an URL from the file to the queue
 sub file_read {
 	my ($self) = @_;
+	debug("reading queue file '", $self->{_file}, "'");
 	
 	if (defined($self->{_file})) {
 		open(FILE, $self->{_file}) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
@@ -114,6 +118,8 @@ sub file_read {
 					$self->add($url);
 					last;
 				}
+			} else {
+				warning("unrecognised line in queue file: '$_'");
 			}
 		}
 		close(FILE);

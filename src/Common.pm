@@ -51,14 +51,14 @@ use Time::HiRes qw(time);
 use URI;
 use Compress::Zlib;
 
-# Find root for custom packages
-use FindBin qw($RealBin);
-use lib $RealBin;
-
 # Custom packages
 use Configuration;
 use Log;
 use Plugin;
+
+# Find root for custom packages
+use FindBin qw($RealBin);
+use lib $RealBin;
 
 # Write nicely
 use strict;
