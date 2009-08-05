@@ -271,7 +271,7 @@ sub download($$$$) {
 			if(!$filename) {
 				if ($res->headers->{'content-disposition'} && $res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
 				else {$filename = (URI->new($res->request->uri)->path_segments)[-1]} # last segment of URI
-				if(!$filename) {$filename = "slimrat_downloaded_file";}
+				if(!$filename) {$filename = "SLIMRAT_DOWNLOADED_FILE";}
 			}
 
 			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
