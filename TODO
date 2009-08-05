@@ -8,6 +8,7 @@
 
 * 1.0
   - Handle debug messages before log initialisation somehow (e.g. amount of plugins loaded)
+  - Limit maximum download speed
   - Test everything!
   - Test everything again ;)
   - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
