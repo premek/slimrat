@@ -116,6 +116,6 @@ sub get_data {
 	$self->{MECH}->request($req, $data_processor);
 }
 
-Plugin::register("^[^/]+//(uploaded.to/file|ul.to)/");
+Plugin::register("^[^/]+//(uploaded.to(/file)?|ul.to)/");
 
 1;
