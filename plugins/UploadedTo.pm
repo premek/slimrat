@@ -88,6 +88,6 @@ sub download {
 	return $download;
 }
 
-Plugin::register(__PACKAGE__,"^[^/]+//(uploaded.to/file|ul.to)/");
+Plugin::register(__PACKAGE__,"^[^/]+//(uploaded.to(/file)?|ul.to)/");
 
 1;
