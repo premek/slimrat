@@ -59,14 +59,13 @@ use warnings;
 
 # Constructor
 sub new {
-	warning("captcha's not implemented yet, might fail upon big files");
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
 	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # TODO - broken on 404 links
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
 	dump_add($self->{MECH}->content());
 
@@ -107,30 +106,48 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-	
-	$_ = $self->{PRIMARY}->decoded_content;
-	
-	# Extract primary wait timer
-	my($wait1) = m#timerend\=d\.getTime\(\)\+([0-9]+);
-  document\.getElementById\(\'dwltmr\'\)#;
-	$wait1 /= 1000;
-	
-	# Extract secondary wait timer
-	my($wait2) = m#timerend\=d\.getTime\(\)\+([0-9]+);
-  document\.getElementById\(\'dwltxt\'\)#;
-	$wait2 /= 1000;
-	
-	# Wait
-    wait($wait1 + $wait2);
-        
-	# Click the button
-	$self->{MECH}->form_number(2); # free;
-	$self->{MECH}->submit_form();
-	dump_add($self->{MECH}->content());	
-	
-	# Extract the download URL
-	my $download = $self->{MECH}->find_link( text => 'Click here to download' )->url();
+	my $read_captcha = shift;
+
+
+	my $download;
+	my $watchdog=0;
+	my $cont = $self->{PRIMARY}->decoded_content;
+	while($watchdog++<3){
+
+		my($wait1, $wait2)=0;
+		
+		# Extract primary wait timer
+		if(($wait1) = $cont =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#){
+			$wait1 /= 1000;
+		}
+
+		# Extract secondary wait timer
+		if(($wait2) = $cont =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#){
+			$wait2 /= 1000;
+		}
+
+		# Wait
+		wait($wait1 + $wait2);
+
+		# Click the button
+		$self->{MECH}->form_name("f") and # free;
+		$self->{MECH}->submit_form() and
+		dump_add($self->{MECH}->content());	
+
+		# Captcha
+		while ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#){
+			$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
+			dump_add($self->{MECH}->content());
+		}
+
+		# Extract the download URL
+		last if ($download = $self->{MECH}->find_link( text => 'Click here to download' ));
+
+		$cont = $self->{MECH}->content();
+	}
+
 	return error("plugin error (could not extract download link)") unless $download;
+	$download = $download->url();
 	
 	# Download the data
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
