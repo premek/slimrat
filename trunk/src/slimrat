@@ -257,12 +257,10 @@ elsif (&config_cli->get("mode") eq "download") {
 					}
 				},
 				sub { # Captcha handler
-					my $captchaimg = shift;
+					my $captchafile = shift;
 					
-					# Download & view
-					system("wget -q '$captchaimg' -O /tmp/slimrat-captcha.tmp"); # TODO replace wget
+					# view
 					system(sprintf &config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
-					unlink("/tmp/slimrat-captcha.tmp");
 					
 					# Ask the user
 					print "Captcha? ";

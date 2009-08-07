@@ -313,12 +313,9 @@ sub on_btnStart1_clicked {
 							}
 						},
 						sub { # captcha
-							my $captchaimg = shift;
+							my $captchafile = shift;
+							my $captcha;
 
-							my $captcha = undef;
-
-							system("wget -q '$captchaimg' -O /tmp/slimrat-captcha.tmp"); # TODO replace wget
-							
 							my $gui = Gtk2::GladeXML->new($glade_file, 'captchaDialog');
 							$gui->signal_autoconnect_from_package('main');
 							my $captcha_dialog = $gui->get_widget('captchaDialog');
@@ -334,13 +331,12 @@ sub on_btnStart1_clicked {
 							$gui->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($gui->get_widget('captchaTxt')->get_text); } ); 
 							$gui->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($gui->get_widget('captchaTxt')->get_text); } ); 
 
-							$gui->get_widget('captchaImage')->set_from_file("/tmp/slimrat-captcha.tmp");
+							$gui->get_widget('captchaImage')->set_from_file($captchafile);
 
 							while(! defined $captcha){
-								sleep 1;
+								sleep 1; # hmm...
 							}
 
-							unlink("/tmp/slimrat-captcha.tmp");
 							return $captcha;
 						}
 				);
