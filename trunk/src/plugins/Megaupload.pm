@@ -92,7 +92,7 @@ sub check {
 	my $self = shift;
 	
 	$_ = $self->{PRIMARY}->decoded_content;
-	return -1 if (m#link you have clicked is not available#);
+	return -1 if (m#link you have clicked is not available|This file has expired#);
 	return 1 if(m#gencap\.php#);
 	return 0;
 }
@@ -104,11 +104,11 @@ sub get_data {
 	my $read_captcha = shift;
 	
 	my ($res, $captcha);
+	my $cont = $self->{PRIMARY}->decoded_content;
 	do {
-		$_ = $self->{PRIMARY}->decoded_content;
 
 		# Download & view captcha image
-		my ($captchaimg) = m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
+		my ($captchaimg) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
 		return error("can't get captcha image") unless ($captchaimg);
 
 		$captcha = &$read_captcha($captchaimg);
@@ -117,6 +117,8 @@ sub get_data {
 		# submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
+		dump_add($self->{MECH}->content());
+		$cont = $self->{MECH}->content();
 	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
 
 	return error("No captcha code entered") unless $captcha;

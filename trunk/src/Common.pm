@@ -246,6 +246,7 @@ sub download($$$$) {
 	my $encoding;
 	my $encoding_extra;
 	my $flag = 0;
+	my $ocrcounter = 0;
 	$|++; # unbuffered output
 	# store (and later return) return value of get_data()
 	my $plugin_result = $plugin->get_data( sub {
@@ -340,7 +341,7 @@ sub download($$$$) {
 		# Download captcha image
 		system("wget -q '$captchaurl' -O $tmpname"); # TODO replace wget
 		
-		if ($config->get("captcha_reader")) {
+		if ($config->get("captcha_reader") && $ocrcounter++<5) {
 			my $command = sprintf $config->get("captcha_reader"), $tmpname;
 			$captcha = `$command`;
 			$captcha =~ s/\s+//g;
