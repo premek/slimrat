@@ -1,3 +1,14 @@
+2009-08-07  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * captcha: OCR support
+
+    * plugins: downloading the primary page at constructor in all plugins
+
+    * plugins: registering without __PACKAGE__
+
+    * plugins: fixed: Depositfiles, HotFile (captcha), UploadedTo
+
+
 2009-08-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * Common: initial work on content encodings.
