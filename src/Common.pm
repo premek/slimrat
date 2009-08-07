@@ -204,7 +204,7 @@ sub pid_read() {
 
 # Redirect download() call to the correct plugin
 sub download($$$$) {
-	my ($link, $to, $progress, $read_captcha) = @_;
+	my ($link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading ", $link);
 	$proxy->advance();
@@ -332,7 +332,25 @@ sub download($$$$) {
 			$done_prev = 0;
 			$t_prev = time;
 		}
-	}, $read_captcha);
+	}, sub { # autoread captcha if configured, else let user read it
+		my $captchaurl = shift;
+		my $tmpname = "/tmp/slimrat-captcha.tmp";
+		my $captcha;
+		
+		# Download captcha image
+		system("wget -q '$captchaurl' -O $tmpname"); # TODO replace wget
+		
+		if ($config->get("captcha_reader")) {
+			my $command = sprintf $config->get("captcha_reader"), $tmpname;
+			$captcha = `$command`;
+			$captcha =~ s/\s+//g;
+			debug("Captcha readed by OCR: '$captcha'");
+		}
+		$captcha = &$captcha_user_read($tmpname) unless $captcha;
+
+		unlink($tmpname);
+		return $captcha;
+	});
 	
 	# Finish the progress bar
 	if ($plugin_result) {	
