@@ -138,7 +138,7 @@ sub load_plugins {
 	}
 
 	fatal("No plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
-	debug("loaded " . keys(%plugins) . " plugins (", join(", ", values %plugins), ")");
+	debug("loaded " . keys(%plugins) . " plugins (", join(", ", sort values %plugins), ")");
 
 	scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
 }
