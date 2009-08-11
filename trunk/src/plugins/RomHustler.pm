@@ -38,7 +38,7 @@
 #
 
 # Package name
-package RomHustlerNet;
+package RomHustler;
 
 # Custom packages
 use Log;
@@ -48,6 +48,7 @@ use Configuration;
 # Write nicely
 use strict;
 use warnings;
+
 
 #
 # Routines
@@ -71,7 +72,7 @@ sub new {
 
 # Plugin name
 sub get_name {
-	return "Rom Hustler";
+	return "RomHustler";
 }
 
 # Filename
@@ -92,7 +93,7 @@ sub check {
 
 	# Check if the download form is present
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#<h2>Downloading\.\.\.</h2>#);
-	#return -1 if ($self->{PRIMARY}->decoded_content =~ m/Error: Unknown game an\/or system/);
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/Error: Unknown game and\/or system/);
 	return 0;
 }
 
