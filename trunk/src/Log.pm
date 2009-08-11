@@ -76,6 +76,7 @@ struct(Dump =>	{
 		extra		=>	'$'
 });
 my @dumps;
+my $dump_output;
 
 # Progress length variable
 my $progress_length = 0;
@@ -112,6 +113,17 @@ sub output {
 	if ($config->get("screen")) {
 		my $fh;
 		open($fh, ">&STDOUT");
+		output_raw($fh, @args);
+		close($fh);
+	}
+	
+	# Delete colours
+	delete($args[0]);
+	
+	# Debug log output when in --debug mode
+	if ($config->get("verbosity") >= 5) {
+		my $fh;
+		open($fh, ">>", \$dump_output);
 		output_raw($fh, @args);
 		close($fh);
 	}
@@ -270,7 +282,7 @@ sub wait {
 
 # Dump data for debugging purposes
 sub dump_add {
-	my ($data, $extra, $type) = @_;
+	my ($data, $type, $extra) = @_;
 	$type = "html" unless $type;
 	return unless ($config->get("verbosity") >= 5);
 	my $hierarchy = (caller(1))[3] . ", line " . (caller(0))[2];
@@ -290,13 +302,15 @@ sub dump_add {
 sub dump_write() {
 	return unless ($config->get("verbosity") >= 5);
 	return unless scalar(@dumps);
-
+	
+	# Generate a tag and temporary folder
 	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
 	$year += 1900;
 	my $filename = "slimrat_dump_" . (sprintf "%04d-%02d-%02dT%02d-%02d-%02d",$year,$mon,$mday,$hour,$min,$sec);
-
-	# Generate temporary folder
 	my $tempfolder = tempdir ( $filename."_XXXXX", TMPDIR => 1 );
+	
+	# Dump the actual log
+	dump_add($dump_output, "log", "actual slimrat log");
 	
 	# Dump files
 	debug("dumping " . scalar(@dumps) . " file(s) to disk in temporary folder '$tempfolder'");	
@@ -311,7 +325,11 @@ sub dump_write() {
 		print INFO "\t- Extra information: " . $dump->extra . "\n" if $dump->extra;
 		print INFO "\n";
 		
-		open(DATA, ">:utf8", "$tempfolder/$filename");
+		if ($dump->type =~ m/(htm|css|log|txt)/) {
+			open(DATA, ">:utf8", "$tempfolder/$filename");
+		} else {
+			open(DATA, ">", "$tempfolder/$filename");
+		}
 		print DATA $dump->data;
 		close(DATA);
 		
