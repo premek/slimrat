@@ -61,6 +61,8 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
+	$self->{URL} =~ s#/video/#/download/#;
+	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
 	dump_add($self->{MECH}->content());
