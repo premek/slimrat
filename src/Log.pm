@@ -42,7 +42,7 @@ package Log;
 use Class::Struct;
 use Term::ANSIColor qw(:constants);
 use Cwd;
-use File::Temp qw/ tempfile tempdir /;;
+use File::Temp qw/tempdir/;
 use File::Basename;
 
 # Custom packages

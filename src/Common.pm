@@ -51,6 +51,7 @@ use POSIX 'setsid';
 use Time::HiRes qw(time);
 use URI;
 use Compress::Zlib;
+use File::Temp qw/tempfile/;
 
 # Custom packages
 use Configuration;
@@ -343,23 +344,48 @@ sub download($$$$) {
 			$t_prev = time;
 		}
 	}, sub { # autoread captcha if configured, else let user read it
-		my $captchaurl = shift;
-		my $tmpname = "/tmp/slimrat-captcha.tmp";
-		my $captcha;
+		my $captcha_data = shift;
+		my $captcha_type = shift;
+		my $captcha_value;
 		
-		# Download captcha image
-		system("wget -q '$captchaurl' -O $tmpname"); # TODO replace wget
+		# Dump data in temporary file
+		my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
+		print $fh $captcha_data;
 		
-		if ($config->get("captcha_reader") && $ocrcounter++<5) {
-			my $command = sprintf $config->get("captcha_reader"), $tmpname;
-			$captcha = `$command`;
-			$captcha =~ s/\s+//g;
-			debug("Captcha readed by OCR: '$captcha'");
+		# OCR
+		if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
+			# Convert if needed
+			my $captcha_file_ocr = $captcha_file;
+			if ($config->get("captcha_format") && $captcha_type ne $config->get("captcha_format")) {
+				my $captcha_want = $config->get("captcha_format");
+				my (undef, $captcha_converted) = tempfile(SUFFIX => ".$captcha_want");
+				my $extra = $config->get("captcha_extra") || "";
+				debug("converting captcha from $captcha_type:$captcha_file to $captcha_want:$captcha_converted");
+				`convert $extra $captcha_type:$captcha_file $captcha_want:$captcha_converted`;
+				if ($?) {
+					error("could not convert captcha from given format $captcha_type to needed format $captcha_want, bailing out");
+					goto USER;
+				}
+				$captcha_file_ocr = $captcha_converted;
+			}
+			
+			# Apply OCR
+			my $command = $config->get("captcha_reader");
+			$command =~ s/\$captcha/$captcha_file_ocr/g;
+			$captcha_value = `$command`;
+			if ($?) {
+				error("OCR failed");
+				goto USER;
+			}
+			$captcha_value =~ s/\s+//g;
+			debug("Captcha readed by OCR: '$captcha_value'");
 		}
-		$captcha = &$captcha_user_read($tmpname) unless $captcha;
-
-		unlink($tmpname);
-		return $captcha;
+		
+		# User
+		USER:
+		$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
+		
+		return $captcha_value;
 	});
 	
 	# Finish the progress bar
