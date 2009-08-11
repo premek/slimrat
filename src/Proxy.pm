@@ -184,11 +184,11 @@ sub set($) {
 	# Select proxy if available
 	if (scalar(@{$self->{proxies}})) {
 		my $proxy = $self->{proxies}->[0];
-		debug("using proxy '", $proxy->link(), "' for protocols ", join(" and ", @{$proxy->protocols()}));
+		info("Using proxy '", $proxy->link(), "' for protocols ", join(" and ", @{$proxy->protocols()}));
 		$self->{ua}->proxy($proxy->protocols(), $proxy->link());
 		return 1;
 	} else {
-		debug("disabled proxy");
+		info("Disabled proxies");
 		$self->{ua}->no_proxy();
 		return 0;
 	}
