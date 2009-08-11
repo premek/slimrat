@@ -1,4 +1,9 @@
-2009-08-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+2009-08-11  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: RomHustler added (thanks Kaleb Elwert <vahki.ttc gmail com>)
+
+
+2009-08-11 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * proxy: more work on the proxy manager.
 
