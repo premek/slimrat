@@ -112,7 +112,6 @@ sub get_data {
 		
 		# Download captcha
 		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-		dump_add($captcha_data, "gif");
 		$captcha = &$read_captcha($captcha_data, "gif");
 		$self->{MECH}->back();
 

@@ -410,6 +410,8 @@ slimrat-cli
 
   Enables maximal verbosity, which includes a lot of text on the screen and the generation
   of an additional dump archive.
+  WARNING: do not use this option by default, as it keeps a whole lot of extra information
+           in memory (including _all_ downloaded items).
 
 =item B<--quiet>
 

@@ -346,7 +346,8 @@ sub download($$$$) {
 	}, sub { # autoread captcha if configured, else let user read it
 		my $captcha_data = shift;
 		my $captcha_type = shift;
-		my $captcha_value;
+		my $captcha_value;		
+		dump_add($captcha_data, "gif");
 		
 		# Dump data in temporary file
 		my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
@@ -378,7 +379,7 @@ sub download($$$$) {
 				goto USER;
 			}
 			$captcha_value =~ s/\s+//g;
-			debug("Captcha readed by OCR: '$captcha_value'");
+			debug("Captcha read by OCR: '$captcha_value'");
 		}
 		
 		# User
