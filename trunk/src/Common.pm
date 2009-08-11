@@ -207,7 +207,11 @@ sub download($$$$) {
 	my ($link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading ", $link);
-	$proxy->advance("http");	# FIXME: send deducted protocol string
+	if ($link =~ /^(.+):\/\//) {
+		$proxy->advance($1);
+	} else {
+		warning("could not deduce protocol, proxies might not work correctly");
+	}
 
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech) || return 0;
