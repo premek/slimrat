@@ -39,7 +39,7 @@ package Toolbox;
 
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof rand_str readable2bytes);
+@EXPORT = qw(dwait indexof readable2bytes);
 
 # Write nicely
 use strict;
@@ -57,20 +57,6 @@ sub indexof {
 		return $i if $$arrayref[$i] eq $value;
 	}
 	return -1;
-}
-
-# Generate a random string
-# UNUSED?
-sub rand_str
-{
-	my $length = shift;
-
-	my @chars=('a'..'z','A'..'Z','0'..'9','_');
-	my $random_string;
-	foreach (1 .. $length) {
-		$random_string.=$chars[rand @chars];
-	}
-	return $random_string;
 }
 
 # Converts human readable size to bytes 
