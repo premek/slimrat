@@ -207,7 +207,7 @@ sub download($$$$) {
 	my ($link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading ", $link);
-	$proxy->advance();
+	$proxy->advance("http");	# FIXME: send deducted protocol string
 
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech) || return 0;
@@ -257,7 +257,7 @@ sub download($$$$) {
 		unless ($flag) {		
 			# Get content encoding
 			$encoding = $res->header("Content-Encoding");
-			debug("content-encoding is $encoding");
+			debug("content-encoding is $encoding") if $encoding;
 			
 			# Save length and print
 			$size = $res->content_length;
@@ -281,6 +281,7 @@ sub download($$$$) {
 
 			# Check if exists
 			# add .1 at the end or increase the number if it is already there
+			# TODO: maybe control with some config, e.g. "overwrite = no | yes | rename"
 			$filepath =~ s/(?:\.(\d+))?$/".".(($1 or 0)+1)/e while(-e $filepath);
 			info("File will be saved as \"$filepath\"");	
 
