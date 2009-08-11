@@ -106,15 +106,17 @@ sub get_data {
 	my ($res, $captcha);
 	my $cont = $self->{PRIMARY}->decoded_content;
 	do {
+		# Get captcha
+		my ($captcha_url) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
+		return error("can't get captcha image") unless ($captcha_url);
+		
+		# Download captcha
+		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
+		dump_add($captcha_data, "gif");
+		$captcha = &$read_captcha($captcha_data, "gif");
+		$self->{MECH}->back();
 
-		# Download & view captcha image
-		my ($captchaimg) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
-		return error("can't get captcha image") unless ($captchaimg);
-
-		$captcha = &$read_captcha($captchaimg);
-
-
-		# submit captcha form
+		# Submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
 		dump_add($self->{MECH}->content());
