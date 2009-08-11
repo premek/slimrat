@@ -39,6 +39,7 @@
 
 # Package name
 package Common;
+our $VERSION = '1.0.0-trunk';
 
 # Export functionality
 use Exporter;
@@ -67,13 +68,16 @@ use warnings;
 # Main configuration object
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
+$config->set_default("timeout", 10);
+$config->set_default("useragent", "slimrat/$VERSION");
 
 # Browser
-our $mech = WWW::Mechanize->new();
-# $mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
+our $mech = WWW::Mechanize->new(autocheck => 0);
+#$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
 $mech->default_header('Accept-Language' => "en");
 $mech->agent_alias((WWW::Mechanize::known_agent_aliases())[0]);
-$mech->agent($config->get("useragent")) if($config->get("useragent")); # TODO : I dont have my configuration (from file) here. helpme ;)
+$mech->agent($config->get("useragent")); # TODO : I dont have my configuration (from file) here. helpme ;)   <-- what do you mean?
+$mech->timeout($config->get("timeout"));
 
 # Proxy manager
 my $proxy = new Proxy($mech);
