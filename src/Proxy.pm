@@ -206,9 +206,12 @@ sub file_read() {
 		next if /^\s*$/;	# Skip blank lines
 		
 		# Process a valid proxy
-		if ($_ =~ m/^\s*(\S+)\t(\S+)\s*/) {
-			my $link = $1;
-			my $protocols_string = $2;
+		if ($_ =~ m/^\s*(\S+)\t*(\S*)\s*/) {
+			my $link = $1;			
+			my $protocols_string = $2 || "http";
+			if ($link !~ m/^\S+:\/\//) {
+				$link = 'http://' . $link;
+			}
 			my @protocols = [split(/,/, $protocols_string)];
 			
 			my $proxy = ProxyData->new();
