@@ -69,15 +69,15 @@ use warnings;
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 10);
-$config->set_default("useragent", "slimrat/$VERSION");
+$config->set_default("useragent", "slimrat/$VERSION"); # or (WWW::Mechanize::known_agent_aliases())[0]  ???
 
 # Browser
 our $mech = WWW::Mechanize->new(autocheck => 0);
 #$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
 $mech->default_header('Accept-Language' => "en");
-$mech->agent_alias((WWW::Mechanize::known_agent_aliases())[0]);
-$mech->agent($config->get("useragent")); # TODO : I dont have my configuration (from file) here. helpme ;)   <-- what do you mean?
+$mech->agent($config->get("useragent")); # TODO : config files not readed yet, default value cannot be overwritten
 $mech->timeout($config->get("timeout"));
+
 
 # Proxy manager
 my $proxy = new Proxy($mech);
