@@ -355,6 +355,11 @@ sub download($$$$) {
 		
 		# OCR
 		if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
+			# Preprocess
+			if ($plugin->can("ocr_preprocess")) {
+				$plugin->ocr_preprocess($captcha_file);
+			}
+			
 			# Convert if needed
 			my $captcha_file_ocr = $captcha_file;
 			if ($config->get("captcha_format") && $captcha_type ne $config->get("captcha_format")) {
@@ -380,6 +385,12 @@ sub download($$$$) {
 			}
 			$captcha_value =~ s/\s+//g;
 			debug("Captcha read by OCR: '$captcha_value'");
+			
+			# Postprocess
+			if ($plugin->can("ocr_postprocess")) {
+				$captcha_value = $plugin->ocr_postprocess($captcha_value);
+				debug("Captcha after post-processing: '$captcha_value'");
+			}
 		}
 		
 		# User
