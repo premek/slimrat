@@ -39,6 +39,8 @@
 package Log;
 
 # Packages
+use threads;
+use threads::shared;
 use Class::Struct;
 use Term::ANSIColor qw(:constants);
 use Cwd;
@@ -75,8 +77,8 @@ struct(Dump =>	{
 		hierarchy	=>	'$',
 		extra		=>	'$'
 });
-my @dumps;
-my $dump_output;
+my @dumps : shared;
+my $dump_output : shared;
 
 # Progress length variable
 my $progress_length = 0;
@@ -99,7 +101,7 @@ sub output_raw {
 }
 
 # Print a message
-sub output {
+sub output : locked {
 	my ($colour, $timestamp, $category, $messages, $verbosity, $omit_endl) = @_;
 	
 	# Verbosity
