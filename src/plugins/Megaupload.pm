@@ -137,6 +137,45 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
+# Postprocess captcha value
+sub ocr_postprocess {
+	my ($self, $captcha) = @_;
+	$_ = $captcha;
+	
+	# Whole string replacements
+	s/</C/g;
+	s/\(/C/g;
+	s/\)/D/g;
+	s/V1/D/g;
+	s/l1/D/g;
+	s/\\\.\\/H/g;
+	s/N\\/M/g;
+	s/V\\/M/g;
+	s/VI/M/g;
+	s/;\\l\\/M/g;
+	s/O/Q/g;
+	s/\$/S/g;
+	s/'I/T/g;
+	s/`\|/T/g;
+	s/'\\'/T/g;
+	s/7\`/T/g;
+	s/'N/TV/g;
+	s/\\l/V/g;
+	s/\\N/W/g;
+	s/ //g;
+	
+	# First three char replacements
+	s/(.{0,2})4/$1A/g;
+	
+	# Fourth char replacements
+	s/L$/1/;
+	s/\?$/2/;
+	s/A$/4/;
+	s/\/$/4/;
+	
+	return $_;
+}
+
 Plugin::register("^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");
 
 1;
