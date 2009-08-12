@@ -77,25 +77,26 @@ use strict;
 
 # Global variables
 my $ctrl;
-my $die:shared=0;
+my $die : shared = 0;
 my $download_thread;
 my $check_thread;
 
 # Register signals
 $SIG{'INT'} = 'quit';
 
-# Initialise configuration
-config_readfiles();
-&config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
-my $glade_file = $RealBin.'/slimrat.glade';
+# Initialise global configuration
+my $config = config_init();
+config_merge($config);
 
+# Initialise own configuration
+my $config_gui = new Configuration;
+$config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade');
+$config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
+$config_gui->merge($config->section("gui"));
 
-#
-# Apply configuration
-#
-
-# Configure other packages and stuff
-config_other();
+# Browser and proxy handling
+my $mech = config_browser();
+my $proxy = config_proxy($mech);
 
 
 
@@ -113,7 +114,7 @@ use constant KEY_ENTER	=> 65293;
 
 # Construct the GUI
 Glib::Object->set_threadsafe (TRUE);
-my $gui = Gtk2::GladeXML->new($glade_file, 'mainWindow');
+my $gui = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'mainWindow');
 $gui->signal_autoconnect_from_package('main');
 
 # Treeview
@@ -160,7 +161,7 @@ $slist->set_search_equal_func(sub { # search (as-you-type) links in the list not
 });
 
 # set "Download to" default from config
-$gui->get_widget('downto')->set_filename(&config_gui->get("to")) if (&config_gui->get("to"));
+$gui->get_widget('downto')->set_filename($config_gui->get("to")) if ($config_gui->get("to"));
 
 $gui->get_widget('mainwin')->add_with_viewport($slist);
 $gui->get_widget('mainwin')->show_all;
@@ -168,7 +169,7 @@ $gui->get_widget('mainwin')->show_all;
 
 # Load queue'd URLs
 my $queue;
-$queue = Queue::new(&config_gui->get("queue_file"));
+$queue = Queue::new($config_gui->get("queue_file"));
 while ($_ = $queue->get){
 	my @newRow;
 	$newRow[COL_PROGR] = -2;
@@ -202,7 +203,7 @@ sub quit {
 	# Save the queue
 	$queue->reset();
 	$queue->add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
-	$queue->save(&config_gui->get("queue_file"));
+	$queue->save($config_gui->get("queue_file"));
 	
 	# Join back all threads and exit the GUI
 	$_->join() foreach (threads->list(threads::joinable));
@@ -299,6 +300,7 @@ sub on_btnStart1_clicked {
 				$gui->get_widget('statusbar')->push(1,"Downloading $link");
 
 				my $result = download(
+						$mech,
 						$link,
 						$download_to,
 						sub { # progress
@@ -316,7 +318,7 @@ sub on_btnStart1_clicked {
 							my $captchafile = shift;
 							my $captcha;
 
-							my $gui = Gtk2::GladeXML->new($glade_file, 'captchaDialog');
+							my $gui = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
 							$gui->signal_autoconnect_from_package('main');
 							my $captcha_dialog = $gui->get_widget('captchaDialog');
 
@@ -373,7 +375,7 @@ sub on_btnCheck_clicked {
 
 	select_all() if(scalar $slist->get_selected_indices == 0);
 
-	$check_thread = threads->new(sub{
+	$download_thread = threads->new(sub{
 
 		foreach my $rownum ($slist->get_selected_indices){
 			my $row = @{$slist->{data}}[$rownum];
@@ -410,7 +412,6 @@ sub on_btnCheck_clicked {
 
 		$gui->get_widget('btnCheck')->set_state('active'); # FIXME 
 		threads->detach();
-
 	});
 }
 
@@ -427,7 +428,7 @@ sub on_btnAddClip_clicked {
 # Add
 my ($addDialog, $addDialogBuff);
 sub on_btnAdd1_clicked {
-	my $gui = Gtk2::GladeXML->new($glade_file, 'addDialog');
+	my $gui = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'addDialog');
 	$gui->signal_autoconnect_from_package('main');
 	$addDialog = $gui->get_widget('addDialog');
 	$addDialogBuff = $gui->get_widget('addLinks')->get_buffer();

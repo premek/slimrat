@@ -44,7 +44,7 @@ our $VERSION = '1.0.0-trunk';
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_verbosity config_readfiles config_other config_cli config_gui get_guicfg daemonize pid_read download $mech);	# TODO: export of $mech shouldn't be neccesary, move all Plugin->new calls to Common?
+@EXPORT = qw(config_init config_merge config_browser config_proxy configure config_verbosity daemonize pid_read download);
 
 # Packages
 use POSIX 'setsid';
@@ -53,14 +53,14 @@ use URI;
 use Compress::Zlib;
 use File::Temp qw/tempfile/;
 
+# Find root for custom packages
+use FindBin qw($RealBin);
+use lib $RealBin;
+
 # Custom packages
 use Configuration;
 use Log;
 use Plugin;
-
-# Find root for custom packages
-use FindBin qw($RealBin);
-use lib $RealBin;
 
 # Write nicely
 use strict;
@@ -72,17 +72,6 @@ $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 10);
 $config->set_default("useragent", "slimrat/$VERSION"); # or (WWW::Mechanize::known_agent_aliases())[0]  ???
 
-# Browser
-our $mech = WWW::Mechanize->new(autocheck => 0);
-#$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
-$mech->default_header('Accept-Language' => "en");
-$mech->agent($config->get("useragent")); # TODO : config files not readed yet, default value cannot be overwritten
-$mech->timeout($config->get("timeout"));
-
-
-# Proxy manager
-my $proxy = new Proxy($mech);
-
 
 
 ############
@@ -93,32 +82,8 @@ my $proxy = new Proxy($mech);
 # Configuration
 #
 
-sub config_verbosity {
-	my $verbosity = shift;
-	$config->section("log")->set("verbosity", $verbosity);
-}
-
-sub config_readfiles {
-	# Read configuration files (this section should contain the _only_ hard coded paths, except for default values)
-	foreach my $file ("/etc/slimrat.conf", $ENV{HOME}."/.slimrat/config", shift) {
-		if ($file && -r $file) {
-			$config->file_read($file);
-			#debug("Reading config file '$file'"); # Log verbosity not configured yet
-			#print "reading $file\n";
-		}
-	}
-}
-
-sub config_other {
-	# Configure the output
-	Log::configure($config->section("log"));
-
-	# Configure the plugin producer
-	Plugin::configure($config);
-	
-	# Configure the proxy manager
-	Proxy::configure($config->section("proxy"));
-	
+# Create a new configuration handler by reading the configuration files
+sub config_init {	
 	# Make sure slimrat has a proper directory in the users home folder
 	if (! -d $ENV{HOME}."/.slimrat") {
 		if(-f $ENV{HOME}."/.slimrat" && rename $ENV{HOME}."/.slimrat", $ENV{HOME}."/.slimrat.old"){
@@ -129,14 +94,52 @@ sub config_other {
 			fatal("could not create slimrat's home directory");
 		}
 	}
+	
+	my $config = new Configuration;	
+	foreach my $file ("/etc/slimrat.conf", $ENV{HOME}."/.slimrat/config", shift) {
+		if ($file && -r $file) {
+			debug("Reading config file '$file'");
+			$config->file_read($file);
+		}
+	}
+	
+	return $config;
 }
 
-sub config_cli {
-	return $config->section("cli");
+# Merge a given main configuration handler with handlers from all subpackages
+sub config_merge {
+	my $config = shift;
+	
+	Plugin::configure($config);
+	Common::configure($config);
+	Log::configure($config->section("log"));
+	Proxy::configure($config->section("proxy"));
 }
 
-sub config_gui {
-	return $config->section("gui");
+# Configure the package
+sub configure($) {
+	my $complement = shift;
+	$config->merge($complement);
+}
+
+sub config_verbosity {
+	my $verbosity = shift;
+	$config->section("log")->set("verbosity", $verbosity);
+}
+
+sub config_browser {
+	my $mech = WWW::Mechanize->new(autocheck => 0);
+	#$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
+	$mech->default_header('Accept-Language' => "en");
+	$mech->agent($config->get("useragent"));
+	$mech->timeout($config->get("timeout"));
+	return $mech;
+}
+
+sub config_proxy {
+	my $mech = shift;
+	my $proxy = new Proxy($mech);
+	return $proxy;
 }
 
 
@@ -208,12 +211,12 @@ sub pid_read() {
 #
 
 # Redirect download() call to the correct plugin
-sub download($$$$) {
-	my ($link, $to, $progress, $captcha_user_read) = @_;
+sub download($$$$$) {
+	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading ", $link);
 	if ($link =~ /^(.+):\/\//) {
-		$proxy->advance($1);
+		# FIXME $proxy->advance($1);
 	} else {
 		warning("could not deduce protocol, proxies might not work correctly");
 	}

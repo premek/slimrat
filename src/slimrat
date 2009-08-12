@@ -61,7 +61,6 @@ use Configuration;
 
 # Function prototypes
 sub quit($);
-sub download($$$$);
 
 # Write nicely
 use strict;
@@ -103,11 +102,16 @@ GetOptions (
 		"config=s",
 );
 
-# Initialise configuration
-config_readfiles($options{"config"});
-&config_cli->set_default("mode", "download");
-&config_cli->set_default("to", ".");
-&config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
+# Initialise global configuration
+my $config = config_init();
+config_merge($config);
+
+# Initialise own configuration
+my $config_cli = new Configuration;
+$config_cli->set_default("mode", "download");
+$config_cli->set_default("to", ".");
+$config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
+$config_cli->merge($config->section("cli"));
 
 # Give the usage or manual
 if ($options{"man"}) {
@@ -136,13 +140,13 @@ if ($options{"kill"}) {
 }
 
 # Mode (e.g. what slimrat should do)
-&config_cli->set("mode", "check") if ($options{"check"});
+$config_cli->set("mode", "check") if ($options{"check"});
 
 # Options we might use later on
-&config_cli->set("list", $options{"list"}) if ($options{"list"});
-&config_cli->set("daemon", 1) if ($options{"daemon"});
-&config_cli->set("address", $options{"address"}) if ($options{"address"});
-&config_cli->set("to", $options{"to"}) if ($options{"to"});
+$config_cli->set("list", $options{"list"}) if ($options{"list"});
+$config_cli->set("daemon", 1) if ($options{"daemon"});
+$config_cli->set("address", $options{"address"}) if ($options{"address"});
+$config_cli->set("to", $options{"to"}) if ($options{"to"});
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
 config_verbosity(2) if ($options{"quiet"});
 config_verbosity(5) if ($options{"debug"});
@@ -152,11 +156,8 @@ config_verbosity(5) if ($options{"debug"});
 # Apply configuration
 #
 
-# Configure other packages and stuff
-config_other();
-
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
-if (!scalar @ARGV && !&config_cli->get("list")) {
+if (!scalar @ARGV && !$config_cli->get("list")) {
 	usage("no input URLs");
 }
 
@@ -169,16 +170,20 @@ while (my $link = shift) {
 		usage("unrecognised option \"$link\"");
 	}
 }
-$queue->file(&config_cli->get("list")) if (&config_cli->get("list"));
+$queue->file($config_cli->get("list")) if ($config_cli->get("list"));
 
 # Set socket local address if needed
-if(&config_cli->get("address")){
+if($config_cli->get("address")){
 	no warnings;
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
 }
 
+# Browser and proxy handling
+my $mech = config_browser();
+my $proxy = config_proxy($mech);
+
 # Fork in background
-if (&config_cli->get("daemon")) {
+if ($config_cli->get("daemon")) {
 	info("Forking in background");
 	daemonize();
 	print "\n\n";
@@ -196,7 +201,7 @@ info("Slimrat started");
 # Check
 #
 
-if (&config_cli->get("mode") eq "check") {
+if ($config_cli->get("mode") eq "check") {
 	info("Checking URLs");
 	my $dead_links = 0;
 	
@@ -234,14 +239,15 @@ if (&config_cli->get("mode") eq "check") {
 # Download
 #
 
-elsif (&config_cli->get("mode") eq "download") {
+elsif ($config_cli->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
  		
  		# Download the URL with custom progress indication
  		my $failure = 0;
 		my $result = download(
+				$mech,
 				$link,
-				&config_cli->get("to"),
+				$config_cli->get("to"),
 				sub { # Progress indication
 					my ($done, $total, $last_done, $last_time) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
 					my $speed = $last_done/$last_time if ($last_time); # current speed [B/s] TODO: maybe some average speed?
@@ -260,7 +266,7 @@ elsif (&config_cli->get("mode") eq "download") {
 					my $captchafile = shift;
 					
 					# view
-					system(sprintf &config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
+					system(sprintf $config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
 					
 					# Ask the user
 					print "Captcha? ";
@@ -276,7 +282,7 @@ elsif (&config_cli->get("mode") eq "download") {
 			$queue->file_update($link, "DONE");
 
 			# Command after successful download
-			if (my $command = &config_cli->get("post_download")) {
+			if (my $command = $config_cli->get("post_download")) {
 				system($command);
 			}
 		}
@@ -293,7 +299,7 @@ elsif (&config_cli->get("mode") eq "download") {
 			push @failedlinks, $link;
 
 			# Command after failed download
-			if (my $command = &config_cli->get("post_failure")) {
+			if (my $command = $config_cli->get("post_failure")) {
 				system($command);
 			}
 		}
@@ -303,7 +309,7 @@ elsif (&config_cli->get("mode") eq "download") {
 	}
 
 	# Command after all downloads
-	if (my $command = &config_cli->get("post_all")) {
+	if (my $command = $config_cli->get("post_all")) {
 		system($command);
 	}
 
