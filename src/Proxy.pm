@@ -39,7 +39,12 @@
 package Proxy;
 
 # Packages
-use Class::Struct;
+use threads;
+use threads::shared;
+use Thread::Semaphore;
+
+# Semaphores
+my $s_proxies : shared = new Thread::Semaphore;
 
 # Custom packages
 use Log;
@@ -58,145 +63,23 @@ $config->set_default("limit_downloads", 5);
 $config->set_default("order", "linear");
 $config->set_default("delete", 0);
 
-# Browser
-my $ua;
-
-# A proxy item
-struct(ProxyData =>	{
-		link		=>	'$',
-		protocols	=>	'$',
-		downloads	=>	'$'
-});
+# Shared array with all available proxies
+my @proxies : shared;
 
 
 #
-# Routines
+# Static routines
 #
-
-# Constructor
-sub new {
-	my $self;
-	my $ua = $_[1];
-	
-	$self = {
-		ua		=>	$ua,
-		proxies		=>	[],
-		flags		=>	0
-	};
-	
-	bless $self, 'Proxy';
-	return $self;
-
-}
 
 # Configure the package
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
-}
-
-# Initialize proxy handler
-sub init($) {
-	my ($self) = @_;
-	
-	# Read proxies
-	if ($config->get("list")) {
-		return fatal("could not read proxy file") unless (-r $config->get("list"));
-		$self->file_read();
-	}
-	
-	$self->set();
-}
-
-# Advance
-sub advance {
-	my ($self, $protocol) = @_;
-	
-	# Initialize once (TODO: should fit better at configure(), but that's a static method!)
-	if (! $self->{flags} & 1) {
-		$self->{flags} |= 1;
-		$self->init();
-	}
-	
-	# No need to do anything if no proxies available
-	return 1 unless (scalar(@{$self->{proxies}}));
-	
-	# Check limits and cycle if needed
-	my $cycle = 0;
-	if ($config->get("limit_downloads")) {
-		$cycle = 1 if ($self->{proxies}->[0]->downloads() >= $config->get("limit_downloads"));
-	}
-	#if ($config->get("limit_seconds")) {
-	#	$cycle = 1 if (time() > $self->{starttime}+$config->get("limit_seconds"));
-	#}
-	$self->cycle(1) if $cycle;
-	
-	# Check for protocol match
-	my $limit = scalar(@{$self->{proxies}});
-	while (scalar(@{$self->{proxies}}) && indexof($protocol, $self->{proxies}->[0]->protocols()) == -1) {
-		$self->cycle(0);
-		if (--$limit < 0) {
-			return error("could not find proxy matching current protocol '$protocol'");
-		}
-	}
-	
-	# Increase counters
-	$self->{proxies}->[0]->{downloads}++;
-	#$self->{bytes} += $self->{ua}->get_bytes();
-	
-	# Cycle or return
-	return 1;
-}
-
-# Cycle
-sub cycle {
-	my ($self, $limits_reached) = @_;
-	debug("cycling!");
-	
-	# Place current proxy at end
-	my $proxy = shift(@{$self->{proxies}});
-	if ($limits_reached) {
-		$proxy->downloads(0);
-		push(@{$self->{proxies}}, $proxy) unless $config->get("delete");
-	} else {
-		push(@{$self->{proxies}}, $proxy);
-	}
-	
-	# Pick next proxy
-	if ($config->get("order") eq "random") {
-		my $index = rand(scalar(@{$self->{proxies}}));
-		my $uri = delete($self->{proxies}->[$index]);
-		$self->{proxies}->[$index] = shift(@{$self->{proxies}}); # because delete() creates an undef spot
-		unshift(@{$self->{proxies}}, $uri);
-	} elsif ($config->get("order") eq "linear") {
-		# Nothing to do, default behaviour is linear
-	} else {
-		return error("unrecognized proxy order '", $config->get("order"), "'");
-	}
-	
-	$self->set();
-}
-
-# Activate a proxy
-sub set($) {
-	my ($self) = @_;
-	
-	# Select proxy if available
-	if (scalar(@{$self->{proxies}})) {
-		my $proxy = $self->{proxies}->[0];
-		info("Using proxy '", $proxy->link(), "' for protocols ", join(" and ", @{$proxy->protocols()}));
-		$self->{ua}->proxy($proxy->protocols(), $proxy->link());
-		return 1;
-	} else {
-		info("Disabled proxies");
-		$self->{ua}->no_proxy();
-		return 0;
-	}
+	file_read();
 }
 
 # Read proxy file
 sub file_read() {
-	my ($self) = @_;
 	debug("reading proxy file '", $config->get("list"), "'");
 
 	open(FILE, $config->get("list")) || fatal("could not read proxy file");
@@ -212,19 +95,133 @@ sub file_read() {
 			if ($link !~ m/^\S+:\/\//) {
 				$link = 'http://' . $link;
 			}
-			my @protocols = [split(/,/, $protocols_string)];
+			my @protocols = split(/,/, $protocols_string);
 			
-			my $proxy = ProxyData->new();
-			$proxy->link($link);
-			$proxy->protocols(@protocols);
-			$proxy->downloads(0);
+			my $proxy;
+			share($proxy);
+			$proxy = &share({});
+			$proxy->{link} = $link;
+			share($proxy->{protocols});
+			$proxy->{protocols} = &share([]);
+			push(@{$proxy->{protocols}}, $_) foreach (@protocols);
+			$proxy->{downloads} = 0;
 			
-			push(@{$self->{proxies}}, $proxy);
+			$s_proxies->down();
+			push(@proxies, $proxy);
+			$s_proxies->up();
 		} else {
 			warning("unrecognised line in proxy file: '$_'");
 		}
 	}
 	close(FILE);
+}
+
+
+#
+# Object-oriented routines
+#
+
+# Constructor
+sub new {
+	# Configure object
+	my $self;
+	my $ua = $_[1];	
+	$self = {
+		ua		=>	$ua,
+		proxy		=>	undef
+	};	
+	bless $self, 'Proxy';
+	
+	# Set initial proxy
+	$s_proxies->down();
+	$self->cycle(0);
+	$s_proxies->up();
+	
+	return $self;
+
+}
+
+# Advance
+sub advance {
+	my ($self, $protocol) = @_;
+	
+	# No need to do anything if no proxies available
+	$s_proxies->down();
+	return 1 unless (scalar(@proxies));
+	$s_proxies->up();
+	
+	# Check limits and cycle if needed
+	my $cycle = 0;
+	if ($config->get("limit_downloads")) {
+		$cycle = 1 if ($self->{proxy}->{downloads} >= $config->get("limit_downloads"));
+	}
+	#if ($config->get("limit_seconds")) {
+	#	$cycle = 1 if (time() > $self->{starttime}+$config->get("limit_seconds"));
+	#}
+	$self->cycle(1) if $cycle;
+	
+	# Check for protocol match
+	$s_proxies->down();
+	my $limit = scalar(@proxies);
+	while (scalar(@proxies) && indexof($protocol, $self->{proxy}->{protocols}) == -1) {
+		$self->cycle(0);
+		if (--$limit < 0) {
+			return error("could not find proxy matching current protocol '$protocol'");
+		}
+	}
+	$s_proxies->up();
+	
+	# Increase counters
+	$self->{proxy}->{downloads}++;
+	#$self->{bytes} += $self->{ua}->get_bytes();
+	
+	# Cycle or return
+	return 1;
+}
+
+# Cycle
+# Not to be called directly, should be executed exclusively
+sub cycle {
+	my ($self, $limits_reached) = @_;
+	
+	# Place current proxy at end
+	if (defined($self->{proxy})) {
+		if ($limits_reached) {
+			$self->{proxy}->{downloads} = 0;
+			push(@proxies, $self->{proxy}) unless $config->get("delete");
+		} else {
+			push(@proxies, $self->{proxy});
+		}
+	}
+	
+	# Pick next proxy
+	if ($config->get("order") eq "random") {
+		my $index = rand(scalar(@proxies));
+		$self->{proxy} = delete($proxies[$index]);
+		$proxies[$index] = shift(@proxies); # because delete() creates an undef spot
+	} elsif ($config->get("order") eq "linear") {
+		$self->{proxy} = shift(@proxies);
+	} else {
+		return error("unrecognized proxy order '", $config->get("order"), "'");
+	}
+	
+	$self->set();
+}
+
+# Activate a proxy
+sub set($) {
+	my ($self) = @_;
+	
+	# Select proxy if available
+	if (defined($self->{proxy})) {
+		info("Using proxy '", $self->{proxy}->{link}, "' for protocols ", join(" and ", @{$self->{proxy}->{protocols}}));
+		$self->{ua}->proxy($self->{proxy}->{protocols}, $self->{proxy}->{link});
+		return 1;
+	} else {
+		info("Disabled proxies");
+		$self->{ua}->no_proxy();
+		return 0;
+	}
 }
 
 # Return
