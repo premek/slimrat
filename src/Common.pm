@@ -44,7 +44,7 @@ our $VERSION = '1.0.0-trunk';
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_init config_merge config_browser config_proxy configure config_verbosity daemonize pid_read download);
+@EXPORT = qw(config_init config_merge config_browser configure config_verbosity daemonize pid_read download);
 
 # Packages
 use POSIX 'setsid';
@@ -136,12 +136,6 @@ sub config_browser {
 	return $mech;
 }
 
-sub config_proxy {
-	my $mech = shift;
-	my $proxy = new Proxy($mech);
-	return $proxy;
-}
-
 
 #
 # Daemonisation
@@ -215,11 +209,6 @@ sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading ", $link);
-	if ($link =~ /^(.+):\/\//) {
-		# FIXME $proxy->advance($1);
-	} else {
-		warning("could not deduce protocol, proxies might not work correctly");
-	}
 
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech) || return 0;
