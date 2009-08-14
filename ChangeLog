@@ -5,7 +5,7 @@
     * queue: multithreaded model.
 
 
-2009-08-14 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+2009-08-13 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * common: enhanced proxy managing, with configurable options,
       post- and preprocessing support, and some sample code in the
