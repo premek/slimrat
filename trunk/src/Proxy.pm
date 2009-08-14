@@ -155,7 +155,6 @@ sub advance {
 	# No need to do anything if no proxies available
 	$s_proxies->down();
 	return 1 unless (scalar(@proxies));
-	$s_proxies->up();
 	
 	# Check limits and cycle if needed
 	if (defined($self->{proxy})) {
@@ -171,6 +170,7 @@ sub advance {
 		# Pick an initial proxy if we haven't got one yet
 		$self->cycle(0);
 	}
+	$s_proxies->up();
 	
 	# Check for protocol match
 	if ($link =~ /^(.+):\/\//) {
