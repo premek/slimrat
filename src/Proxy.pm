@@ -43,9 +43,6 @@ use threads;
 use threads::shared;
 use Thread::Semaphore;
 
-# Semaphores
-my $s_proxies : shared = new Thread::Semaphore;
-
 # Custom packages
 use Log;
 use Configuration;
@@ -63,12 +60,13 @@ $config->set_default("limit_downloads", 5);
 $config->set_default("order", "linear");
 $config->set_default("delete", 0);
 
-# Shared array with all available proxies
-my @proxies : shared;
+# Shared data
+my @proxies:shared; my $s_proxies:shared = new Thread::Semaphore;
+
 
 
 #
-# Static routines
+# Static functionality
 #
 
 # Configure the package
@@ -118,7 +116,7 @@ sub file_read() {
 
 
 #
-# Object-oriented routines
+# Object-oriented functionality
 #
 
 # Constructor
