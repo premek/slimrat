@@ -53,6 +53,7 @@ use warnings;
 # Look for the index of an item in an array (non-numeric contents)
 sub indexof {
 	my ($value, $arrayref) = (shift, shift);
+	return -1 unless $arrayref;
 	foreach my $i (0 .. @$arrayref-1)  {
 		return $i if $$arrayref[$i] eq $value;
 	}

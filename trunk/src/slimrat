@@ -241,6 +241,8 @@ if ($config_cli->get("mode") eq "check") {
 
 elsif ($config_cli->get("mode") eq "download") {
  	while (my $link = $queue->get()) {
+ 		# Configure the proxy manager
+ 		$proxy->advance($link);
  		
  		# Download the URL with custom progress indication
  		my $failure = 0;

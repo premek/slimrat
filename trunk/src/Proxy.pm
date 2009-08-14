@@ -132,18 +132,25 @@ sub new {
 	};	
 	bless $self, 'Proxy';
 	
-	# Set initial proxy
+	return $self;
+}
+
+# Destructor
+sub DESTROY {
+	my ($self) = @_;
+	
+	# Preserve current proxy
 	$s_proxies->down();
-	$self->cycle(0);
+	unshift(@proxies, $self->{proxy});
 	$s_proxies->up();
 	
-	return $self;
-
+	$self->SUPER::DESTROY if $self->can("SUPER::DESTROY");
 }
 
 # Advance
 sub advance {
-	my ($self, $protocol) = @_;
+	my ($self, $link) = @_;
+	print "selecting proxy\n";
 	
 	# No need to do anything if no proxies available
 	$s_proxies->down();
@@ -151,31 +158,42 @@ sub advance {
 	$s_proxies->up();
 	
 	# Check limits and cycle if needed
-	my $cycle = 0;
-	if ($config->get("limit_downloads")) {
-		$cycle = 1 if ($self->{proxy}->{downloads} >= $config->get("limit_downloads"));
+	if (defined($self->{proxy})) {
+		my $cycle = 0;
+		if ($config->get("limit_downloads")) {
+			$cycle = 1 if ($self->{proxy}->{downloads} >= $config->get("limit_downloads"));
+		}
+		#if ($config->get("limit_seconds")) {
+		#	$cycle = 1 if (time() > $self->{starttime}+$config->get("limit_seconds"));
+		#}
+		$self->cycle(1) if $cycle;
+	} else {
+		# Pick an initial proxy if we haven't got one yet
+		$self->cycle(0);
 	}
-	#if ($config->get("limit_seconds")) {
-	#	$cycle = 1 if (time() > $self->{starttime}+$config->get("limit_seconds"));
-	#}
-	$self->cycle(1) if $cycle;
 	
 	# Check for protocol match
-	$s_proxies->down();
-	my $limit = scalar(@proxies);
-	while (scalar(@proxies) && indexof($protocol, $self->{proxy}->{protocols}) == -1) {
-		$self->cycle(0);
-		if (--$limit < 0) {
-			return error("could not find proxy matching current protocol '$protocol'");
+	if ($link =~ /^(.+):\/\//) {
+		my $protocol = $1;
+		$s_proxies->down();
+		my $limit = scalar(@proxies);
+		while (scalar(@proxies) && indexof($protocol, $self->{proxy}->{protocols}) == -1) {
+			$self->cycle(0);
+			if (--$limit < 0) {
+				return error("could not find proxy matching current protocol '$protocol'");
+			}
 		}
+		$s_proxies->up();
+	} else {
+		warning("could not deduce protocol, proxies might not work correctly");
 	}
-	$s_proxies->up();
 	
 	# Increase counters
 	$self->{proxy}->{downloads}++;
 	#$self->{bytes} += $self->{ua}->get_bytes();
+	print "done\n";
 	
-	# Cycle or return
+	# Return
 	return 1;
 }
 
