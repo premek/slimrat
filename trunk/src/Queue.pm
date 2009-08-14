@@ -39,9 +39,13 @@
 package Queue;
 
 # Packages
+use threads;
+use threads::shared;
+use Thread::Semaphore;
 use Storable;
 
 # Custom packages
+use Configuration;
 use Toolbox;
 use Log;
 
@@ -49,61 +53,53 @@ use Log;
 use strict;
 use warnings;
 
+# Base configuration
+my $config = new Configuration;
+
+# Shared data
+my $file:shared; my $s_file:shared = new Thread::Semaphore;	# Semaphore here manages file _access_, not $file access
+my @queued:shared; my $s_queued:shared = new Thread::Semaphore;
+my @processed:shared; my $s_processed:shared = new Thread::Semaphore;
+
 
 #
-# Routines
+# Static functionality
 #
 
-# Constructor
-sub new {
-	my $self;
-	
-	# Fetch serialized Queue object
-	my $file = shift;
-	if (-f $file) {
-		eval { $self = retrieve($file) };
-		error("could not reconstruct queue out of '$file'") if ($@);
-	}
-	
-	# If unsuccessfull (or not required), construct new object
-	if (!$self) {
-		$self = {
-			_file		=>	undef,
-			_queued		=>	[],
-			_processed	=>	[],
-		};
-	}
-	bless $self, 'Queue';
-	return $self;
-}
-
-# Add a single url to the queue
-sub add {
-	my ($self, $url) = @_;
-	
-	push(@{$self->{_queued}}, $url);
+# Configure the package
+sub configure($) {
+	my $complement = shift;
+	$config->merge($complement);
+	file_read();
 }
 
 # Set the file
 sub file {
-	my ($self, $file) = @_;
+	my $filename = shift;
+	return error("cannot overwrite previously set file") if (defined($file));
+	$file = $filename;
 	
 	fatal("queue file '$file' not readable") unless (-r $file);
-
-	# Configure the file
-	$self->{_file} = $file;
 	
 	# Read a first URL
-	$self->file_read();
+	file_read();
+}
+
+# Add a single url to the queue
+sub add {
+	my $url = shift;
+	
+	$s_queued->down();
+	push(@queued, $url);
+	$s_queued->up();
 }
 
 # Add an URL from the file to the queue
 sub file_read {
-	my ($self) = @_;
-	debug("reading queue file '", $self->{_file}, "'");
-	
-	if (defined($self->{_file})) {
-		open(FILE, $self->{_file}) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
+	if (defined($file)) {
+		debug("reading queue file '$file'");
+		$s_file->down();
+		open(FILE, $file) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
 		while (<FILE>) {
 			# Skip things we don't want
 			next if /^#/;		# Skip comments
@@ -114,48 +110,169 @@ sub file_read {
 				my $url = $1;
 				
 				# Only add to queue if not processed yet and not in container either
-				if ((indexof($url, $self->{_processed}) == -1) && (indexof($url, $self->{_queued}) == -1)) {
-					$self->add($url);
+				$s_processed->down();
+				$s_queued->down();
+				if ((indexof($url, @processed) == -1) && (indexof($url, @queued) == -1)) {
+					$s_queued->up();
+					$s_processed->up();
+					add($url);
 					last;
 				}
+				$s_queued->up();
+				$s_processed->up();
 			} else {
 				warning("unrecognised line in queue file: '$_'");
 			}
 		}
 		close(FILE);
+		$s_file->up();
+	}
+}
+
+# Get everything (all URLs at once)
+sub dump {	
+	my @output;
+	
+	# Backup the internal data
+	$s_processed->down();
+	$s_queued->down();
+	my @processed_bak = @processed;
+	my @queued_bak = @queued;
+	$s_queued->up();	# FIXME: use reentrant mutexes
+	
+	# Add all URL's to the output
+	my $queue = new Queue();
+	while (my $url = $queue->get()) {
+		push(@output, $url);
+		$s_processed->up();	# FIXME: use reentrant mutexes
+		$queue->advance();
+		$s_processed->down();
+	}
+	$s_queued->down();
+	
+	# Restore the backup
+	@processed = @processed_bak;
+	@queued = @queued_bak;
+	$s_queued->up();
+	$s_processed->up();
+	
+	# Return reference
+	return \@output;
+}
+
+# Restart processed downloads
+sub restart() {
+	$s_processed->down();
+	@processed = [];
+	$s_processed->up();
+	debug("resetting state of processed URLs");
+}
+
+# Reset the queue
+sub reset() {
+	$s_queued->down();
+	$s_processed->down();
+	@queued = ();
+	@processed = ();
+	$file = undef;
+	$s_processed->up();
+	$s_queued->up();
+}
+
+# Save the state of the queue object
+sub save($) {
+	my $filename = shift;
+	$s_queued->down();
+	$s_processed->down();
+	my %container = (
+		file		=>	$file,
+		queued		=>	[@queued],
+		processed	=>	[@processed]
+	);
+	store(\%container, $filename) || error("could not serialize queue to '$file'");
+	$s_queued->up();
+	$s_processed->up();
+}
+
+# Restore the state of the queue object
+sub restore {
+	my $filename = shift;
+	my %container;
+	if (-f $filename) {
+		eval { %container = %{retrieve($filename)} };
+		return error("could not reconstruct queue out of '$filename'") if ($@);
+		
+		$s_queued->down();
+		$s_processed->down();
+		$file = $container{file};
+		@queued = @{$container{queued}};
+		@processed = @{$container{processed}};
+		$s_queued->up();
+		$s_processed->up();
+	}
+}
+
+
+#
+# Object-oriented functionality
+#
+
+# Constructor
+sub new {
+	my $self = {
+		item	=>	undef,
+		status	=>	""
+	};
+	bless $self, 'Queue';
+	
+	# Load a first URL
+	$self->advance();
+	
+	return $self;
+}
+
+# Destructor
+sub DESTROY {
+	my ($self) = @_;
+	
+	if (defined($self->{item}) && !$self->{status}) {
+		debug("found queued item without status, merging back to main queue");
+		$s_queued->down();
+		push(@queued, $self->{item});
+		$self->{item} = undef;
+		$s_queued->up();
 	}
 }
 
 # Change the status of an URL (and update the file)
-sub file_update {
-	my ($self, $url, $status) = @_;
+sub update {
+	my ($self, $status) = @_;
+	$self->{status} = $status;
 	
 	# Only update if we got a file
-	if (defined($self->{_file})) {
-		open (FILE, $self->{_file});
-		open (FILE2, ">".$self->{_file}.".temp");
+	my $url = $self->{item};
+	$s_file->down();
+	if (defined($file)) {
+		open (FILE, $file);
+		open (FILE2, ">".$file.".temp");
 		while(<FILE>) {
 			if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
-				print FILE2 "# ".$status.": ";
+				print FILE2 "# ".$self->{status}.": ";
 			}
 			print FILE2 $_;
 		}
 		close FILE;
 		close FILE2;
-		unlink $self->{_file};
-		rename $self->{_file}.".temp", $self->{_file};
-	}	
+		unlink $file;
+		rename $file.".temp", $file;
+	}
+	$s_file->up();
 }
 
 # Get the current url
 sub get {
 	my ($self) = @_;
-	
-	# Have we URL's queued up?
-	if (scalar(@{$self->{_queued}}) > 0) {
-		return $self->{_queued}->[0];
-	}
-	return;
+	return $self->{item};
 }
 
 # Advance to the next url
@@ -163,52 +280,23 @@ sub advance() {
 	my ($self) = @_;
 	
 	# Move the first url from the "queued" array to the "processed" array
-	push(@{$self->{_processed}}, shift(@{$self->{_queued}}));
-	
-	# Check if we still got links in the "queued" array
-	unless ($self->get()) {
-		$self->file_read();
+	if (defined($self->{item})) {
+		$s_processed->down();
+		push(@processed, $self->{item});	
+		$s_processed->up();
 	}
+	
+	# Load a new item
+	$self->{item} = undef;
+	$s_queued->down();
+	if (! scalar(@queued)) {
+		$s_queued->up();	# TODO: use reentrant mutexes / recursive semaphores
+		file_read();
+		$s_queued->down();
+	}
+	$self->{item} = shift(@queued);
+	$s_queued->up();
 }	
-
-# Get everything (all URL at once)
-# This function will empty the queue, so it should't be used 
-# in combination with other functions from the queue
-sub dump {
-	my ($self) = @_;
-	
-	my @output;
-	
-	# Add all URL's to the output
-	while (my $url = $self->get()) {
-		push(@output, $url);
-		$self->advance();
-	}
-	
-	# Return reference
-	return \@output;
-}
-
-# Save the state of the queue object
-sub save($$) {
-	my ($self, $file) = @_;
-	store($self, $file) || error("could not serialize queue to '$file'");
-}
-
-# Restart processed downloads
-sub restart($) {
-	my ($self) = @_;
-	$self->{_processed} = [];
-	debug("resetting state of processed URLs");
-}
-
-# Reset the queue
-sub reset($) {
-	my ($self) = @_;
-	$self->{_queued} = [];
-	$self->{_processed} = [];
-	$self->{_file} = undef;
-}
 
 # Return
 1;
@@ -302,8 +390,8 @@ Comment out a given URL, and prepend a status
 
 =head2 $queue->dump()
 
-Dump the contents of the queue in the form of an array. This is a one-time only function, e.g.
-it renders the queue unusable and does not attempt to preserve any state at all.
+Return all the following URLs, e.g. dump the entire queue. This does respect already
+processed URLs, and keeps the queue reusable by restoring it state after running.
 
 =head1 AUTHOR
 

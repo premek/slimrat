@@ -164,16 +164,15 @@ $gui->get_widget('mainwin')->show_all;
 
 
 # Load queue'd URLs
-my $queue;
-$queue = Queue::new($config_gui->get("queue_file"));
-while ($_ = $queue->get){
+Queue::restore($config_gui->get("queue_file"));
+my $urls = Queue::dump();
+foreach (@$urls) {
 	my @newRow;
 	$newRow[COL_PROGR] = -2;
 	$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
 	$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 	$newRow[COL_LINK] = $_;
 	push @{$slist->{data}},[@newRow];
-	$queue->advance();
 }
 
 
@@ -197,9 +196,9 @@ sub on_mainWindow_destroy { &quit; }
 # Quit the application
 sub quit {
 	# Save the queue
-	$queue->reset();
-	$queue->add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
-	$queue->save($config_gui->get("queue_file"));
+	Queue::reset();
+	Queue::add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
+	Queue::save($config_gui->get("queue_file"));
 	
 	# Join back all threads and exit the GUI
 	$_->join() foreach (threads->list(threads::joinable));
@@ -225,7 +224,6 @@ sub links_parse_add {
 		$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 		$newRow[COL_LINK] = $_;
 		push @{$slist->{data}},[@newRow];
-		$queue->add($_);
 	}
 
 }

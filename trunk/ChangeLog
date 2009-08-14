@@ -1,3 +1,17 @@
+2009-08-14 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * proxy: multithreaded model.
+
+    * queue: multithreaded model.
+
+
+2009-08-14 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: enhanced proxy managing, with configurable options,
+      post- and preprocessing support, and some sample code in the
+      Megaupload plugin.
+
+
 2009-08-11  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: RomHustler added (thanks Kaleb Elwert <vahki.ttc gmail com>)
@@ -6,6 +20,8 @@
 2009-08-11 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * proxy: more work on the proxy manager.
+
+    * log: dump log (verbosity 5) now includes the actual slimrat log.
 
 
 2009-08-09  Přemek Vyhnal  <premysl.vyhnal gmail com>
@@ -147,7 +163,7 @@
 
     * configuration: removed any dependancy to other custom
       packages, making it usable all over the place.
-    
+
     * toolbox, plugins: moved dwait() to log, to remove the
       dependancy.
 
@@ -206,7 +222,7 @@
     * slimrat: added documentation, and used Pod::Usage to
       generate a --help and --man dialog based on that
       documentation.
-    
+
     * log (usage): added a new reporting function which
       indicates invalid usage.
 
