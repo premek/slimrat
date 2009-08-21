@@ -67,7 +67,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # TODO - broken on 404 links
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -132,12 +132,12 @@ sub get_data {
 		# Click the button
 		$self->{MECH}->form_name("f") and # free;
 		$self->{MECH}->submit_form() and
-		dump_add($self->{MECH}->content());	
+		dump_add(data => $self->{MECH}->content());	
 
 		# Captcha
 		while ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#){
 			$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
-			dump_add($self->{MECH}->content());
+			dump_add(data => $self->{MECH}->content());
 		}
 
 		# Extract the download URL

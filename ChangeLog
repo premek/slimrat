@@ -1,3 +1,21 @@
+2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * semaphore: introduced new package to support multithreaded
+      operations.
+
+    * all: added quit() methods to all packages, called upon exit
+      of the common functionality.
+
+    * log: altered the dump functionality to support multithreading
+      and switched to hashes as parameters.
+
+    * proxy: fixed some deadlocks.
+
+    * semaphore: added debug quit and reentrant mutexes.
+
+    * documentation: pod conformity.
+
+
 2009-08-14 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * proxy: multithreaded model.

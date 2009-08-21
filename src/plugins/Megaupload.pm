@@ -62,7 +62,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -118,7 +118,7 @@ sub get_data {
 		# Submit captcha form
 		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
 		return 0 unless ($res->is_success);
-		dump_add($self->{MECH}->content());
+		dump_add(data => $self->{MECH}->content());
 		$cont = $self->{MECH}->content();
 	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
 

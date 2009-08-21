@@ -100,6 +100,9 @@ $config_gui->merge($config->section("gui"));
 # GUI #
 #######
 
+info("Slimrat started (graphical user interface)");
+warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
+
 # Keypresses
 use constant KEY_CTRL	=> 65507;
 use constant KEY_v	=> 118;
@@ -205,10 +208,8 @@ sub quit {
 	$_->detach() foreach (threads->list(threads::running));
 	Gtk2->main_quit;
 	
-	my $return = shift;
-	$return = 255 if ($return !~ /^\d+$/);
-	# Hard exit, for when &quit gets called out of sig{int}
-	exit($return);
+	# Quit all packages
+	Common::quit(@_);
 }
 
 # Parse links from text input or clipboard and add them
@@ -494,5 +495,7 @@ sub on_btnEnd1_clicked{
 }
 
 # Quit
-sub gtk_main_quit { &quit; }
+sub gtk_main_quit {
+	&quit;
+}
 

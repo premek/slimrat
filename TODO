@@ -14,6 +14,5 @@
   - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
     which makes it hard to use in the GUI (contrary to its use in the cli). Maybe rewrite the Queue
     with random access in mind?
-  - Reentrant mutexes, plus on quit add_dump(locked threads)
-  - All packages: call quit() which enables per-package dumps
-  - Queue, on quit add_dump(@queue, @processed)
+  - Capture STDERR to add in dump log file.
+

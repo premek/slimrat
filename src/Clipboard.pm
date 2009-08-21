@@ -30,6 +30,7 @@ sub import {
 }
 
 1;
+
 =head1 NAME 
 
 Clipboard - Copy and paste with any OS
@@ -80,5 +81,4 @@ under the same terms as Perl itself.
 See http://www.perl.com/perl/misc/Artistic.html
 
 =cut
-# vi:tw=72
 

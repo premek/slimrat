@@ -64,7 +64,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -111,7 +111,7 @@ sub get_data {
 	my ($asi) = m/name="asi" value="([^\"]+)">/s;	
 	my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 	$_ = $res->content."\n";
 	
 	# Process the secondary page which leads to the download
@@ -123,7 +123,7 @@ sub get_data {
 		    info("reached the download limit for free-users (300 MB)");
 		    wait(($wait+1)*60);
 		    $res = $self->{MECH}->reload();
-		    dump_add($self->{MECH}->content());
+		    dump_add(data => $self->{MECH}->content());
 		    $_ = $res->content."\n";
 		} elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
 		    info("something wrong, waiting 60 sec");

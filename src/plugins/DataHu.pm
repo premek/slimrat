@@ -67,7 +67,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -117,7 +117,7 @@ sub get_data {
 			wait($wait);
 			
 			$res = $self->{MECH}->reload();
-			dump_add($self->{MECH}->content());
+			dump_add(data => $self->{MECH}->content());
 		} else {
 			last;
 		}

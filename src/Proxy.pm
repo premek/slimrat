@@ -41,12 +41,12 @@ package Proxy;
 # Packages
 use threads;
 use threads::shared;
-use Thread::Semaphore;
 
 # Custom packages
 use Log;
 use Configuration;
 use Toolbox;
+use Semaphore;
 
 # Write nicely
 use strict;
@@ -61,8 +61,7 @@ $config->set_default("order", "linear");
 $config->set_default("delete", 0);
 
 # Shared data
-my @proxies:shared; my $s_proxies:shared = new Thread::Semaphore;
-
+my @proxies:shared; my $s_proxies:shared = new Semaphore;
 
 
 #
@@ -95,9 +94,12 @@ sub file_read() {
 			}
 			my @protocols = split(/,/, $protocols_string);
 			
+			# Create shared hash for proxy data
 			my $proxy;
 			share($proxy);
 			$proxy = &share({});
+			
+			# Save data
 			$proxy->{link} = $link;
 			share($proxy->{protocols});
 			$proxy->{protocols} = &share([]);
@@ -112,6 +114,11 @@ sub file_read() {
 		}
 	}
 	close(FILE);
+}
+
+# Quit the package
+sub quit {
+
 }
 
 
@@ -148,11 +155,10 @@ sub DESTROY {
 # Advance
 sub advance {
 	my ($self, $link) = @_;
-	print "selecting proxy\n";
 	
 	# No need to do anything if no proxies available
-	$s_proxies->down();
 	return 1 unless (scalar(@proxies));
+	$s_proxies->down();
 	
 	# Check limits and cycle if needed
 	if (defined($self->{proxy})) {
@@ -178,6 +184,7 @@ sub advance {
 		while (scalar(@proxies) && indexof($protocol, $self->{proxy}->{protocols}) == -1) {
 			$self->cycle(0);
 			if (--$limit < 0) {
+				$s_proxies->up();
 				return error("could not find proxy matching current protocol '$protocol'");
 			}
 		}
@@ -196,21 +203,23 @@ sub advance {
 }
 
 # Cycle
-# Not to be called directly, should be executed exclusively
 sub cycle {
 	my ($self, $limits_reached) = @_;
 	
 	# Place current proxy at end
 	if (defined($self->{proxy})) {
+		$s_proxies->down();
 		if ($limits_reached) {
 			$self->{proxy}->{downloads} = 0;
 			push(@proxies, $self->{proxy}) unless $config->get("delete");
 		} else {
 			push(@proxies, $self->{proxy});
 		}
+		$s_proxies->up();
 	}
 	
 	# Pick next proxy
+	$s_proxies->down();
 	if ($config->get("order") eq "random") {
 		my $index = rand(scalar(@proxies));
 		$self->{proxy} = delete($proxies[$index]);
@@ -218,8 +227,10 @@ sub cycle {
 	} elsif ($config->get("order") eq "linear") {
 		$self->{proxy} = shift(@proxies);
 	} else {
+		$s_proxies->up();
 		return error("unrecognized proxy order '", $config->get("order"), "'");
 	}
+	$s_proxies->up();
 	
 	$self->set();
 }
@@ -243,7 +254,10 @@ sub set($) {
 # Return
 1;
 
-__END__
+
+#
+# Documentation
+#
 
 =head1 NAME 
 

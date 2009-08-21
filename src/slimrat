@@ -179,7 +179,7 @@ if($config_cli->get("address")){
 
 # Browser and proxy handling
 my $mech = config_browser();
-my $proxy = config_proxy($mech);
+my $proxy = new Proxy($mech);
 
 # Fork in background
 if ($config_cli->get("daemon")) {
@@ -194,7 +194,8 @@ if ($config_cli->get("daemon")) {
 # MAIN #
 ########
 
-info("Slimrat started");
+info("Slimrat started (command-line interface)");
+warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 #
 # Check
@@ -340,21 +341,15 @@ sub quit($) {
 	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
 	
-	# Write the dump
-	dump_write();
-	
-	info("Slimrat finished");
-
-	my $return = shift;
-	$return = 255 if ($return !~ /^\d+$/);
-	
-	# Hard exit, for when &quit gets called out of sig{int}	
-	exit($return);
+	# Quit all packages
+	Common::quit(@_);
 }
 
-__END__
 
-# Print the usage
+
+#################
+# DOCUMENTATION #
+#################
 
 =head1 NAME
 
@@ -433,6 +428,11 @@ slimrat-cli
 
   slimrat http://rapidshare.com/files/012345678/somefile.xxx
   slimrat -l urls.dat -d
+
+=head1 AUTHOR
+
+Přemek Vyhnal <premysl.vyhnal gmail com>
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
 =cut
 
