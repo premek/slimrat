@@ -67,7 +67,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -115,7 +115,7 @@ sub get_data {
 	# Get the secondary page
 	my $res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 		
 	$_ = $res->decoded_content."\n";
 	

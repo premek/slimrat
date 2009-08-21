@@ -64,7 +64,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -105,7 +105,7 @@ sub get_data {
 	
 	# Click to the secondary page
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 	
 	# Click the download link and extract it
 	$self->{MECH}->follow_link( text => 'kliknij tutaj');

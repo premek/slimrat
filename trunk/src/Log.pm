@@ -41,7 +41,6 @@ package Log;
 # Packages
 use threads;
 use threads::shared;
-use Class::Struct;
 use Term::ANSIColor qw(:constants);
 use Cwd;
 use File::Temp qw/tempdir/;
@@ -49,12 +48,13 @@ use File::Basename;
 
 # Custom packages
 use Toolbox;
+use Semaphore;
 use Configuration;
 
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(bytes_readable seconds_readable level debug info warning error usage fatal progress summary status wait dump_add dump_write);
+@EXPORT = qw(level debug info warning error usage fatal progress summary status wait dump_add dump_write);
 
 # Write nicely
 use strict;
@@ -69,16 +69,9 @@ $config->set_default("file", 1);
 $config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
 $config->set_default("dump_folder", "/tmp");
 
-# Dump cache
-struct(Dump =>	{
-		time		=>	'$',
-		type		=>	'$',
-		data		=>	'$',
-		hierarchy	=>	'$',
-		extra		=>	'$'
-});
-my @dumps : shared;
-my $dump_output : shared;
+# Shared data
+my @dumps:shared; my $s_dumps:shared = new Semaphore;
+my $dump_output:shared = "";
 
 # Progress length variable
 my $progress_length = 0;
@@ -124,10 +117,12 @@ sub output : locked {
 	
 	# Debug log output when in --debug mode
 	if ($config->get("verbosity") >= 5) {
-		my $fh;
-		open($fh, ">>", \$dump_output);
+		my ($fh, $temp);	# Perl doesn't like filehandles to shared variables (bug?)
+		$temp = "";
+		open($fh, ">>", \$temp);
 		output_raw($fh, @args);
 		close($fh);
+		$dump_output .= $temp;
 	}
 	
 	# File output
@@ -139,36 +134,6 @@ sub output : locked {
 	}
 }
 
-# Generate a timestamp
-sub timestamp {
-	my ($sec,$min,$hour) = localtime;
-	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
-}
-
-# Convert a raw amount of bytes to a more human-readable form
-# Log or Toolbox?
-sub bytes_readable
-{
-	my $bytes = shift;
-	
-	my $bytes_hum = "$bytes";
-	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
-	elsif ($bytes>2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
-	elsif ($bytes>2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
-	else { $bytes_hum = $bytes . " B" }
-	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
-	
-	return $bytes_hum;
-}
-
-# Return seconds in m:ss format
-sub seconds_readable {
-	my $sec = shift || return "0:00";
-	my $s = $sec % 60;
-	my $m = ($sec - $s) / 60;
-	# TODO hours???
-	return sprintf('%d:%02d', $m, $s);
-}
 
 #
 # Enhanced print routines
@@ -275,6 +240,11 @@ sub configure($) {
 	$config->merge($complement);
 }
 
+# Quit the package
+sub quit() {
+	dump_write();
+}
+
 # Wait a while
 sub wait {
 	my $wait = shift or return;
@@ -284,26 +254,34 @@ sub wait {
 
 # Dump data for debugging purposes
 sub dump_add {
-	my ($data, $type, $extra) = @_;
-	$type = "html" unless $type;
+	my %information = @_;
 	return unless ($config->get("verbosity") >= 5);
-	my $hierarchy = (caller(1))[3] . ", line " . (caller(0))[2];
+	
+	# Fill some possible gaps
+	$information{data} = "" unless ($information{data});	# Replace potential undef to avoid warn()
+	$information{type} = "html" unless ($information{type});
+	$information{title} = "unnamed dump" unless ($information{title});	
+	
+	# Create shared hash for dump data
+	my $dump;
+	share($dump);
+	$dump = &share({});
 	
 	# Save dump
-	debug("adding $type dump " . (scalar(@dumps)+1) . " from $hierarchy");
-	my $dump = new Dump;
-	$dump->time(time);
-	$dump->data($data);
-	$dump->type($type);
-	$dump->hierarchy($hierarchy);
-	$dump->extra($extra) if $extra;
+	foreach my $key (keys %information) {
+		$dump->{$key} = $information{$key};
+	}
+	$dump->{time} = time;
+	$dump->{hierarchy} = (caller(1))[3] . ", line " . (caller(0))[2];
+	debug("adding ", $dump->{type}, " dump ", (scalar(@dumps)+1), " from ", $dump->{hierarchy});
+	$s_dumps->down();
 	push @dumps, $dump;
+	$s_dumps->up();
 }
 
 # Write the dumped data
 sub dump_write() {
 	return unless ($config->get("verbosity") >= 5);
-	return unless scalar(@dumps);
 	
 	# Generate a tag and temporary folder
 	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
@@ -312,31 +290,35 @@ sub dump_write() {
 	my $tempfolder = tempdir ( $filename."_XXXXX", TMPDIR => 1 );
 	
 	# Dump the actual log
-	dump_add($dump_output, "log", "actual slimrat log");
+	dump_add(title => "slimrat log", data => $dump_output, type => "log");
 	
 	# Dump files
 	debug("dumping " . scalar(@dumps) . " file(s) to disk in temporary folder '$tempfolder'");	
 	open(INFO, ">$tempfolder/info");
 	my $counter = 1;
+	$s_dumps->down();
 	foreach my $dump (@dumps) {
-		print INFO $counter, ") ", $dump->hierarchy, "\n";
-		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->time); $year+=1900;
-		print INFO "\t- Generated at ", (sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$mon,$mday,$hour,$min,$sec), "\n";
-		my $filename = $counter . "." . $dump->type;
-		print INFO "\t- Filename: $filename\n";
-		print INFO "\t- Extra information: " . $dump->extra . "\n" if $dump->extra;
+		print INFO $counter, ") ", $dump->{title}, "\n";
+		print INFO "\t- Called from: ", $dump->{hierarchy}, "\n";
+		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->{time}); $year+=1900;
+		print INFO "\t- Created at ", (sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$mon,$mday,$hour,$min,$sec), "\n";
+		my $filename = $counter . "." . $dump->{type};
+		print INFO "\t- Extra information: " . $dump->{extra} . "\n" if $dump->{extra};
+		print INFO "\t- Saved as: $filename\n";
 		print INFO "\n";
 		
-		if ($dump->type =~ m/(htm|css|log|txt)/) {
+		# Save (TODO: type bin?)
+		if ($dump->{type} =~ m/(htm|css|log|txt)/) {
 			open(DATA, ">:utf8", "$tempfolder/$filename");
 		} else {
 			open(DATA, ">", "$tempfolder/$filename");
 		}
-		print DATA $dump->data;
+		print DATA $dump->{data};
 		close(DATA);
 		
 		$counter++;
 	}
+	$s_dumps->up();
 	close(INFO);
 	
 	# Generate archive	
@@ -351,7 +333,10 @@ sub dump_write() {
 # Return
 1;
 
-__END__
+
+#
+# Documentation
+#
 
 =head1 NAME 
 

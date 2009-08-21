@@ -41,11 +41,11 @@ package Queue;
 # Packages
 use threads;
 use threads::shared;
-use Thread::Semaphore;
 use Storable;
 
 # Custom packages
 use Configuration;
+use Semaphore;
 use Toolbox;
 use Log;
 
@@ -57,9 +57,9 @@ use warnings;
 my $config = new Configuration;
 
 # Shared data
-my $file:shared; my $s_file:shared = new Thread::Semaphore;	# Semaphore here manages file _access_, not $file access
-my @queued:shared; my $s_queued:shared = new Thread::Semaphore;
-my @processed:shared; my $s_processed:shared = new Thread::Semaphore;
+my $file:shared; my $s_file:shared = new Semaphore;	# Semaphore here manages file _access_, not $file access
+my @queued:shared; my $s_queued:shared = new Semaphore;
+my @processed:shared; my $s_processed:shared = new Semaphore;
 
 
 #
@@ -112,7 +112,7 @@ sub file_read {
 				# Only add to queue if not processed yet and not in container either
 				$s_processed->down();
 				$s_queued->down();
-				if ((indexof($url, @processed) == -1) && (indexof($url, @queued) == -1)) {
+				if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1)) {
 					$s_queued->up();
 					$s_processed->up();
 					add($url);
@@ -138,17 +138,13 @@ sub dump {
 	$s_queued->down();
 	my @processed_bak = @processed;
 	my @queued_bak = @queued;
-	$s_queued->up();	# FIXME: use reentrant mutexes
 	
 	# Add all URL's to the output
 	my $queue = new Queue();
 	while (my $url = $queue->get()) {
 		push(@output, $url);
-		$s_processed->up();	# FIXME: use reentrant mutexes
 		$queue->advance();
-		$s_processed->down();
 	}
-	$s_queued->down();
 	
 	# Restore the backup
 	@processed = @processed_bak;
@@ -210,6 +206,11 @@ sub restore {
 		$s_queued->up();
 		$s_processed->up();
 	}
+}
+
+# Quit the package
+sub quit {
+
 }
 
 
@@ -290,9 +291,7 @@ sub advance() {
 	$self->{item} = undef;
 	$s_queued->down();
 	if (! scalar(@queued)) {
-		$s_queued->up();	# TODO: use reentrant mutexes / recursive semaphores
 		file_read();
-		$s_queued->down();
 	}
 	$self->{item} = shift(@queued);
 	$s_queued->up();
@@ -301,7 +300,10 @@ sub advance() {
 # Return
 1;
 
-__END__
+
+#
+# Documentation
+#
 
 =head1 NAME 
 
@@ -315,7 +317,7 @@ Queue
   my $queue = Queue::new();
   $queue->add('http://test.url/file');
   $queue->file('/tmp/urls.dat');
-  
+
   # Process all URL's
   while (my $url = $queue->get) {
     print "Got an URL: $url\n";

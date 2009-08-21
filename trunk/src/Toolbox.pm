@@ -35,11 +35,16 @@
 # Configuration
 #
 
+# Package name
 package Toolbox;
 
+# Packages
+use threads;
+
+# Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof readable2bytes);
+@EXPORT = qw(dwait indexof timestamp bytes_readable seconds_readable readable2bytes thread_id);
 
 # Write nicely
 use strict;
@@ -60,6 +65,35 @@ sub indexof {
 	return -1;
 }
 
+# Generate a timestamp
+sub timestamp {
+	my ($sec,$min,$hour) = localtime;
+	sprintf "[%02d:%02d:%02d] ",$hour,$min,$sec;
+}
+
+# Convert a raw amount of bytes to a more human-readable form
+sub bytes_readable {
+	my $bytes = shift;
+	
+	my $bytes_hum = "$bytes";
+	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
+	elsif ($bytes>2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
+	elsif ($bytes>2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
+	else { $bytes_hum = $bytes . " B" }
+	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
+	
+	return $bytes_hum;
+}
+
+# Return seconds in m:ss format
+sub seconds_readable {
+	my $sec = shift || return "0:00";
+	my $s = $sec % 60;
+	my $m = ($sec - $s) / 60;
+	# TODO hours???
+	return sprintf('%d:%02d', $m, $s);
+}
+
 # Converts human readable size to bytes 
 # 10.5 KB  10M  10 B  ...
 # Case insensitive! k=K=2**10, b=B=byte - FIXME?? 
@@ -71,6 +105,13 @@ sub readable2bytes {
 	if    (/(\d+(?:\.\d+)?)([KMG])B?/i) { return $1 * $mul{uc($2)} }
 	elsif (/(\d+(?:\.\d+)?)B?/i)        { return $1 }
 	else {return 0}
+}
+
+# Generate a per-thread ID
+sub thread_id {
+	my $thr = threads->self();
+	my $tid = $thr->tid();
+	return $tid;
 }
 
 # Return

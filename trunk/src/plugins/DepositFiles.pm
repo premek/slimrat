@@ -76,7 +76,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -128,7 +128,7 @@ sub get_data {
 
 		if($self->{MECH}->form_with_fields("gateway_result")) { # TODO There is no form with the requested fields
 			$self->{MECH}->submit_form();
-			dump_add($self->{MECH}->content());
+			dump_add(data => $self->{MECH}->content());
 		} 
 
 		if ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
@@ -154,7 +154,7 @@ sub get_data {
 		if ($wait) {
 			wait($wait);
 			$self->{MECH}->reload();
-			dump_add($self->{MECH}->content());
+			dump_add(data => $self->{MECH}->content());
 		}
 		last if $download;
 	}

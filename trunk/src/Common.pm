@@ -339,7 +339,7 @@ sub download($$$$$) {
 		my $captcha_data = shift;
 		my $captcha_type = shift;
 		my $captcha_value;		
-		dump_add($captcha_data, "gif");
+		dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
 		
 		# Dump data in temporary file
 		my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
@@ -408,6 +408,23 @@ sub download($$$$$) {
 	# Return correctly
 	return ($plugin_result?1:0);
 	ERROR: return 0;
+}
+
+# Quit all packages
+sub quit {
+	# Exit message
+	info("Exiting");
+	
+	# Quit all packages
+	Queue::quit();
+	Log::quit();
+	Semaphore::quit();
+	Proxy::quit();
+	
+	# Exit with correct return value
+	my $return = shift;
+	$return = 255 if ($return !~ /^\d+$/);
+	exit($return);
 }
 
 1;

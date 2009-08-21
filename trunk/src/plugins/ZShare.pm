@@ -65,7 +65,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -109,7 +109,7 @@ sub get_data {
 	$self->{MECH}->form_name("form1") or return error("Cannot click the 'Download Now' button");
 	my $res = $self->{MECH}->submit_form();
 	return error("plugin failure: ", $res->status_line) unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	# We will not wait before download because javascript is encoded 
 	# so we dont know how many seconds we have to wait (and because we dont like waiting)

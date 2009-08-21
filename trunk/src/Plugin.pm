@@ -62,7 +62,6 @@ my %plugins;
 my $config = new Configuration;
 
 
-
 #
 # Routines
 #
@@ -91,7 +90,6 @@ sub configure {
 # Register a plugin
 sub register {
 	$plugins{shift()}=(caller)[0];
-	error("Incompatible plugin: ".(caller)[0].". Plugin::register() must be called with regex only now.") if shift; # Remove this later
 }
 
 # Get a plugin's name
@@ -105,8 +103,8 @@ sub get_package {
 	return "Direct";
 }
 
+# Load the plugins (dependancy check + execution, which triggers register())
 sub load_plugins {
-	# load after Log and Configuration is initialized
 
 	# Let all plugins register themselves
 	my @pluginfiles = glob "$RealBin/plugins/*.pm";
@@ -146,7 +144,10 @@ sub load_plugins {
 # Return
 1;
 
-__END__
+
+#
+# Documentation
+#
 
 =head1 NAME 
 
@@ -155,15 +156,15 @@ Plugin
 =head1 SYNOPSIS
 
   use Plugin;
-  
+
   load_plugins();
-  
+
   # To be done in a plugin
   register("TestPlugin", "http://www.TestSite.com");
-  
+
   # Should result in "TestPlugin"
   my $pluginname = get_package("http://www.TestSite.com/download.php");
-  
+
   # Instantiates an object from package TestPlugin
   my $plugin = Plugin::new("http://www.TestSite.com/download.php", $browser);
 
@@ -206,7 +207,7 @@ a match of URLs.
 
 =head1 AUTHOR
 
-Přemek Vyhnal <premysl.vyhnal gmail com> 
+Přemek Vyhnal <premysl.vyhnal gmail com>
 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
 =cut

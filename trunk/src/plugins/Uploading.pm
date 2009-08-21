@@ -67,7 +67,7 @@ sub new {
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
 	return $self;
@@ -109,7 +109,7 @@ sub get_data {
 	$self->{MECH}->form_id("downloadform");
 	my $res = $self->{MECH}->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
-	dump_add($self->{MECH}->content());
+	dump_add(data => $self->{MECH}->content());
 	
 	# Process the resulting page
 	while(1) {
@@ -124,7 +124,7 @@ sub get_data {
 			return error("plugin error(could not find match)");
 		}
 		$res = $self->{MECH}->reload();
-		dump_add($self->{MECH}->content());
+		dump_add(data => $self->{MECH}->content());
 	}
 	
 	# Click the "Free Download" button

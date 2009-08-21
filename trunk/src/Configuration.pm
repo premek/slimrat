@@ -350,7 +350,10 @@ sub save($$) {
 # Return
 1;
 
-__END__
+
+#
+# Documentation
+#
 
 =head1 NAME 
 
@@ -436,15 +439,15 @@ the default values. Upon configuration, the merge() call can be used to merge th
 with the passed one containing user-defined values. Again, this should be rarely used, and when
 needed check the usage in Log.pm.
   use Configuration;
-  
+
   # A package creates an initial Configuration object (e.g. at BEGIN block)
   my $config_package = new Configuration;
   $config_package->set_default("foo", "bar");
-  
+
   # The main application reads the user defined values (from file, or manually, ...)
   my $config_main = new Configuration;
   $config_main->file_read("/etc/configuration");
-  
+
   # The package receives the configuration entries it is interested in, and merges them
   # with the existing default values
   $config_package->merge($config_main->section("package"));
@@ -460,4 +463,5 @@ not within a subsection). When the file does not exist, a new one will get creat
 
 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
-=cut=
+=cut
+
