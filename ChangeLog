@@ -12,6 +12,9 @@
 
     * common (download): error detection without goto's.
 
+    * log (callstack): support for call trace upon errors and fatal
+      errors (though only in debug mode).
+
 
 2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

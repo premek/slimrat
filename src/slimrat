@@ -258,12 +258,11 @@ elsif ($config_cli->get("mode") eq "download") {
 				$link,
 				$config_cli->get("to"),
 				sub { # Progress indication
-					my ($done, $total, $last_done, $last_time) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
-					my $speed = $last_done/$last_time if ($last_time); # current speed [B/s] TODO: maybe some average speed?
+					my ($done, $total, $speed, $eta) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
 					if ($total) {
 						my $perc = $done / $total;
 						push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
-						push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable(($total-$done)/$speed), " remaining" if ($speed);
+						push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable($eta), " remaining" if ($speed);
 						progress(@progr);
 					} else {
 						push my @progr, "Downloaded ", bytes_readable($done);

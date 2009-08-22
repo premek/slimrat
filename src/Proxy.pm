@@ -196,7 +196,6 @@ sub advance {
 	# Increase counters
 	$self->{proxy}->{downloads}++;
 	#$self->{bytes} += $self->{ua}->get_bytes();
-	print "done\n";
 	
 	# Return
 	return 1;

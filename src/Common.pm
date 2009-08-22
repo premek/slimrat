@@ -61,6 +61,7 @@ use lib $RealBin;
 use Configuration;
 use Log;
 use Plugin;
+use Toolbox;
 
 # Write nicely
 use strict;
@@ -166,9 +167,7 @@ sub daemonize() {
 	setsid or fatal("couldn't start a new session ($!)");
 	
 	# Save the PID
-	if (!pid_save()) {
-		fatal("could not write the state file");
-	}
+	pid_save() or fatal("could not write the state file");
 	
 	# Redirect all output
 	info("Muting screen output, make sure a logfile has been configured to output to");
@@ -209,7 +208,7 @@ sub pid_read() {
 sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
-	info("Downloading ", $link);
+	info("Downloading '$link'");
 
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech) || return 0;
@@ -238,11 +237,11 @@ sub download($$$$$) {
 
 	# Download status counters
 	my $size;
-	my $t_start = time;
-
-	my $t_prev = 0;
-	my $done_prev = 0;
+	my $time_start = time;
+	my $time_chunk = time;
 	my $size_downloaded = 0;
+	my $size_chunk;
+	my $speed = 0;
 	
 	# Get data
 	my $encoding;
@@ -340,12 +339,28 @@ sub download($$$$$) {
 		}
 		
 		# Download indication
-		$done_prev += length($_[0]);
-		$size_downloaded += length($_[0]);	
-		if ($t_prev+1 < time) {	# don't update too often
-			&$progress($size_downloaded, $size, $done_prev, $t_prev?time-$t_prev:0);
-			$done_prev = 0;
-			$t_prev = time;
+		$size_chunk += length($_[0]);
+		$size_downloaded += length($_[0]);
+		if ($time_chunk+1 < time) {	# don't update too often
+			# Weighted speed calculation
+			my $dtime_chunk = time-$time_chunk;
+			if ($speed) {
+				$speed /= 3;
+				$speed += 2 * ($size_chunk / $dtime_chunk) / 3;
+			} else {
+				$speed = $size_chunk / $dtime_chunk;
+			}
+			
+			# Calculate ETA
+			my $eta = -1;
+			$eta = ($size - $size_downloaded) / $speed if ($speed);
+			
+			# Update progress
+			&$progress($size_downloaded, $size, $speed, $eta);
+			
+			# Reset counters for next chunk
+			$size_chunk = 0;
+			$time_chunk = time;
 		}
 	}, sub { # autoread captcha if configured, else let user read it
 		my $captcha_data = shift;
