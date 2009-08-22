@@ -7,7 +7,6 @@
 # VERSION SPECIFIC #
 
 * 1.0
-  - Limit maximum download speed
   - Test everything!
   - Test everything again ;)
   - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
