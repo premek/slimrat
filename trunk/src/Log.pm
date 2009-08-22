@@ -238,8 +238,8 @@ sub fatal {
 
 # Warn
 $SIG{__WARN__} = sub {
-	# Deactivate handlers when eval'ing of parsing
-	die @_ if ($^S != 0);
+	# Deactivate handlers when parsing (undef) or eval'ing (1)
+	warn @_ if (defined $^S && $^S != 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);
@@ -258,8 +258,8 @@ $SIG{__WARN__} = sub {
 
 # Die
 $SIG{__DIE__} = sub {
-	# Deactivate handlers when eval'ing of parsing
-	die @_ if ($^S != 0);
+	# Deactivate handlers when parsing (undef) or eval'ing (1)
+	die @_ if (defined $^S && $^S != 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);
