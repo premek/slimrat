@@ -149,18 +149,16 @@ sub debug {
 # Print a callstack
 sub callstack {
 	my $offset = shift || 0;
-	output(GREEN, 1, "", ["Call stack:"], 5);
+	output(GREEN, 1, "", ["Call stack leading to erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
 	
 	# Get calltrace
-	local $@;
-	eval { confess('') };
-	my $callstack = $@;
-	
-	# Print relevant calls
-	while ($callstack =~ s/\s*(.+)//) {
-		next if (--$offset >= -3);
-		output(GREEN, 0, "", [$1], 5);
+	my $traces = 0;
+	for (my $i = 1+$offset; 1; $i++) {
+		last unless (caller($i));
+		$traces++;
+		output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
 	}
+	output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
 }
 
 # Informative message
@@ -198,7 +196,7 @@ sub usage {
 	if (defined(&main::quit)) {
 		main::quit(255);
 	} else {
-		#exit(255);
+		exit(255);
 	}
 }
 
@@ -209,7 +207,7 @@ sub fatal {
 	if (defined(&main::quit)) {
 		main::quit(255);
 	} else {
-		#exit(255);
+		exit(255);
 	}
 }
 
@@ -371,6 +369,9 @@ sub dump_write() {
 
 # Warn
 $SIG{__WARN__} = sub {
+	# Deactivate handlers inside eval block (see perldoc/die)
+	die @_ if (!defined($^S));
+	
 	my @arg = @_;
 	chomp($arg[-1]);
 	error(@arg);
@@ -379,6 +380,9 @@ $SIG{__WARN__} = sub {
 
 # Die
 $SIG{__DIE__} = sub {
+	# Deactivate handlers inside eval block (see perldoc/die)
+	die @_ if (!defined($^S));
+	
 	my @arg = @_;
 	chomp($arg[-1]);
 	fatal(@arg);

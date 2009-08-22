@@ -63,7 +63,6 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
-	
 	$self->{CONF}->set_default("enabled", 0);
 	if ($self->{CONF}->get("enabled")) {
 		warning("no appropriate plugin found, using 'Direct' plugin");
@@ -71,7 +70,8 @@ sub new {
 		return error("no appropriate plugin found");
 	}
 
-	$self->{HEAD} = $self->{MECH}->head($self->{URL});
+	eval($self->{HEAD} = $self->{MECH}->head($self->{URL}));
+	return error("URL not usable") if ($!);
 
 	bless($self);
 	return $self;
