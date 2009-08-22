@@ -10,6 +10,8 @@
     * log: capturing WARN and DIE signals in order to provide a
       complete debug log.
 
+    * common (download): error detection without goto's.
+
 
 2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

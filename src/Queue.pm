@@ -57,6 +57,7 @@ use warnings;
 my $config = new Configuration;
 
 # Shared data
+# TODO: $file in $config?
 my $file:shared; my $s_file:shared = new Semaphore;	# Semaphore here manages file _access_, not $file access
 my @queued:shared; my $s_queued:shared = new Semaphore;
 my @processed:shared; my $s_processed:shared = new Semaphore;
@@ -82,7 +83,7 @@ sub file {
 	fatal("queue file '$file' not readable") unless (-r $file);
 	
 	# Read a first URL
-	file_read();
+	file_read() if ($file);
 }
 
 # Add a single url to the queue
@@ -96,37 +97,36 @@ sub add {
 
 # Add an URL from the file to the queue
 sub file_read {
-	if (defined($file)) {
-		debug("reading queue file '$file'");
-		$s_file->down();
-		open(FILE, $file) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
-		while (<FILE>) {
-			# Skip things we don't want
-			next if /^#/;		# Skip comments
-			next if /^\s*$/;	# Skip blank lines
+	debug("reading queue file '$file'");
+	
+	$s_file->down();
+	open(FILE, $file) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
+	while (<FILE>) {
+		# Skip things we don't want
+		next if /^#/;		# Skip comments
+		next if /^\s*$/;	# Skip blank lines
+		
+		# Process a valid URL
+		if ($_ =~ m/^\s*(\S+)\s*/) {
+			my $url = $1;
 			
-			# Process a valid URL
-			if ($_ =~ m/^\s*(\S+)\s*/) {
-				my $url = $1;
-				
-				# Only add to queue if not processed yet and not in container either
-				$s_processed->down();
-				$s_queued->down();
-				if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1)) {
-					$s_queued->up();
-					$s_processed->up();
-					add($url);
-					last;
-				}
+			# Only add to queue if not processed yet and not in container either
+			$s_processed->down();
+			$s_queued->down();
+			if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1)) {
 				$s_queued->up();
 				$s_processed->up();
-			} else {
-				warning("unrecognised line in queue file: '$_'");
+				add($url);
+				last;
 			}
+			$s_queued->up();
+			$s_processed->up();
+		} else {
+			warning("unrecognised line in queue file: '$_'");
 		}
-		close(FILE);
-		$s_file->up();
 	}
+	close(FILE);
+	$s_file->up();
 }
 
 # Get everything (all URLs at once)
@@ -291,7 +291,7 @@ sub advance() {
 	$self->{item} = undef;
 	$s_queued->down();
 	if (! scalar(@queued)) {
-		file_read();
+		file_read() if ($file);
 	}
 	$self->{item} = shift(@queued);
 	$s_queued->up();
