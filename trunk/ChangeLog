@@ -1,3 +1,16 @@
+2009-08-22 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: handling debug messages before any configuration
+      initialisation.
+
+    * slimrat-cli: support for loading custom configuration files.
+
+    * slimrat-gui: implemented select set of command-line options.
+
+    * log: capturing WARN and DIE signals in order to provide a
+      complete debug log.
+
+
 2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * semaphore: introduced new package to support multithreaded
