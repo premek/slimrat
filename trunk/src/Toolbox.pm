@@ -74,6 +74,7 @@ sub timestamp {
 # Convert a raw amount of bytes to a more human-readable form
 sub bytes_readable {
 	my $bytes = shift;
+	return "unknown" if ($bytes == -1);
 	
 	my $bytes_hum = "$bytes";
 	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
@@ -88,6 +89,7 @@ sub bytes_readable {
 # Return seconds in m:ss format
 sub seconds_readable {
 	my $sec = shift || return "0:00";
+	return "unknown" if ($sec == -1);
 	my $s = $sec % 60;
 	my $m = ($sec - $s) / 60;
 	# TODO hours???

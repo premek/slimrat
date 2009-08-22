@@ -344,7 +344,7 @@ sub on_btnStart1_clicked {
 						$link,
 						$download_to,
 						sub { # progress
-							my ($done, $total, $time) = @_;
+							my ($done, $total, $speed, $eta) = @_;
 							if ($total) {
 								my $perc = int(($done / $total)*10000)/100;
 								$row->[COL_PROGR] = $perc; # progressbar isn't updated when window is not active or cursor is not moving

@@ -39,6 +39,7 @@
 package Log;
 
 # Packages
+use Carp;
 use threads;
 use threads::shared;
 use Term::ANSIColor qw(:constants);
@@ -145,6 +146,23 @@ sub debug {
 	return 0;
 }
 
+# Print a callstack
+sub callstack {
+	my $offset = shift || 0;
+	output(GREEN, 1, "", ["Call stack:"], 5);
+	
+	# Get calltrace
+	local $@;
+	eval { confess('') };
+	my $callstack = $@;
+	
+	# Print relevant calls
+	while ($callstack =~ s/\s*(.+)//) {
+		next if (--$offset >= -3);
+		output(GREEN, 0, "", [$1], 5);
+	}
+}
+
 # Informative message
 sub info {
 	output("", 1, "", \@_, 3);
@@ -169,6 +187,7 @@ sub warning {
 # Non-fatal error
 sub error {
 	output(RED, 1, "error", \@_, 1);
+	callstack(1);
 	return 0;
 }
 
@@ -176,14 +195,24 @@ sub error {
 sub usage {
 	output(YELLOW, 1, "invalid usage", \@_, 0);
 	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"], 0);
-	main::quit(255);
+	if (defined(&main::quit)) {
+		main::quit(255);
+	} else {
+		#exit(255);
+	}
 }
 
 # Fatal runtime error
 sub fatal {
 	output(RED, 1, "fatal error", \@_, 0);
-	main::quit(255);
+	callstack(1);
+	if (defined(&main::quit)) {
+		main::quit(255);
+	} else {
+		#exit(255);
+	}
 }
+
 
 
 #
@@ -344,7 +373,7 @@ sub dump_write() {
 $SIG{__WARN__} = sub {
 	my @arg = @_;
 	chomp($arg[-1]);
-	warning(@arg);
+	error(@arg);
 	return 1;
 };
 
