@@ -17,6 +17,8 @@
 
     * common (download): weighted download speed calculation.
 
+    * common (download): rate control.
+
 
 2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

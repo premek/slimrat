@@ -77,9 +77,9 @@ sub bytes_readable {
 	return "unknown" if ($bytes == -1);
 	
 	my $bytes_hum = "$bytes";
-	if ($bytes>2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
-	elsif ($bytes>2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
-	elsif ($bytes>2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
+	if ($bytes>=2**30) { $bytes_hum = ($bytes / 2**30) . " GB" }
+	elsif ($bytes>=2**20) { $bytes_hum = ($bytes / 2**20) . " MB" }
+	elsif ($bytes>=2**10) { $bytes_hum = ($bytes / 2**10) . " KB" }
 	else { $bytes_hum = $bytes . " B" }
 	$bytes_hum =~ s/(^\d{1,}\.\d{2})(\d*)(.+$)/$1$3/;
 	

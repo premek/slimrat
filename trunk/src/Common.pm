@@ -47,6 +47,7 @@ use Exporter;
 @EXPORT = qw(config_init config_merge config_browser configure config_verbosity daemonize pid_read download);
 
 # Packages
+use Time::HiRes qw(sleep gettimeofday);
 use POSIX 'setsid';
 use Time::HiRes qw(time);
 use URI;
@@ -338,15 +339,27 @@ sub download($$$$$) {
 			die("unhandled content encoding '$encoding'");
 		}
 		
-		# Download indication
+		# Counters		
 		$size_chunk += length($_[0]);
 		$size_downloaded += length($_[0]);
+		my $dtime_chunk = gettimeofday()-$time_chunk;
+		
+		# Rate control
+		if ($config->get("rate")) {
+			my $speed_aim = $config->get("rate") * 1024;
+			my $speed_cur = $size_chunk / $dtime_chunk;
+			if ($speed_cur > $speed_aim) {
+				sleep($size_chunk / $speed_aim - $dtime_chunk);
+			}
+			$dtime_chunk = gettimeofday()-$time_chunk;
+		}
+		
+		# Download indication
 		if ($time_chunk+1 < time) {	# don't update too often
 			# Weighted speed calculation
-			my $dtime_chunk = time-$time_chunk;
 			if ($speed) {
-				$speed /= 3;
-				$speed += 2 * ($size_chunk / $dtime_chunk) / 3;
+				$speed /= 2;
+				$speed += ($size_chunk / $dtime_chunk) / 2;
 			} else {
 				$speed = $size_chunk / $dtime_chunk;
 			}
@@ -360,7 +373,7 @@ sub download($$$$$) {
 			
 			# Reset counters for next chunk
 			$size_chunk = 0;
-			$time_chunk = time;
+			$time_chunk = gettimeofday();
 		}
 	}, sub { # autoread captcha if configured, else let user read it
 		my $captcha_data = shift;
