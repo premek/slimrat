@@ -149,6 +149,7 @@ sub debug {
 # Print a callstack
 sub callstack {
 	my $offset = shift || 0;
+	my $traces = 0;
 	
 	# Trace an error
 	eval { confess( '' ) };
@@ -164,7 +165,8 @@ sub callstack {
 				next;
 			} elsif ($offset >= -3) {
 				next;
-			}
+			}			
+			$traces++;
 			output(GREEN, 0, "", [$1], 5);
 		}
 	}
@@ -172,14 +174,16 @@ sub callstack {
 	# Do a regular trace and hope the error happened in this thread
 	else {
 		output(GREEN, 1, "", ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
-		my $traces = 0;
+		
 		for (my $i = 1+$offset; 1; $i++) {
 			last unless (caller($i));
 			$traces++;
 			output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
 		}
-		output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
 	}
+	
+	# No stack at all
+	output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
 }
 
 # Informative message
@@ -239,7 +243,7 @@ sub fatal {
 # Warn
 $SIG{__WARN__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	warn @_ if (defined $^S && $^S != 0);
+	return warn @_ if (defined $^S && $^S != 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);
@@ -253,13 +257,13 @@ $SIG{__WARN__} = sub {
 	}
 	
 	# Callstack
-	callstack(0);
+	callstack(1);
 };
 
 # Die
 $SIG{__DIE__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	die @_ if (defined $^S && $^S != 0);
+	return die @_ if (defined $^S && $^S != 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);
@@ -268,12 +272,13 @@ $SIG{__DIE__} = sub {
 	# Multiline output
 	output(RED, 1, "fatal signal", [shift @args], 1);
 	while (shift @args) {
+		next unless $_;
 		chomp;
 		output(RED, 0, "", [$_], 1);
 	}
 	
 	# Callstack
-	callstack(0);
+	callstack(1);
 	
 	# Quit
 	if (defined(&main::quit)) {
