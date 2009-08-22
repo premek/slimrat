@@ -44,6 +44,8 @@
 #
 
 # Packages
+use Getopt::Long;
+use Pod::Usage;
 use Gtk2 -init;
 use Gtk2::GladeXML;
 use Glib qw(TRUE FALSE);
@@ -75,6 +77,11 @@ use strict;
 # Essential stuff
 #
 
+# Filthy debug flag prescan
+foreach (@ARGV) {
+	Log::set_debug() if (m/^--debug$/);
+}
+
 # Global variables
 my $ctrl;
 my $die : shared = 0;
@@ -84,8 +91,27 @@ my $check_thread;
 # Register signals
 $SIG{'INT'} = 'quit';
 
+
+#
+# Initialise configuration
+#
+
+# Process command-line options
+Getopt::Long::Configure("pass_through");
+Getopt::Long::Configure("bundling");
+
+my %options;
+GetOptions (
+		\%options,
+		"help|h|?",
+		"man",
+		"debug",
+		"quiet|q",
+		"config=s",
+);
+
 # Initialise global configuration
-my $config = config_init();
+my $config = config_init($options{"config"});
 config_merge($config);
 
 # Initialise own configuration
@@ -93,6 +119,20 @@ my $config_gui = new Configuration;
 $config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade');
 $config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
 $config_gui->merge($config->section("gui"));
+
+# Give the usage or manual
+if ($options{"man"}) {
+	pod2usage(-verbose => 2);
+	quit(0);
+} elsif ($options{"help"}) {
+	pod2usage(-verbose => 1);
+	quit(0);
+}
+
+# Options we might use later on
+usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
+config_verbosity(2) if ($options{"quiet"});
+config_verbosity(5) if ($options{"debug"});
 
 
 
@@ -498,4 +538,68 @@ sub on_btnEnd1_clicked{
 sub gtk_main_quit {
 	&quit;
 }
+
+
+
+#################
+# DOCUMENTATION #
+#################
+
+=head1 NAME
+
+slimrat-gui
+
+=head1 VERSION
+
+1.0.0-trunk
+
+=head1 DESCRIPTION
+
+  Graphical download manager, capable of downloading files from
+  several free download providers.
+
+=head1 SYNOPSIS
+
+  slimrat-gui [OPTION...]
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+  Prints a summary how to use the client.
+
+=item B<--man>
+
+  Prints a manual how to use the client.
+
+=item B<--config>
+
+  Load custom configuration file.
+
+=item B<--debug>
+
+  Enables maximal verbosity, which includes a lot of text on the screen and the generation
+  of an additional dump archive.
+  WARNING: do not use this option by default, as it keeps a whole lot of extra information
+           in memory (including _all_ downloaded items).
+
+=item B<--quiet>
+
+  Makes slimrat less verbose, only displaying errors and warnings.
+
+=back
+
+=head1 EXAMPLES
+
+  slimrat-gui
+  slimrat-gui --debug --config /tmp/slimrat.config
+
+=head1 AUTHOR
+
+Přemek Vyhnal <premysl.vyhnal gmail com>
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
 

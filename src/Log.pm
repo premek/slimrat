@@ -54,7 +54,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(level debug info warning error usage fatal progress summary status wait dump_add dump_write);
+@EXPORT = qw(level debug info warning error usage fatal progress summary status wait dump_add dump_write set_debug);
 
 # Write nicely
 use strict;
@@ -240,6 +240,11 @@ sub configure($) {
 	$config->merge($complement);
 }
 
+# Set maximal verbostity without using configuration handler
+sub set_debug() {
+	$config->set_default("verbosity", 5);
+}
+
 # Quit the package
 sub quit() {
 	dump_write();
@@ -329,6 +334,27 @@ sub dump_write() {
 	system("tar -cjf \"" . $config->get("dump_folder") . "/$filename\" *") && return error("could not create archive");
 	chdir($cwd);
 }
+
+
+#
+# Signals
+#
+
+# Warn
+$SIG{__WARN__} = sub {
+	my @arg = @_;
+	chomp($arg[-1]);
+	warning(@arg);
+	return 1;
+};
+
+# Die
+$SIG{__DIE__} = sub {
+	my @arg = @_;
+	chomp($arg[-1]);
+	fatal(@arg);
+};
+
 
 # Return
 1;

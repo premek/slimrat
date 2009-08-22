@@ -71,6 +71,11 @@ use warnings;
 # Essential stuff
 #
 
+# Filthy debug flag prescan
+foreach (@ARGV) {
+	Log::set_debug() if (m/^--debug$/);
+}
+
 # Register signals
 $SIG{'INT'} = 'quit';
 
@@ -79,7 +84,7 @@ my (@failedlinks, @oklinks);
 
 
 #
-# Command-line options
+# Initialise configuration
 #
 
 # Process command-line options
@@ -103,7 +108,7 @@ GetOptions (
 );
 
 # Initialise global configuration
-my $config = config_init();
+my $config = config_init($options{"config"});
 config_merge($config);
 
 # Initialise own configuration
@@ -362,7 +367,7 @@ slimrat-cli
 =head1 DESCRIPTION
 
   Command-line download manager, capable of downloading files from
-  several free download providers
+  several free download providers.
 
 =head1 SYNOPSIS
 
