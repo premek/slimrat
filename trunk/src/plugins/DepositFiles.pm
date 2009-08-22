@@ -69,8 +69,6 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
-
-	
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	
@@ -118,9 +116,6 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-
-	
-
 	my $download;
 	while(1) {
 		my $wait = 0;

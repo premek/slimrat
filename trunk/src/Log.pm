@@ -39,7 +39,7 @@
 package Log;
 
 # Packages
-use Carp;
+use Carp qw(confess);
 use threads;
 use threads::shared;
 use Term::ANSIColor qw(:constants);
@@ -149,16 +149,37 @@ sub debug {
 # Print a callstack
 sub callstack {
 	my $offset = shift || 0;
-	output(GREEN, 1, "", ["Call stack leading to erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
 	
-	# Get calltrace
-	my $traces = 0;
-	for (my $i = 1+$offset; 1; $i++) {
-		last unless (caller($i));
-		$traces++;
-		output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
+	# Trace an error
+	eval { confess( '' ) };
+	if ($@) {
+		my $stack_string = join(" ", $@);
+		while ($stack_string =~ s/\s*(.+)//) {
+			if (--$offset == -3) {
+				if ($1 =~ m/(at .+)/) {
+					output(GREEN, 1, "", ["Call stack leading to erroneous instruction $1:"], 5);
+				} else {
+					output(GREEN, 1, "", ["Call stack leading to erroneous instruction:"], 5);
+				}
+				next;
+			} elsif ($offset >= -3) {
+				next;
+			}
+			output(GREEN, 0, "", [$1], 5);
+		}
 	}
-	output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
+	
+	# Do a regular trace and hope the error happened in this thread
+	else {
+		output(GREEN, 1, "", ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
+		my $traces = 0;
+		for (my $i = 1+$offset; 1; $i++) {
+			last unless (caller($i));
+			$traces++;
+			output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
+		}
+		output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
+	}
 }
 
 # Informative message
@@ -193,6 +214,8 @@ sub error {
 sub usage {
 	output(YELLOW, 1, "invalid usage", \@_, 0);
 	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"], 0);
+	
+	# Quit
 	if (defined(&main::quit)) {
 		main::quit(255);
 	} else {
@@ -204,12 +227,61 @@ sub usage {
 sub fatal {
 	output(RED, 1, "fatal error", \@_, 0);
 	callstack(1);
+	
+	# Quit
 	if (defined(&main::quit)) {
 		main::quit(255);
 	} else {
 		exit(255);
 	}
 }
+
+# Warn
+$SIG{__WARN__} = sub {
+	# Deactivate handlers when eval'ing of parsing
+	die @_ if ($^S != 0);
+	
+	# Split message
+	my $args_str = join("\n", @_);
+	my @args = split("\n", $args_str);
+	
+	# Multiline output
+	output(YELLOW, 1, "warning signal", [shift @args], 2);
+	while (shift @args) {
+		chomp;
+		output(YELLOW, 0, "", [$_], 2);
+	}
+	
+	# Callstack
+	callstack(0);
+};
+
+# Die
+$SIG{__DIE__} = sub {
+	# Deactivate handlers when eval'ing of parsing
+	die @_ if ($^S != 0);
+	
+	# Split message
+	my $args_str = join("\n", @_);
+	my @args = split("\n", $args_str);
+	
+	# Multiline output
+	output(RED, 1, "fatal signal", [shift @args], 1);
+	while (shift @args) {
+		chomp;
+		output(RED, 0, "", [$_], 1);
+	}
+	
+	# Callstack
+	callstack(0);
+	
+	# Quit
+	if (defined(&main::quit)) {
+		main::quit(255);
+	} else {
+		exit(255);
+	}
+};
 
 
 
@@ -361,32 +433,6 @@ sub dump_write() {
 	system("tar -cjf \"" . $config->get("dump_folder") . "/$filename\" *") && return error("could not create archive");
 	chdir($cwd);
 }
-
-
-#
-# Signals
-#
-
-# Warn
-$SIG{__WARN__} = sub {
-	# Deactivate handlers inside eval block (see perldoc/die)
-	die @_ if (!defined($^S));
-	
-	my @arg = @_;
-	chomp($arg[-1]);
-	error(@arg);
-	return 1;
-};
-
-# Die
-$SIG{__DIE__} = sub {
-	# Deactivate handlers inside eval block (see perldoc/die)
-	die @_ if (!defined($^S));
-	
-	my @arg = @_;
-	chomp($arg[-1]);
-	fatal(@arg);
-};
 
 
 # Return

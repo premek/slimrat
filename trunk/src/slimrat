@@ -214,6 +214,8 @@ if ($config_cli->get("mode") eq "check") {
 	my $queue = new Queue();
  	while (my $link = $queue->get()) {
 		my $alive = 0;
+		debug("checking '$link'");
+		
 		# Load plugin
 		my $plugin;
 		unless ($plugin = Plugin->new($link, $mech)) {
