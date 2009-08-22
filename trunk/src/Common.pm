@@ -71,6 +71,7 @@ my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 10);
 $config->set_default("useragent", "slimrat/$VERSION"); # or (WWW::Mechanize::known_agent_aliases())[0]  ???
+$config->set_default("redownload", "rename");
 
 
 
@@ -250,7 +251,7 @@ sub download($$$$$) {
 	my $ocrcounter = 0;
 	$|++; # unbuffered output
 	# store (and later return) return value of get_data()
-	my $plugin_result = $plugin->get_data( sub {
+	my $response = $plugin->get_data( sub {
 		# Fetch server response
 		my $res = $_[1];
 
@@ -280,17 +281,34 @@ sub download($$$$$) {
 			$to =~ s/\/+$//;
 			$filepath = "$to/$filename";
 
-			# Check if exists
-			# add .1 at the end or increase the number if it is already there
-			# TODO: maybe control with some config, e.g. "overwrite = no | yes | rename"
-			$filepath =~ s/(?:\.(\d+))?$/".".(($1 or 0)+1)/e while(-e $filepath);
+			# Check if file exists
+			if (-e $filepath) {
+				my $action = $config->get("redownload");
+				if ($action eq "overwrite") {
+					debug("file exists, removing");
+					unlink $filepath;
+				} elsif ($action eq "rename") {
+					debug("file exists, renaming old files");
+					my $counter = 1;
+					$counter++ while (-e "$filepath.$counter");
+					rename($filepath, "$filepath.0");
+					rename("$filepath." . (--$counter), "$filepath." . ($counter+1)) while ($counter >= 0);
+				} elsif ($action eq "skip") {
+					debug("file exists, skipping");
+					die("skipped download");
+				} elsif ($action eq "resumt") {
+					die("not implemented yet");
+					# TODO
+				} else {
+					die("unrecognised action upon redownload");
+				}
+			}
 			info("File will be saved as \"$filepath\"");	
 
 			# Open file
 			open(FILE, ">$filepath");
 			if (! -w FILE) {
-				error("could not open file to write");
-				goto ERROR;
+				die("could not open file to write");
 			}
 			binmode FILE;
 			
@@ -304,8 +322,7 @@ sub download($$$$$) {
 		elsif ($encoding eq "gzip") {
 			my $data = Compress::Zlib::memGunzip($_[0]);
 			if (!$data) {
-				error("could not gunzip data: $!");
-				goto ERROR;
+				die("could not gunzip data: $!");
 			}
 			print FILE $data;
 		} elsif ($encoding eq "deflate") {
@@ -316,15 +333,10 @@ sub download($$$$$) {
 			if ($status == Z_OK or $status == Z_STREAM_END) {
 				print FILE $output;
 			} else {
-				error("inflation failed with status '$status': ", $encoding_extra->msg());
-				goto ERROR; # TODO: is there a cleaner way to exit this sub? Return doesn't work, and die() quits
-				            # the downloading as documented but makes it undetectable ($plugin_result is
-				            # a HTTP::Resonse object as get_data didn't fail but correctly returns the result
-				            # of the last statement)...
+				die("inflation failed with status '$status': ", $encoding_extra->msg());
 			}
 		} else {
-			error("unhandled content encoding '$encoding'");
-			goto ERROR;
+			die("unhandled content encoding '$encoding'");
 		}
 		
 		# Download indication
@@ -392,22 +404,33 @@ sub download($$$$$) {
 		return $captcha_value;
 	});
 	
-	# Finish the progress bar
-	if ($plugin_result) {	
-		if ($size) {
-			&$progress($size, $size, 0, 1);
-		} else {
-			&$progress($size_downloaded, 0, 0, 1);
-		}
-	}
-	print "\r\n";
-	
 	# Close file
 	close(FILE);
 	
-	# Return correctly
-	return ($plugin_result?1:0);
-	ERROR: return 0;
+	# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
+	if (! $response->is_success) {
+		# Finish the progress bar
+		print "\r\n" if ($size_downloaded);
+		
+		return error("download failed (", $response->status_line, ")");
+	} elsif ($response->header("X-Died")) {
+		# Finish the progress bar
+		print "\r\n" if ($size_downloaded);
+		
+		return error($response->header("X-Died"));
+	} else {
+		# Finish the progress bar
+		if ($response) {	
+			if ($size) {
+				&$progress($size, $size, 0, 1);
+			} else {
+				&$progress($size_downloaded, 0, 0, 1);
+			}
+		}
+		print "\r\n";
+		
+		return 1;
+	}
 }
 
 # Quit all packages

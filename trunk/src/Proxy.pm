@@ -72,14 +72,14 @@ my @proxies:shared; my $s_proxies:shared = new Semaphore;
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
-	file_read();
+	file_read() if ($config->get("list"));
 }
 
 # Read proxy file
 sub file_read() {
 	debug("reading proxy file '", $config->get("list"), "'");
 
-	open(FILE, $config->get("list")) || fatal("could not read proxy file");
+	open(FILE, $config->get("list")) || fatal("could not read proxy file (NOTE: when daemonized, use absolute paths)");
 	while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
