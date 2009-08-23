@@ -373,7 +373,7 @@ sub download($$$$$) {
 			
 			# Calculate ETA
 			my $eta = -1;
-			$eta = ($size - $size_downloaded) / $speed if ($speed);
+			$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
 			
 			# Update progress
 			&$progress($size_downloaded, $size, $speed, $eta);
@@ -443,7 +443,12 @@ sub download($$$$$) {
 	close(FILE);
 	
 	# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
-	if (! $response->is_success) {
+	if (! $response) {
+		# Finish the progress bar
+		print "\r\n" if ($size_downloaded);
+		
+		return error("download failed for unknown reason");	
+	} elsif (! $response->is_success) {
 		# Finish the progress bar
 		print "\r\n" if ($size_downloaded);
 		
@@ -455,12 +460,10 @@ sub download($$$$$) {
 		return error($response->header("X-Died"));
 	} else {
 		# Finish the progress bar
-		if ($response) {	
-			if ($size) {
-				&$progress($size, $size, 0, 1);
-			} else {
-				&$progress($size_downloaded, 0, 0, 1);
-			}
+		if ($size) {
+			&$progress($size, $size, 0, 1);
+		} else {
+			&$progress($size_downloaded, 0, 0, 1);
 		}
 		print "\r\n";
 		

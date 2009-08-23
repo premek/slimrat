@@ -304,7 +304,7 @@ sub thread_download {
 	
 	# Load the first URL
 	$queue->advance();
- 	while (my $link = $queue->get()) {		
+ 	while (my $link = $queue->get()) {	
  		# Load a proxy
  		$proxy->advance($link);
  		
