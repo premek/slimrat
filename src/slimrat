@@ -44,6 +44,8 @@
 #
 
 # Packages
+use threads;
+use threads::shared;
 use Getopt::Long;
 use Pod::Usage;
 
@@ -80,7 +82,8 @@ foreach (@ARGV) {
 $SIG{'INT'} = 'quit';
 
 # Global variables
-my (@failedlinks, @oklinks);
+my @failedlinks:shared;
+my @oklinks:shared;
 
 
 #
@@ -115,6 +118,7 @@ config_merge($config);
 my $config_cli = new Configuration;
 $config_cli->set_default("mode", "download");
 $config_cli->set_default("to", ".");
+$config_cli->set_default("threads", 1);
 $config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
 $config_cli->merge($config->section("cli"));
 
@@ -153,13 +157,16 @@ $config_cli->set("daemon", 1) if ($options{"daemon"});
 $config_cli->set("address", $options{"address"}) if ($options{"address"});
 $config_cli->set("to", $options{"to"}) if ($options{"to"});
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
-config_verbosity(2) if ($options{"quiet"});
-config_verbosity(5) if ($options{"debug"});
+$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("verbosity", 5) if ($options{"debug"});
 
 
 #
 # Apply configuration
 #
+
+# Display thread identification at output if requested
+$config->section("log")->set("show_thread", 1) if ($config_cli->get("threads") > 1);
 
 # Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
 if (!scalar @ARGV && !$config_cli->get("list")) {
@@ -181,10 +188,6 @@ if($config_cli->get("address")){
 	no warnings;
 	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
 }
-
-# Browser and proxy handling
-my $mech = config_browser();
-my $proxy = new Proxy($mech);
 
 # Fork in background
 if ($config_cli->get("daemon")) {
@@ -210,8 +213,12 @@ if ($config_cli->get("mode") eq "check") {
 	info("Checking URLs");
 	my $dead_links = 0;
 	
-	# Get and loop all URLs
+ 	# Instantiate per-thread objects
+	my $mech = config_browser();
 	my $queue = new Queue();
+	
+	# Get and loop all URLs
+	$queue->advance();
  	while (my $link = $queue->get()) {
 		my $alive = 0;
 		debug("checking '$link'");
@@ -248,9 +255,54 @@ if ($config_cli->get("mode") eq "check") {
 #
 
 elsif ($config_cli->get("mode") eq "download") {
+	# Spawn threads
+	my $threads = $config_cli->get("threads");
+	debug("spawning $threads download threads");
+	for (my $i = 0; $i < $threads; $i++) {
+		my $thread = threads->create(\&thread_download);
+	}
+	
+	# Wait till all threads finish
+	while (scalar(threads->list(threads::running))) {
+		sleep(1);
+	}
+
+	# Command after all downloads
+	if (my $command = $config_cli->get("post_all")) {
+		system($command);
+	}
+	
+	# Quit
+	quit(scalar @failedlinks);
+}
+
+
+#
+# Other
+#
+
+else {
+	usage("unrecognised mode");
+	quit(255);
+}
+
+
+
+############
+# ROUTINES #
+############
+
+# Download thread
+sub thread_download {
+ 	# Instantiate per-thread objects
+	my $mech = config_browser();
+	my $proxy = new Proxy($mech);
 	my $queue = new Queue();
- 	while (my $link = $queue->get()) {
- 		# Configure the proxy manager
+	
+	# Load the first URL
+	$queue->advance();
+ 	while (my $link = $queue->get()) {		
+ 		# Load a proxy
  		$proxy->advance($link);
  		
  		# Download the URL with custom progress indication
@@ -296,13 +348,15 @@ elsif ($config_cli->get("mode") eq "download") {
 				system($command);
 			}
 		}
-		elsif ($result == -1) {
+		elsif ($result == -2) {
+			debug("could not allocate resources");
+			$queue->skip_locally();
+		} elsif ($result == -1) {
 			$failure = 1;
 			$queue->skip_globally("DEAD");
-		}
-		elsif ($result == 0) {
-			$queue->skip_globally();
+		} elsif ($result == 0) {
 			$failure = 1;
+			$queue->skip_globally();
 		}
 		
 		# Failure?
@@ -316,37 +370,20 @@ elsif ($config_cli->get("mode") eq "download") {
 		}
 		
 		# Advance to the next URL
-		$queue->advance();
+		while (! $queue->advance()) {
+			warning("thread couldn't get any work, exiting");
+			return 1;
+		}
 	}
-
-	# Command after all downloads
-	if (my $command = $config_cli->get("post_all")) {
-		system($command);
-	}
-
-	quit(scalar @failedlinks);
 }
-
-
-#
-# Other
-#
-
-else {
-	usage("unrecognised mode");
-	quit(255);
-}
-
-
-
-############
-# ROUTINES #
-############
 
 # Finish
 sub quit($) {
 	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
+	
+	# Join finished threads
+	$_->join() foreach (threads->list(threads::joinable));
 	
 	# Quit all packages
 	Common::quit(@_);

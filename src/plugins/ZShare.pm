@@ -40,6 +40,9 @@
 # Package name
 package zShare;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Custom packages
 use Log;
 use Toolbox;
@@ -121,6 +124,9 @@ sub get_data {
 
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
+
+# Amount of resources
+Plugin::provide(1);
 
 # Register the plugin
 Plugin::register('^([^:/]+://)?([^.]+\.)?zshare\.net/[\w\d]+');

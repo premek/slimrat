@@ -38,6 +38,9 @@
 # Package name
 package Megaupload;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Modules
 use Log;
 use Toolbox;
@@ -176,6 +179,10 @@ sub ocr_postprocess {
 	return $_;
 }
 
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");
 
 1;

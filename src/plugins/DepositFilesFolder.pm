@@ -40,6 +40,9 @@
 # Package name
 package DepositFilesFolder;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 

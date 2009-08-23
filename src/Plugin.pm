@@ -40,6 +40,8 @@
 package Plugin;
 
 # Packages
+use threads;
+use threads::shared;
 use WWW::Mechanize;
 
 # Find root for custom packages
@@ -55,18 +57,25 @@ use Proxy;
 use strict;
 use warnings;
 
-# Static hash for plugins
+# Static hash for plugin registrations (should not get modified while running)
 my %plugins;
 
+# Shared hash with available resources
+my %resources:shared;
+
 # Static reference to the configuration object
-my $config = new Configuration;
+my $config = new Configuration; # TODO: thread safe? Changes get shared?
 
 
 #
-# Routines
+# Object-oriented functionality
 #
 
 # Get an object
+# Possible return values:
+#  0 = object construction failed
+#  -2 = resource allocation failed
+#  an object = success
 sub new {
 	my $url = $_[1];
 	my $mech = $_[2];
@@ -74,11 +83,36 @@ sub new {
 	fatal("cannot create plugin without configuration") unless ($config);
 
 	if (my $plugin = get_package($url)) {
+		# Resource handling
+		if ($resources{$plugin} != -1) {
+			if ($resources{$plugin} < 1) {
+				return -2;
+			}
+			$resources{$plugin}--;
+			debug("Lowering available resources for plugin $plugin to ", $resources{$plugin});
+		}
 		my $object = new $plugin ($config->section($plugin), $url, $mech);
 		return $object;
 	}
 	return 0;
 }
+
+# Destructor
+sub DESTROY {
+	my ($self) = @_;
+	
+	# Resource handling
+	my $plugin = ref($self);
+		if ($resources{$plugin} != -1) {
+		$resources{$plugin}++;
+		debug("Restoring available resources for plugin $plugin to ", $resources{$plugin});
+	}
+}
+
+
+#
+# Static functionality
+#
 
 # Configure the plugin producer
 sub configure {
@@ -90,6 +124,11 @@ sub configure {
 # Register a plugin
 sub register {
 	$plugins{shift()}=(caller)[0];
+}
+
+# Provide instantes
+sub provide {
+	$resources{(caller)[0]} = shift;
 }
 
 # Get a plugin's name
@@ -134,7 +173,8 @@ sub load_plugins {
 			fatal("plugin '$plugin' failed to load".($!?" ($!)":""));
 		}
 	}
-
+	
+	# Check and debug
 	fatal("No plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
 	debug("loaded " . keys(%plugins) . " plugins (", join(", ", sort values %plugins), ")");
 

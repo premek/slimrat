@@ -40,6 +40,9 @@
 # Package name
 package FileFactory;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 use HTML::Entities qw(decode_entities);
@@ -147,6 +150,9 @@ sub get_data {
 	my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
 	$self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 }
+
+# Amount of resources
+Plugin::provide(1);
 
 # Register the plugin
 Plugin::register("^([^:/]+://)?([^.]+\.)?filefactory.com");
