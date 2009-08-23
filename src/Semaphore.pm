@@ -6,15 +6,44 @@
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
 # several download providers.
-# 
-# The original file was licensed under the Perl Artistic License 2.0,
-# belonging to the CPAN package Thread::Semaphore 2.09. What about this one,
-# can it be MIT licensed as slimrat, or ...?
 #
-# Functionality added to CPAN package:
-#   - debug information (list locked threads + where locked)
-#   - support for reentrant mutexes (same thread can lock
-#     a mutex several times)
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# This code extends the CPAN package Thread::Semaphore, version 2.09.
+# The changes between the Modified Version and the Standard Version are:
+#   - (slimrat specific) keep a list of currently locked threads in
+#     memory, and log that list upon exit (&quit) to ease any
+#     attempt to debug a deadlock;
+#   - support for reentrant mutexes / recursive semaphores, where
+#     the same thread can lock a given semaphore multiple times,
+#     without blocking.
+# All those features are fully documented in the appended POD.
+#
+# The Standard Version specified to be licensed under the same
+# conditions of Perl, which at the time of writing (2008/08/23)
+# is the Artistic License version 1.0. In order to comply with
+# this license (section 3, item a) all modifications described
+# above are made freely available to the Copyright Holder for
+# inclusion in the Standard Version of the Package.
 #
 # Authors:
 #	Jerry D. Hedden <jdhedden AT cpan DOT org>
