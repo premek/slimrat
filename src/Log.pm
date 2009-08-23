@@ -246,7 +246,7 @@ sub fatal {
 # Warn
 $SIG{__WARN__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return warn @_ if (!defined($^S) || $^S == 0);
+	return warn @_ if (!defined($^S) || $^S == 1);
 	
 	# Split message
 	my $args_str = join("\n", @_);
@@ -267,7 +267,7 @@ $SIG{__WARN__} = sub {
 # Die
 $SIG{__DIE__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return die @_ if (!defined($^S) || $^S == 0);
+	return die @_ if (!defined($^S) || $^S == 1);
 	
 	# Split message
 	my $args_str = join("\n", @_);

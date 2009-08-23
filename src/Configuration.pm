@@ -63,10 +63,19 @@ struct(Item =>	{
 
 
 #
-# Internal routines
+# Static functionality
 #
 
-# Create a new item
+# Quit the package
+sub quit() {
+}
+
+
+#
+# Object-oriented functionality
+#
+
+# Create a new item (internally used)
 sub init($$) {
 	my ($self, $key) = @_;
 	
@@ -88,11 +97,6 @@ sub init($$) {
 	
 	return 1;
 }
-
-
-#
-# Routines
-#
 
 # Constructor
 sub new {
@@ -272,7 +276,7 @@ sub merge($$) {
 
 # Save a value to a configuration file
 sub save($$) {
-	my ($self, $key, $current) = @_;	
+	my ($self, $key, $current) = @_;
 	return error("cannot save undefined key '$key'") if (!$self->contains($key));
 	my $temp = $current.".temp";
 	

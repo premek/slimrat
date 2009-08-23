@@ -162,6 +162,11 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
+
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^[^/]+//(?:www.)?depositfiles.com");
 
 1;

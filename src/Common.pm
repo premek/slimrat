@@ -475,9 +475,10 @@ sub quit {
 	
 	# Quit all packages
 	Queue::quit();
-	Log::quit();
 	Semaphore::quit();
 	Proxy::quit();
+	Log::quit();		# pre-last because it writes the dump
+	Configuration::quit();	# last as used by everything
 		
 	# Join finished threads
 	$_->join() foreach (threads->list(threads::joinable));

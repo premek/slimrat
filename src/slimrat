@@ -224,9 +224,11 @@ if ($config_cli->get("mode") eq "check") {
 		debug("checking '$link'");
 		
 		# Load plugin
-		my $plugin;
-		unless ($plugin = Plugin->new($link, $mech)) {
+		my $plugin = Plugin->new($link, $mech);
+		if (!$plugin) {
 			status($link, 0, "plugin failure");
+		} elsif ($plugin == -2) {
+			status($link, 0, "could not allocate resources");
 		} else {
 			my $status = $plugin->check();
 			if ($status < 0) {
@@ -243,6 +245,7 @@ if ($config_cli->get("mode") eq "check") {
 		$dead_links++ unless ($alive);
 		
 		# Advance to the next URL
+		$queue->skip_locally();
 		$queue->advance();
 	}
 	

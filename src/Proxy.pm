@@ -223,7 +223,12 @@ sub cycle {
 	if ($config->get("order") eq "random") {
 		my $index = rand(scalar(@proxies));
 		$self->{proxy} = delete($proxies[$index]);
-		$proxies[$index] = shift(@proxies); # because delete() creates an undef spot
+		
+		# Fix the "undef" gap delete creates (variant which preserves order)
+		# (which does not happen if "delete" deleted last element)
+		if ($index != scalar(@proxies)) {
+			$proxies[$index] = shift(@proxies);
+		}
 	} elsif ($config->get("order") eq "linear") {
 		$self->{proxy} = shift(@proxies);
 	} else {
