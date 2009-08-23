@@ -40,6 +40,9 @@
 # Package name
 package FastShare;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 

@@ -3,6 +3,10 @@
     * queue (skip_*): clean support for skipping URLs globally
       or locally. Needed for parallel downloads.
 
+    * slimrat-cli: support for parallel downloads.
+
+    * log (output): display thread identification.
+
 
 2009-08-22 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

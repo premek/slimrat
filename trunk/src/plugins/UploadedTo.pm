@@ -38,6 +38,9 @@
 # Package name
 package UploadedTo;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Modules
 use Log;
 use Toolbox;
@@ -116,6 +119,11 @@ sub get_data {
 	$self->{MECH}->request($req, $data_processor);
 }
 
+
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^[^/]+//(uploaded.to(/file)?|ul.to)/");
 
 1;

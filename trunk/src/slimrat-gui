@@ -131,8 +131,8 @@ if ($options{"man"}) {
 
 # Options we might use later on
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
-config_verbosity(2) if ($options{"quiet"});
-config_verbosity(5) if ($options{"debug"});
+$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("verbosity", 5) if ($options{"debug"});
 
 
 
@@ -390,7 +390,7 @@ sub on_btnStart1_clicked {
 			}
 
 			$button->set_active(0);
-			threads->detach();
+			threads->detach();	# FIXME: why the detach?
 
 		},
 #	\$slist, $download_to

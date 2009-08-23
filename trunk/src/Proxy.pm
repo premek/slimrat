@@ -143,10 +143,11 @@ sub new {
 # Destructor
 sub DESTROY {
 	my ($self) = @_;
+	return unless $self->{proxy};
 	
 	# Preserve current proxy
 	$s_proxies->down();
-	unshift(@proxies, $self->{proxy});
+	push(@proxies, $self->{proxy});
 	$s_proxies->up();
 	
 	$self->SUPER::DESTROY if $self->can("SUPER::DESTROY");

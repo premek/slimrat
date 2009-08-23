@@ -40,6 +40,9 @@
 # Package name
 package Uploading;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize 1.52;
 
@@ -132,6 +135,9 @@ sub get_data {
 	my $request = $form->make_request;
 	$self->{MECH}->request($request, $data_processor);
 }
+
+# Amount of resources
+Plugin::provide(1);
 
 # Register the plugin
 Plugin::register("^([^:/]+://)?([^.]+\.)?uploading.com");

@@ -39,6 +39,9 @@
 # Package name
 package Direct;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use LWP::UserAgent;
 
@@ -116,6 +119,9 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}), $data_processor);
 }
 
+# Amount of resources
+Plugin::provide(-1);
 
+# Return
 1;
 

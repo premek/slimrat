@@ -40,6 +40,9 @@
 # Package name
 package Leteckaposta;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use LWP::UserAgent;
 
@@ -116,6 +119,10 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register( "^[^/]+//(?:www.)?leteckaposta.cz");
 
 1;

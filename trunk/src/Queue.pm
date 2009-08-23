@@ -89,6 +89,7 @@ sub file {
 # Add a single url to the queue
 sub add {
 	my $url = shift;
+	return unless $url;
 	
 	$s_queued->down();
 	push(@queued, $url);
@@ -135,6 +136,7 @@ sub dump {
 	
 	# Add all URL's to the output
 	my $queue = new Queue();
+	$queue->advance();
 	while (my $url = $queue->get()) {
 		push(@output, $url);
 		$queue->skip_locally();
@@ -216,9 +218,6 @@ sub new {
 	};
 	bless $self, 'Queue';
 	
-	# Load a first URL
-	$self->advance();
-	
 	return $self;
 }
 
@@ -267,12 +266,15 @@ sub advance($) {
 		while (!$self->{item} || indexof($queued[-1], $self->{processed}) != -1) {	# @queued will never be empty unless $self->{item} == undef
 			unless ($file && file_read()) {
 				$s_queued->up();
-				return error("queue exhausted");
+				debug("queue exhausted");
+				return 0;
 			}
 		}
 		$self->{item} = shift(@queued);
 		$s_queued->up();
 	}
+	
+	return 1;
 }
 
 # Change the status of an URL (and update the file)

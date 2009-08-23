@@ -38,6 +38,9 @@
 # Package name
 package EasyShare;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 

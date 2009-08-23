@@ -45,6 +45,9 @@
 # Package name
 package DepositFiles;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 

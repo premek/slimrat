@@ -69,6 +69,7 @@ $config->set_default("screen", 1);
 $config->set_default("file", 1);
 $config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
 $config->set_default("dump_folder", "/tmp");
+$config->set_default("show_thread", 0);
 
 # Shared data
 my @dumps:shared; my $s_dumps:shared = new Semaphore;
@@ -88,6 +89,7 @@ sub output_raw {
 	
 	print $filehandle $colour if ($colour);
 	print $filehandle $timestamp?&timestamp:(" " x length(&timestamp));
+	print $filehandle "THR", thread_id(), " " if ($config->get("show_thread") && $config->get("verbosity") > 4);
 	print $filehandle uc($category).": " if ($category);
 	defined $_ and print $filehandle $_ foreach (@{$messages});
 	print $filehandle RESET if ($colour);
@@ -152,27 +154,28 @@ sub callstack {
 	my $traces = 0;
 	
 	# Trace an error
-	eval { confess( '' ) };
-	if ($@) {
-		my $stack_string = join(" ", $@);
-		while ($stack_string =~ s/\s*(.+)//) {
-			if (--$offset == -3) {
-				if ($1 =~ m/(at .+)/) {
-					output(GREEN, 1, "", ["Call stack leading to erroneous instruction $1:"], 5);
-				} else {
-					output(GREEN, 1, "", ["Call stack leading to erroneous instruction:"], 5);
-				}
-				next;
-			} elsif ($offset >= -3) {
-				next;
-			}			
-			$traces++;
-			output(GREEN, 0, "", [$1], 5);
-		}
-	}
+	# FIXME: more accurate confess die's when no actual warn/die signal has occured
+	#eval { confess( '' ) };
+	#if ($@) {
+	#	my $stack_string = join(" ", $@);
+	#	while ($stack_string =~ s/\s*(.+)//) {
+	#		if (--$offset == -3) {
+	#			if ($1 =~ m/(at .+)/) {
+	#				output(GREEN, 1, "", ["Call stack leading to erroneous instruction $1:"], 5);
+	#			} else {
+	#				output(GREEN, 1, "", ["Call stack leading to erroneous instruction:"], 5);
+	#			}
+	#			next;
+	#		} elsif ($offset >= -3) {
+	#			next;
+	#		}			
+	#		$traces++;
+	#		output(GREEN, 0, "", [$1], 5);
+	#	}
+	#}
 	
 	# Do a regular trace and hope the error happened in this thread
-	else {
+	#else {
 		output(GREEN, 1, "", ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
 		
 		for (my $i = 1+$offset; 1; $i++) {
@@ -180,7 +183,7 @@ sub callstack {
 			$traces++;
 			output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
 		}
-	}
+	#}
 	
 	# No stack at all
 	output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
@@ -243,7 +246,7 @@ sub fatal {
 # Warn
 $SIG{__WARN__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return warn @_ if (defined $^S && $^S != 0);
+	return warn @_ if (!defined($^S) || $^S == 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);
@@ -252,6 +255,7 @@ $SIG{__WARN__} = sub {
 	# Multiline output
 	output(YELLOW, 1, "warning signal", [shift @args], 2);
 	while (shift @args) {
+		next unless $_;
 		chomp;
 		output(YELLOW, 0, "", [$_], 2);
 	}
@@ -263,7 +267,7 @@ $SIG{__WARN__} = sub {
 # Die
 $SIG{__DIE__} = sub {
 	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return die @_ if (defined $^S && $^S != 0);
+	return die @_ if (!defined($^S) || $^S == 0);
 	
 	# Split message
 	my $args_str = join("\n", @_);

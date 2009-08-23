@@ -44,7 +44,7 @@ our $VERSION = '1.0.0-trunk';
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_init config_merge config_browser configure config_verbosity daemonize pid_read download);
+@EXPORT = qw(config_init config_merge config_browser configure daemonize pid_read download);
 
 # Packages
 use Time::HiRes qw(sleep gettimeofday);
@@ -125,11 +125,6 @@ sub configure($) {
 	$config->merge($complement);
 }
 
-sub config_verbosity {
-	my $verbosity = shift;
-	$config->section("log")->set("verbosity", $verbosity);
-}
-
 sub config_browser {
 	my $mech = WWW::Mechanize->new(autocheck => 0);
 	#$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
@@ -206,16 +201,29 @@ sub pid_read() {
 #
 
 # Redirect download() call to the correct plugin
+# Possible return values (quite analogue to the plugin's check() function):
+#   1 = download successfully completed
+#   0 = download failed, for unknown reason
+#   -1 = download failed because URL is dead
+#   -2 = couldn't free enough resources (e.g. when the plugin can only download
+#        1 file at a time)
 sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
 	info("Downloading '$link'");
 
 	# Load plugin
-	my $plugin = Plugin->new($link, $mech) || return 0;
+	my $plugin = Plugin->new($link, $mech);
+	if ($plugin == 0) {
+		debug("object construction failed");
+		return 0;
+	} elsif ($plugin == -2) {
+		debug("no resources available");
+		return -2;
+	}
 	my $pluginname = $plugin->get_name();
 
-	debug("Downloading \"$link\" using the $pluginname-plugin");
+	debug("instantiated a $pluginname downloader");
 	
 	# Check if link is valid
 	my $status = $plugin->check();
@@ -229,12 +237,11 @@ sub download($$$$$) {
 	}
 
 	# Check if we can write to "to" directory
-	return error("Directory '$to' not writable") unless (-d $to && -w $to);
+	return error("directory '$to' not writable") unless (-d $to && -w $to);
 	
 	# Get destination filename
 	my $filename = $plugin->get_filename();
 	my $filepath;
-
 
 	# Download status counters
 	my $size;
