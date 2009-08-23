@@ -61,6 +61,7 @@ my $config = new Configuration;
 my $file:shared; my $s_file:shared = new Semaphore;	# Semaphore here manages file _access_, not $file access
 my @queued:shared; my $s_queued:shared = new Semaphore;
 my @processed:shared; my $s_processed:shared = new Semaphore;
+my %busy:shared; my $s_busy:shared = new Semaphore;
 
 
 #
@@ -115,13 +116,17 @@ sub file_read {
 			# Only add to queue if not processed yet and not in container either
 			$s_processed->down();
 			$s_queued->down();
-			if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1)) {
+			$s_busy->down();
+			my @values = values %busy;
+			if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1) && (indexof($url, \@values) == -1)) {
+				$s_busy->up();
 				$s_queued->up();
 				$s_processed->up();
 				add($url);
 				$added = 1;
 				last;
 			}
+			$s_busy->up();
 			$s_queued->up();
 			$s_processed->up();
 		} else {
@@ -247,26 +252,26 @@ sub get {
 sub advance($) {
 	my ($self) = @_;
 	
+	fatal("advance call should always be preceded by skip_* call") if ($self->{item});
+	
 	# Fetch a new item from static queue cache
-	if (scalar($self->{processed})) {
-		$s_queued->down();
-		for (my $i = 0; $i <= $#queued; $i++) {
-			if (indexof($queued[$i], $self->{processed}) == -1) {
-				$self->{item} = delete($queued[$i]);
-			
-				# Fix the "undef" gap delete creates (variant which preserves order)
-				# (which does not happen if "delete" deleted last element)
-				if ($i != scalar(@queued)) {
-					for my $j ($i ... $#queued-1) {
-						$queued[$j] = $queued[$j+1];
-					}
-					pop(@queued);
+	$s_queued->down();
+	for (my $i = 0; $i <= $#queued; $i++) {
+		if (!scalar($self->{processed}) || indexof($queued[$i], $self->{processed}) == -1) {
+			$self->{item} = delete($queued[$i]);
+		
+			# Fix the "undef" gap delete creates (variant which preserves order)
+			# (which does not happen if "delete" deleted last element)
+			if ($i != scalar(@queued)) {
+				for my $j ($i ... $#queued-1) {
+					$queued[$j] = $queued[$j+1];
 				}
-				last;
+				pop(@queued);
 			}
+			last;
 		}
-		$s_queued->up();
 	}
+	$s_queued->up();
 	
 	# Fetch a new item from reading the file
 	if (!$self->{item}) {
@@ -282,6 +287,10 @@ sub advance($) {
 		}
 		$s_queued->up();
 	}
+	
+	$s_busy->down();
+	$busy{thread_id()} = $self->{item};
+	$s_busy->up();
 	
 	return 1;
 }
@@ -321,6 +330,9 @@ sub skip_globally {
 	
 	# Reset the item
 	$self->{item} = undef;
+	$s_busy->down();
+	delete($busy{thread_id()});
+	$s_busy->up();
 }
 
 # Skip to the next url
@@ -335,6 +347,9 @@ sub skip_locally($) {
 	
 	# Reset the item
 	$self->{item} = undef;
+	$s_busy->down();
+	delete($busy{thread_id()});
+	$s_busy->up();
 }
 
 # Return

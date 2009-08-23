@@ -82,7 +82,7 @@ sub quit {
 	return unless scalar(keys %locks);
 	my $data;
 	foreach my $key (keys %locks) {
-		$data .= "Thread ID $key, locked at " . $locks{key} . ".\n";
+		$data .= "Thread ID $key, locked at " . $locks{$key} . ".\n";
 	}
 	require Log;
 	Log::dump_add(title => "locked threads", data => $data, type => "log");

@@ -67,6 +67,7 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
+	return error("plugin not finished yet");
 
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
