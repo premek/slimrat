@@ -382,9 +382,6 @@ sub quit($) {
 	# Print a download summary
 	summary(\@oklinks, \@failedlinks);
 	
-	# Join finished threads
-	$_->join() foreach (threads->list(threads::joinable));
-	
 	# Quit all packages
 	Common::quit(@_);
 }

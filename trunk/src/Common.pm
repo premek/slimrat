@@ -292,25 +292,25 @@ sub download($$$$$) {
 			if (-e $filepath) {
 				my $action = $config->get("redownload");
 				if ($action eq "overwrite") {
-					debug("file exists, removing");
+					info("file exists, overwriting");
 					unlink $filepath;
 				} elsif ($action eq "rename") {
-					debug("file exists, renaming old files");
+					info("file exists, renaming");
 					my $counter = 1;
 					$counter++ while (-e "$filepath.$counter");
-					rename($filepath, "$filepath.0");
-					rename("$filepath." . (--$counter), "$filepath." . ($counter+1)) while ($counter >= 0);
+					$filepath .= ".$counter";
 				} elsif ($action eq "skip") {
-					debug("file exists, skipping");
+					info("file exists, skipping download");
 					die("skipped download");
-				} elsif ($action eq "resumt") {
+				} elsif ($action eq "resume") {
+					info("file exists, resuming");
 					die("not implemented yet");
 					# TODO
 				} else {
 					die("unrecognised action upon redownload");
 				}
 			}
-			info("File will be saved as \"$filepath\"");	
+			debug("file will be saved as '$filepath'");	
 
 			# Open file
 			open(FILE, ">$filepath");
@@ -478,6 +478,12 @@ sub quit {
 	Log::quit();
 	Semaphore::quit();
 	Proxy::quit();
+		
+	# Join finished threads
+	$_->join() foreach (threads->list(threads::joinable));
+	
+	# Detach running threads (which'll kill them silently upon exit)
+	$_->detach() foreach (threads->list(threads::running));
 	
 	# Exit with correct return value
 	my $return = shift;

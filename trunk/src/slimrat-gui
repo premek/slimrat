@@ -243,9 +243,7 @@ sub quit {
 	Queue::add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
 	Queue::save($config_gui->get("queue_file"));
 	
-	# Join back all threads and exit the GUI
-	$_->join() foreach (threads->list(threads::joinable));
-	$_->detach() foreach (threads->list(threads::running));
+	# Quit the GUI
 	Gtk2->main_quit;
 	
 	# Quit all packages
