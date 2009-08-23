@@ -1,3 +1,9 @@
+2009-08-23 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * queue (skip_*): clean support for skipping URLs globally
+      or locally. Needed for parallel downloads.
+
+
 2009-08-22 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * log: handling debug messages before any configuration

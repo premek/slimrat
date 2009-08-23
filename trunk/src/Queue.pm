@@ -133,24 +133,13 @@ sub file_read {
 sub dump {	
 	my @output;
 	
-	# Backup the internal data
-	$s_processed->down();
-	$s_queued->down();
-	my @processed_bak = @processed;
-	my @queued_bak = @queued;
-	
 	# Add all URL's to the output
 	my $queue = new Queue();
 	while (my $url = $queue->get()) {
 		push(@output, $url);
+		$queue->skip_locally();
 		$queue->advance();
 	}
-	
-	# Restore the backup
-	@processed = @processed_bak;
-	@queued = @queued_bak;
-	$s_queued->up();
-	$s_processed->up();
 	
 	# Return reference
 	return \@output;
@@ -221,8 +210,9 @@ sub quit {
 # Constructor
 sub new {
 	my $self = {
-		item	=>	undef,
-		status	=>	""
+		item		=>	undef,
+		status		=>	"",
+		processed	=>	[]
 	};
 	bless $self, 'Queue';
 	
@@ -245,31 +235,6 @@ sub DESTROY {
 	}
 }
 
-# Change the status of an URL (and update the file)
-sub update {
-	my ($self, $status) = @_;
-	$self->{status} = $status;
-	
-	# Only update if we got a file
-	my $url = $self->{item};
-	$s_file->down();
-	if (defined($file)) {
-		open (FILE, $file);
-		open (FILE2, ">".$file.".temp");
-		while(<FILE>) {
-			if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
-				print FILE2 "# ".$self->{status}.": ";
-			}
-			print FILE2 $_;
-		}
-		close FILE;
-		close FILE2;
-		unlink $file;
-		rename $file.".temp", $file;
-	}
-	$s_file->up();
-}
-
 # Get the current url
 sub get {
 	my ($self) = @_;
@@ -277,25 +242,89 @@ sub get {
 }
 
 # Advance to the next url
-sub advance() {
+sub advance($) {
 	my ($self) = @_;
 	
-	# Move the first url from the "queued" array to the "processed" array
-	if (defined($self->{item})) {
-		$s_processed->down();
-		push(@processed, $self->{item});	
-		$s_processed->up();
+	# Fetch a new item from static queue cache
+	$s_queued->down();
+	for (my $i = 0; $i <= $#queued; $i++) {
+		if (!scalar($self->{processed}) || indexof($queued[$i], $self->{processed}) == -1) {
+			$self->{item} = delete($queued[$i]);
+			
+			# Fix the "undef" gap delete creates (variant which preserves order)
+			for my $j ($i ... $#queued-1) {
+				$queued[$j] = $queued[$j+1];
+			}
+			pop(@queued);
+			last;
+		}
+	}
+	$s_queued->up();
+	
+	# Fetch a new item from reading the file
+	if (!$self->{item}) {
+		$s_queued->down();
+		while (!$self->{item} || indexof($queued[-1], $self->{processed}) != -1) {	# @queued will never be empty unless $self->{item} == undef
+			unless ($file && file_read()) {
+				$s_queued->up();
+				return error("queue exhausted");
+			}
+		}
+		$self->{item} = shift(@queued);
+		$s_queued->up();
+	}
+}
+
+# Change the status of an URL (and update the file)
+sub skip_globally {
+	my ($self, $status) = @_;
+	
+	# Update the status if requested
+	if ($status) {
+		$self->{status} = $status;
+	
+		# Only update if we got a file
+		my $url = $self->{item};
+		$s_file->down();
+		if (defined($file)) {
+			open (FILE, $file);
+			open (FILE2, ">".$file.".temp");
+			while(<FILE>) {
+				if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
+					print FILE2 "# ".$self->{status}.": ";
+				}
+				print FILE2 $_;
+			}
+			close FILE;
+			close FILE2;
+			unlink $file;
+			rename $file.".temp", $file;
+		}
+		$s_file->up();
 	}
 	
-	# Load a new item
+	# Move the queued item to the "processed" array
+	$s_processed->down();
+	push(@processed, $self->{item});	
+	$s_processed->up();
+	
+	# Reset the item
 	$self->{item} = undef;
+}
+
+# Skip to the next url
+sub skip_locally($) {
+	my ($self) = @_;	
+	
+	# Move the queued item to the "queued" array, and to the local "processed" array
 	$s_queued->down();
-	if (! scalar(@queued)) {
-		file_read() if ($file);
-	}
-	$self->{item} = shift(@queued);
+	unshift(@queued, $self->{item});	
 	$s_queued->up();
-}	
+	push(@{$self->{processed}}, $self->{item});
+	
+	# Reset the item
+	$self->{item} = undef;
+}
 
 # Return
 1;
@@ -312,11 +341,14 @@ Queue
 =head1 SYNOPSIS
 
   use Queue;
+  
+  # Configure the static queue cache
+  Queue::add("http://test.url.file");
+  Queue::file("/data/file_with_urls");
 
   # Configure a queue
   my $queue = Queue::new();
-  $queue->add('http://test.url/file');
-  $queue->file('/tmp/urls.dat');
+  my $url = $queue->get();
 
   # Process all URL's
   while (my $url = $queue->get) {
@@ -351,49 +383,55 @@ file should contain data which has been saved using the save($file) routine.
 This saves the data from the queue in a file, by serializing it. Can be restored
 through a constructor with given filename.
 
-=head2 $queue->reset()
+=head2 Queue::reset()
 
 Resets the queue, by erasing all internal datastructures.
 
-==head2 $queue->restart()
+=head2 Queue::restart()
 
 Restarts already processed downloads, by resetting certain internal arrays which
 control which URLs should be processed and which shouldn't. Can be used in combination
 with a file to read URLs from to give URLs which have been processed (and advanced from)
 but not commented out another chance.
 
-=head2 $queue->add()
+=head2 Queue::add()
 
 This adds an URL to the back of the queue.
 
-=head2 $queue->get()
-
-This fetches the first URL from the queue, without removing it.
-
-=head2 $queue->advance()
-
-This advances to the next URL, e.g. by removing the first one, and unless there are
-still URL's queued up, fetch one from the file (if set).
-
-=head2 $queue->file()
+=head2 Queue::file()
 
 Give the queue access to a file. This also triggers a read, so if you want to priorityze
 URL's make sure they have been added before the file() call.
 
-=head2 $queue->file_read()
+=head2 Queue::file_read()
 
 Read a single URL from the file. Comments and already processed or enqueued URLs will be
 skipped.
 
-=head2 $queue->file_update($url, $status)
-
-Comment out a given URL, and prepend a status
-  # STATUS: url
-
-=head2 $queue->dump()
+=head2 Queue::dump()
 
 Return all the following URLs, e.g. dump the entire queue. This does respect already
 processed URLs, and keeps the queue reusable by restoring it state after running.
+
+=head2 $queue->get()
+
+This fetches the first URL from the queue object.
+
+=head2 $queue->advance()
+
+This advances to the next URL. Mind though that this instruction always has to be preceded by a
+skip_* function, or the resulting URL will be the same as before.
+
+=head2 $queue->skip_locally()
+
+Make sure the current URL won't be used by this queue object anymore. This invalidates the current item.
+
+=head2 $queue->skip_glibally($status)
+
+Make sure the current URL won't be used by any queue object anymore. This invalidates the current item.
+Optionally with a given $status, which will (if possible) be used to comment out the url in the queue
+file and prepend it with the given status.
+  # STATUS: url
 
 =head1 AUTHOR
 

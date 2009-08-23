@@ -289,19 +289,20 @@ elsif ($config_cli->get("mode") eq "download") {
 		# Check result
 		if ($result > 0) {
 			push @oklinks, $link;
-			$queue->update("DONE");
+			$queue->skip_globally("DONE");
 
 			# Command after successful download
 			if (my $command = $config_cli->get("post_download")) {
 				system($command);
 			}
 		}
-		elsif ($result == 0) {
-			$failure = 1;
-		}
 		elsif ($result == -1) {
 			$failure = 1;
-			$queue->update("DEAD");
+			$queue->skip_globally("DEAD");
+		}
+		elsif ($result == 0) {
+			$queue->skip_globally();
+			$failure = 1;
 		}
 		
 		# Failure?
