@@ -84,12 +84,13 @@ sub new {
 
 	if (my $plugin = get_package($url)) {
 		# Resource handling
+		fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
 		if ($resources{$plugin} != -1) {
 			if ($resources{$plugin} < 1) {
 				return -2;
 			}
 			$resources{$plugin}--;
-			debug("Lowering available resources for plugin $plugin to ", $resources{$plugin});
+			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 		}
 		my $object = new $plugin ($config->section($plugin), $url, $mech);
 		return $object;
@@ -105,7 +106,7 @@ sub DESTROY {
 	my $plugin = ref($self);
 		if ($resources{$plugin} != -1) {
 		$resources{$plugin}++;
-		debug("Restoring available resources for plugin $plugin to ", $resources{$plugin});
+		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
 	}
 }
 

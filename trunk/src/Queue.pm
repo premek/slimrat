@@ -99,6 +99,7 @@ sub add {
 # Add an URL from the file to the queue
 sub file_read {
 	debug("reading queue file '$file'");
+	my $added = 0;
 	
 	$s_file->down();
 	open(FILE, $file) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
@@ -118,6 +119,7 @@ sub file_read {
 				$s_queued->up();
 				$s_processed->up();
 				add($url);
+				$added = 1;
 				last;
 			}
 			$s_queued->up();
@@ -128,6 +130,7 @@ sub file_read {
 	}
 	close(FILE);
 	$s_file->up();
+	return $added;
 }
 
 # Get everything (all URLs at once)
@@ -245,32 +248,38 @@ sub advance($) {
 	my ($self) = @_;
 	
 	# Fetch a new item from static queue cache
-	$s_queued->down();
-	for (my $i = 0; $i <= $#queued; $i++) {
-		if (!scalar($self->{processed}) || indexof($queued[$i], $self->{processed}) == -1) {
-			$self->{item} = delete($queued[$i]);
+	if (scalar($self->{processed})) {
+		$s_queued->down();
+		for (my $i = 0; $i <= $#queued; $i++) {
+			if (indexof($queued[$i], $self->{processed}) == -1) {
+				$self->{item} = delete($queued[$i]);
 			
-			# Fix the "undef" gap delete creates (variant which preserves order)
-			for my $j ($i ... $#queued-1) {
-				$queued[$j] = $queued[$j+1];
+				# Fix the "undef" gap delete creates (variant which preserves order)
+				# (which does not happen if "delete" deleted last element)
+				if ($i != scalar(@queued)) {
+					for my $j ($i ... $#queued-1) {
+						$queued[$j] = $queued[$j+1];
+					}
+					pop(@queued);
+				}
+				last;
 			}
-			pop(@queued);
-			last;
 		}
+		$s_queued->up();
 	}
-	$s_queued->up();
 	
 	# Fetch a new item from reading the file
 	if (!$self->{item}) {
 		$s_queued->down();
-		while (!$self->{item} || indexof($queued[-1], $self->{processed}) != -1) {	# @queued will never be empty unless $self->{item} == undef
+		while (!$self->{item} || indexof($self->{item}, $self->{processed}) != -1) {
 			unless ($file && file_read()) {
 				$s_queued->up();
 				debug("queue exhausted");
 				return 0;
 			}
+			$self->{item} = pop(@queued);
+			
 		}
-		$self->{item} = shift(@queued);
 		$s_queued->up();
 	}
 	

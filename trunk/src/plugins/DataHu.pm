@@ -40,6 +40,9 @@
 # Package name
 package DataHu;
 
+# Extend Plugin
+@ISA = qw(Plugin);
+
 # Packages
 use WWW::Mechanize;
 
@@ -131,6 +134,11 @@ sub get_data {
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
+
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^([^:/]+://)?([^.]+\.)?data.hu");
 
 1;

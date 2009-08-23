@@ -175,6 +175,10 @@ sub get_data {
 	$self->{MECH}->request($req, $data_processor);
 }
 
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^([^:/]+://)?([^.]+\.)?easy-share.com");
 
 1;

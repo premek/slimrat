@@ -109,6 +109,11 @@ sub get_data {
 	}
 }
 
+
+# Amount of resources
+Plugin::provide(1);
+
+# Register the plugin
 Plugin::register("^[^/]+//(?:www.)?depositfiles.com/(?:[a-z]{2}/)?folders");
 
 1;
