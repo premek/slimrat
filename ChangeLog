@@ -4,6 +4,11 @@
       sharing unused bandwidth.
 
 
+2009-08-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: read links list from stdin when --list is '-'
+
+
 2009-08-23 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * queue (skip_*): clean support for skipping URLs globally
