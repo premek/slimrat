@@ -47,6 +47,8 @@ use Exporter;
 @EXPORT = qw(config_init config_merge config_browser configure daemonize pid_read download);
 
 # Packages
+use threads;
+use threads::shared;
 use Time::HiRes qw(sleep gettimeofday);
 use POSIX 'setsid';
 use Time::HiRes qw(time);
@@ -59,6 +61,7 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 
 # Custom packages
+use Semaphore;
 use Configuration;
 use Log;
 use Plugin;
@@ -74,6 +77,10 @@ $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 10);
 $config->set_default("useragent", "slimrat/$VERSION"); # or (WWW::Mechanize::known_agent_aliases())[0]  ???
 $config->set_default("redownload", "rename");
+
+# Shared data
+my $downloaders:shared = 0;
+my %rate_surplus:shared; my $s_rate_surplus = new Semaphore;
 
 
 
@@ -258,6 +265,7 @@ sub download($$$$$) {
 	my $ocrcounter = 0;
 	$|++; # unbuffered output
 	# store (and later return) return value of get_data()
+	$downloaders++;
 	my $response = $plugin->get_data( sub {
 		# Fetch server response
 		my $res = $_[1];
@@ -353,8 +361,13 @@ sub download($$$$$) {
 		
 		# Rate control
 		if ($config->get("rate")) {
-			my $speed_aim = $config->get("rate") * 1024;
 			my $speed_cur = $size_chunk / $dtime_chunk;
+			my $speed_aim = $config->get("rate") * 1024 / $downloaders;
+			$s_rate_surplus->down();
+			delete($rate_surplus{thread_id()});
+			$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
+			$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
+			$s_rate_surplus->up();
 			if ($speed_cur > $speed_aim) {
 				sleep($size_chunk / $speed_aim - $dtime_chunk);
 			}
@@ -438,6 +451,7 @@ sub download($$$$$) {
 		
 		return $captcha_value;
 	});
+	$downloaders--;
 	
 	# Close file
 	close(FILE);

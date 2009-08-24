@@ -1,3 +1,9 @@
+2009-08-24 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common (download): multithreaded rate control, with threads
+      sharing unused bandwidth.
+
+
 2009-08-23 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * queue (skip_*): clean support for skipping URLs globally
