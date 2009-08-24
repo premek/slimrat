@@ -352,7 +352,6 @@ sub thread_download {
 			}
 		}
 		elsif ($result == -2) {
-			debug("could not allocate resources");
 			$queue->skip_locally();
 		} elsif ($result == -1) {
 			$failure = 1;
