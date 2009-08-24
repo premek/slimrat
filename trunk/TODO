@@ -2,7 +2,7 @@
   - add links to running instance
     slimrat --add --list list.txt http://link/1 http://link/2
 
-  - make it possible to download more links at same time (every one from different site)
+  - 
 
 # VERSION SPECIFIC #
 
@@ -12,4 +12,4 @@
   - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
     which makes it hard to use in the GUI (contrary to its use in the cli). Maybe rewrite the Queue
     with random access in mind?
-
+  - Rotate log?

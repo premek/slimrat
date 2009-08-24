@@ -181,7 +181,13 @@ while (my $link = shift) {
 		usage("unrecognised option \"$link\"");
 	}
 }
-Queue::file($config_cli->get("list")) if ($config_cli->get("list"));
+if ($config_cli->get("list")) {
+	if($config_cli->get("list") eq "-"){
+		chomp and Queue::add($_) while (<>);
+	} else {
+		Queue::file($config_cli->get("list"));
+	}
+}
 
 # Set socket local address if needed
 if($config_cli->get("address")){

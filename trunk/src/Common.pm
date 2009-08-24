@@ -312,13 +312,13 @@ sub download($$$$$) {
 					die("skipped download");
 				} elsif ($action eq "resume") {
 					info("file exists, resuming");
-					die("not implemented yet");
+					die("resume not implemented yet");
 					# TODO
 				} else {
 					die("unrecognised action upon redownload");
 				}
 			}
-			debug("file will be saved as '$filepath'");	
+			info("file will be saved as '$filepath'");	
 
 			# Open file
 			open(FILE, ">$filepath");

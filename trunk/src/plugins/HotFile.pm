@@ -101,6 +101,7 @@ sub check {
 	
 	$_ = $self->{PRIMARY}->decoded_content;
 	return 1  if(m/Downloading/);
+	return -1  if(m/file is either removed/);
 	return -1 unless length; # server returns 0-sized page on dead links
 	return 0;
 }
