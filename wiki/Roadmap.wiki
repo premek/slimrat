@@ -6,20 +6,25 @@ This wiki page features the development roadmap, and stuff which has to be resol
 
 = Overview =
 
-|| *Version* || *Date* ||
-|| 0.9.4 || 2009/03/22 ||
-|| 0.9.5 || 2009/06/29 ||
-|| 0.9.6 || 2009/07/.. ||
+|| *Type* || *Version* || *Date* ||
+|| Bugfix || 0.9.5.5 || 2009/09/.. ||
+|| Major || 1.0 || 2009/09-10-11 ||
 
 = Detailed overview =
 
-== 0.9.6 ==
+== 0.9.5.5 ==
 
-_*NOTE*: have a look at the [http://code.google.com/p/slimrat/source/browse/trunk/TODO TODO] file for more upcoming features._
+A bugfix-only release, ironing out any reported and backported fixes, and ensuring all download plugins are working again.
 
-=== Todo ===
- * TODO: merge all core functionality to a shared library which -gui as well as -cli uses
- * TODO: functionality to save the current queue for a next session.
+== 1.0 ==
 
-=== Blockers ===
-None yet, release too far off.
+The next major release (previously 0.9.6), featuring:
+ * Captcha support (with OCR functionality)
+ * Improved logging
+ * Extensive debugging support, providing valuable information to developers in a user-friendly (easy to upload etc) format
+ * Download multithreading
+ * Rate control
+ * Proxy support
+ * Renewed plugin model, reducing overhead bandwidth usage
+ * Graceful dependancy checking (i.e. slimrat won't die horribly if some thing's missing)
+ * No wget dependancy, downloads handled internally
