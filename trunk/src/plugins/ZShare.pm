@@ -109,7 +109,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Click the "Download Now" button
-	$self->{MECH}->form_name("form1") or return error("Cannot click the 'Download Now' button");
+	$self->{MECH}->form_name("form1") or return error("could not click the 'Download Now' button");
 	my $res = $self->{MECH}->submit_form();
 	return error("plugin failure: ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());

@@ -135,7 +135,7 @@ if ($options{"man"}) {
 if ($options{"kill"}) {
 	if (my $pid = pid_read()) {
 		if (kill 0, $pid) {
-			info("Killing an active instance at PID $pid");
+			info("killing an active instance at PID $pid");
 			kill 2, $pid;
 			quit(0);
 		} else {
@@ -197,7 +197,7 @@ if($config_cli->get("address")){
 
 # Fork in background
 if ($config_cli->get("daemon")) {
-	info("Forking in background");
+	info("forking in background");
 	daemonize();
 	print "\n\n";
 }
@@ -208,7 +208,7 @@ if ($config_cli->get("daemon")) {
 # MAIN #
 ########
 
-info("Slimrat started (command-line interface)");
+info("slimrat started (command-line interface)");
 warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 #
@@ -216,7 +216,7 @@ warning("this is a development release, if you encounter any issues, please re-r
 #
 
 if ($config_cli->get("mode") eq "check") {
-	info("Checking URLs");
+	info("checking URLs");
 	my $dead_links = 0;
 	
  	# Instantiate per-thread objects
@@ -379,7 +379,7 @@ sub thread_download {
 		
 		# Advance to the next URL
 		while (! $queue->advance()) {
-			warning("thread couldn't get any work, exiting");
+			debug("thread couldn't get any work, exiting");
 			return 1;
 		}
 	}

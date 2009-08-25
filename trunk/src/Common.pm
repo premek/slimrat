@@ -97,7 +97,7 @@ sub config_init {
 	# Make sure slimrat has a proper directory in the users home folder
 	if (! -d $ENV{HOME}."/.slimrat") {
 		if(-f $ENV{HOME}."/.slimrat" && rename $ENV{HOME}."/.slimrat", $ENV{HOME}."/.slimrat.old"){
-			warning("File '".$ENV{HOME}."/.slimrat' renamed to '".$ENV{HOME}."/.slimrat.old'. This file from old version is not needed anymore. You can probably delete it."); 
+			warning("file '".$ENV{HOME}."/.slimrat' renamed to '".$ENV{HOME}."/.slimrat.old'. This file from old version is not needed anymore. You can probably delete it."); 
 		}
 		debug("creating directory " . $ENV{HOME} . "/.slimrat");
 		unless (mkdir $ENV{HOME}."/.slimrat") {
@@ -108,7 +108,7 @@ sub config_init {
 	my $config = new Configuration;	
 	foreach my $file ("/etc/slimrat.conf", $ENV{HOME}."/.slimrat/config", shift) {
 		if ($file && -r $file) {
-			debug("Reading config file '$file'");
+			debug("reading config file '$file'");
 			$config->file_read($file);
 		}
 	}
@@ -173,7 +173,7 @@ sub daemonize() {
 	pid_save() or fatal("could not write the state file");
 	
 	# Redirect all output
-	info("Muting screen output, make sure a logfile has been configured to output to");
+	info("muting screen output, make sure a logfile has been configured to output to");
 	$config->section("log")->set("screen", 0);
 }
 
@@ -217,7 +217,7 @@ sub pid_read() {
 sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
-	info("Downloading '$link'");
+	info("downloading '$link'");
 
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech);
@@ -280,9 +280,9 @@ sub download($$$$$) {
 			$size = $res->content_length;
 			if ($size)
 			{
-				info("Filesize: ", bytes_readable($size));
+				info("filesize: ", bytes_readable($size));
 			} else {
-				info("Filesize unknown");
+				info("filesize unknown");
 			}
 
 			# If plugin didn't tell us name of the file, we can get it from http response or request.
@@ -436,12 +436,12 @@ sub download($$$$$) {
 				goto USER;
 			}
 			$captcha_value =~ s/\s+//g;
-			debug("Captcha read by OCR: '$captcha_value'");
+			debug("captcha read by OCR: '$captcha_value'");
 			
 			# Postprocess
 			if ($plugin->can("ocr_postprocess")) {
 				$captcha_value = $plugin->ocr_postprocess($captcha_value);
-				debug("Captcha after post-processing: '$captcha_value'");
+				debug("captcha after post-processing: '$captcha_value'");
 			}
 		}
 		
@@ -488,7 +488,7 @@ sub download($$$$$) {
 # Quit all packages
 sub quit {
 	# Exit message
-	info("Exiting");
+	info("exiting");
 	
 	# Quit all packages
 	Queue::quit();

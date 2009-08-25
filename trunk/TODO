@@ -1,8 +1,7 @@
 # GENERAL #
   - add links to running instance
     slimrat --add --list list.txt http://link/1 http://link/2
-
-  - 
+  - update the wiki's Readme/Install/... and link them from trunk to /wiki
 
 # VERSION SPECIFIC #
 

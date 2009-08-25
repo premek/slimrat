@@ -1,6 +1,5 @@
 package Clipboard::Pb;
 use Spiffy -Base;
-use IO::All;
 sub copy {
     open my $exe, '|pbcopy' or die "Couldn't run pbcopy: $!";
     print $exe $_[0];
