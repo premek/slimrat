@@ -246,11 +246,11 @@ sub set($) {
 	
 	# Select proxy if available
 	if (defined($self->{proxy})) {
-		info("Using proxy '", $self->{proxy}->{link}, "' for protocols ", join(" and ", @{$self->{proxy}->{protocols}}));
+		info("using proxy '", $self->{proxy}->{link}, "' for protocols ", join(" and ", @{$self->{proxy}->{protocols}}));
 		$self->{ua}->proxy($self->{proxy}->{protocols}, $self->{proxy}->{link});
 		return 1;
 	} else {
-		info("Disabled proxies");
+		info("disabled proxies");
 		$self->{ua}->no_proxy();
 		return 0;
 	}

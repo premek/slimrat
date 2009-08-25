@@ -125,13 +125,13 @@ sub get_data {
 		$cont = $self->{MECH}->content();
 	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
 
-	return error("No captcha code entered") unless $captcha;
+	return error("no captcha code entered") unless $captcha;
 
 
 	# Wait
 	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
-	info("Now we can wait for $wait seconds, but we don't have to.");
-	#wait ($wait);
+	info("now we can wait for $wait seconds, but we don't have to.");
+	#wait ($wait); # TODO: actually wait, or slimrat can be banned based on TOC i think
 
 	# Get download url
 	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;

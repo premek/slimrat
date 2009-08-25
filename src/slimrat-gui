@@ -140,7 +140,7 @@ $config->section("log")->set("verbosity", 5) if ($options{"debug"});
 # GUI #
 #######
 
-info("Slimrat started (graphical user interface)");
+info("slimrat started (graphical user interface)");
 warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 # Keypresses
@@ -321,7 +321,8 @@ sub on_btnStart1_clicked {
 	my $button = shift;
 	if($button->get_active) {
 		my $download_to = $gui->get_widget('downto')->get_filename();
-
+		
+		# TODO: first check / size update in GUI
 		$download_thread = threads->new(sub{
 			# Configure browser and proxy manager
 			my $mech = config_browser();
@@ -422,7 +423,7 @@ sub on_btnCheck_clicked {
 			# Load plugin
 			my $plugin;
 			my $check = 0;
-			if ($plugin = Plugin->new($link, $mech)) {
+			if ($plugin = Plugin->new($link, $mech)) {	 # TODO: RV -2
 				# Check status
 				$check = $plugin->check();
 			}

@@ -106,7 +106,7 @@ sub get_data {
 	$_ = $self->{PRIMARY}->decoded_content."\n";
 
 	# TODO: actually wait here
-	if(my($minutes) = m#Or wait (\d+) minutes!#) { error("Your Free-Traffic is exceeded, wait $minutes minutes."); return 0; }
+	if(my($minutes) = m#Or wait (\d+) minutes!#) { error("your Free-Traffic has exceeded, wait $minutes minutes."); return 0; }
 
 	# Extract url
 	my ($download) = m#<form name="download_form" method="post" action="(.+?)">#;

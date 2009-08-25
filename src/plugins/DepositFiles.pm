@@ -130,11 +130,11 @@ sub get_data {
 		} 
 
 		if ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
-			info("You are already downloading a file from Depositfiles.");
+			info("you are already downloading a file from Depositfiles.");
 			$wait = 60;
 		} 
 		elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
-			return error("All downloading slots for your country are busy");
+			return error("all downloading slots for your country are busy");
 		}
 		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
 			if ($time eq "min") {$wait *= 60;}

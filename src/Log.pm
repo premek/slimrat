@@ -107,6 +107,13 @@ sub output : locked {
 	my @args = @_;
 	$args[0] = "" if ($config->get("mode") eq "log");
 	
+	# Aesthetics: uppercase first character
+	if (!$category) {
+		my @messages_ucfirst = @$messages;
+		$messages_ucfirst[0] = ucfirst $messages_ucfirst[0];
+		$args[3] = \@messages_ucfirst;
+	}
+	
 	# Screen output
 	if ($config->get("screen")) {
 		my $fh;
@@ -306,7 +313,7 @@ sub summary {
 	my @faillinks = @{$fail_ref};
 	
 	if (scalar(@oklinks) + scalar(@faillinks)) {
-		info("Download summary:");
+		info("download summary:");
 	} else {
 		return 0;
 	}

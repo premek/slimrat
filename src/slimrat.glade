@@ -4,7 +4,7 @@
 <glade-interface>
   <widget class="GtkWindow" id="mainWindow">
     <property name="visible">True</property>
-    <property name="title" translatable="yes">SlimRat</property>
+    <property name="title" translatable="yes">slimrat</property>
     <property name="default_width">750</property>
     <property name="default_height">300</property>
     <signal name="key_press_event" handler="key_press"/>

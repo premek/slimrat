@@ -1,3 +1,10 @@
+2009-08-25 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration: support for multithreading, without altering
+      the model (contrary to proxy and queue, which now works
+      with a per-thread object).
+
+
 2009-08-24 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * common (download): multithreaded rate control, with threads

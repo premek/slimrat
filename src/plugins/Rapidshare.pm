@@ -120,22 +120,22 @@ sub get_data {
 
 		if(m/reached the download limit for free-users/) {
 			($wait) = m/Or try again in about (\d+) minutes/sm;
-			info("Reached the download limit for free-users");
+			info("reached the download limit for free-users");
 			
 		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			info("Currently a lot of users are downloading files");
+			info("currently a lot of users are downloading files");
 		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			info("No available slots for free users");
+			info("no available slots for free users");
 
 		} elsif(m/already downloading a file/) {
-			info("Already downloading a file");
+			info("already downloading a file");
 			$wait = 1;
 		} else {
 			last;
 		}
 		
 		if ($self->{CONF}->get("interval") && $wait > $self->{CONF}->get("interval")) {
-			info("Should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes");
+			info("should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes");
 			$wait = $self->{CONF}->get("interval");
 		}
 		wait($wait*60);
