@@ -97,7 +97,7 @@ sub quit {
 sub new {
 	my $class = shift;
 	
-	# Object data container (create shared hash)
+	# Object data container (shared hash)
 	my $self;
 	share($self);
 	$self = &share({});

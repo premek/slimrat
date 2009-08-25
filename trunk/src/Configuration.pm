@@ -39,27 +39,12 @@
 package Configuration;
 
 # Packages
-use Class::Struct;
+use threads;
+use threads::shared;
 
 # Write nicely
 use strict;
 use warnings;
-
-# Custom packages
-# NOTE: this module cannot include any custom package (it be Log.pm, Toolbox.pm, ...) as it is
-#   used by almost any package and would cause circular dependencies. Also, including Log.pm
-#   wouldn't help much as the verbosity etc. hasn't been initialised yet when the configuration
-#   file is being parsed (debug() statements wouldn't matter). Instead, Perls internal
-#   output routines are used (warn & die).
-#   If there is a sensible way to include Log.pm, please change! It'd still be somewhat useful
-#   to use functions like warning() and fatal() instead of warn and die.
-
-# A configuration item
-struct(Item =>	{
-		default		=>	'$',
-		mutable		=>	'$',
-		value		=>	'$',
-});
 
 
 #
@@ -84,15 +69,16 @@ sub init($$) {
 		return 0;
 	}
 	
-	my $item = new Item;
-	$item->mutable(1);
-	
 	# Add at right spot (self or parent)
-	if ($self->{_parent}) {
-		$self->{_parent}->init($self->{_section} . ":" . $key);
-		$self->{_items}->{$key} = $self->{_parent}->{_items}->{$self->{_section} . ":" . $key};
+	if ($self->{parent}) {
+		$self->{parent}->init($self->{section} . ":" . $key);
+		$self->{items}->{$key} = $self->{parent}->{items}->{$self->{section} . ":" . $key};	# Item was ref, will shared hash pass?
 	} else {
-		$self->{_items}->{$key} = $item;
+		share($self->{items}->{$key});
+		$self->{items}->{$key} = &share({});
+		$self->{items}->{$key}->{mutable} = 1;
+		$self->{items}->{$key}->{default} = undef;
+		$self->{items}->{$key}->{value} = undef;
 	}
 	
 	return 1;
@@ -100,19 +86,28 @@ sub init($$) {
 
 # Constructor
 sub new {
-	my $self = {
-		_items		=>	{},	# Anonymous hash
-		_parent		=>	undef,
-		_section	=>	undef,
-	};
-	bless $self, 'Configuration';
-	return $self;
+	# Object data container (shared hash)
+	my $self;
+	share($self);
+	$self = &share({});
+	
+	# Items (shared hash)
+	share($self->{items});
+	$self->{items} = &share({});
+	
+	# Parent configuration object (shared reference)
+	$self->{parent} = undef;
+	
+	# Subsection
+	$self->{section} = undef;
+	
+	return bless($self, 'Configuration');
 }
 
 # Check if the configuration contains a specific key
 sub contains($$) {
 	my ($self, $key) = @_;
-	if (exists $self->{_items}->{$key}) {
+	if (exists $self->{items}->{$key}) {
 		return 1;
 	} else {
 		return 0;
@@ -129,7 +124,7 @@ sub set_default($$$) {
 	}
 	
 	# Update the default value
-	$self->{_items}->{$key}->default($value);
+	$self->{items}->{$key}->{default} = $value;
 }
 
 # Get a value
@@ -140,10 +135,10 @@ sub get($$) {
 	return 0 unless ($self->contains($key));
 	
 	# Return value or default
-	if (defined $self->{_items}->{$key}->value) {
-		return $self->{_items}->{$key}->value;
+	if (defined $self->{items}->{$key}->{value}) {
+		return $self->{items}->{$key}->{value};
 	} else {
-		return $self->{_items}->{$key}->default;
+		return $self->{items}->{$key}->{default};
 	}
 }
 
@@ -155,7 +150,7 @@ sub get_default($$) {
 	return 0 unless ($self->contains($key));
 	
 	# Return default
-	return $self->{_items}->{$key}->default;
+	return $self->{items}->{$key}->{default};
 }
 
 # Set a value
@@ -168,13 +163,13 @@ sub set($$$) {
 	}
 	
 	# Check if mutable
-	if (! $self->{_items}->{$key}->mutable) {
+	if (! $self->{items}->{$key}->{mutable}) {
 		warn("attempt to modify protected key '$key'");
 		return 0;
 	}
 	
 	# Modify value
-	$self->{_items}->{$key}->value($value);
+	$self->{items}->{$key}->{value} = $value;
 	return 1;
 }
 
@@ -182,7 +177,7 @@ sub set($$$) {
 sub protect($$) {
 	my ($self, $key) = @_;
 	if ($self->contains($key)) {
-		$self->{_items}->{$key}->mutable(0);
+		$self->{items}->{$key}->{mutable} = 0;
 		return 1;
 	}
 	return 0;
@@ -243,21 +238,21 @@ sub section($$) {
 	$section = lc($section);
 	
 	# Prohibit double (or more) hiërarchies
-	return error("can only split section from top-level configuration object") if ($self->{_section});
+	return error("can only split section from top-level configuration object") if ($self->{section});
 	
 	# Extract subsection
-	my $config_section = new Configuration;
-	foreach my $key (keys %{$self->{_items}}) {
+	my $configsection = new Configuration;
+	foreach my $key (keys %{$self->{items}}) {
 		if ($key =~ m/^$section:(.+)$/) {
-			$config_section->{_items}->{substr($key, length($section)+1)} = $self->{_items}->{$key};
+			$configsection->{items}->{substr($key, length($section)+1)} = $self->{items}->{$key};
 		}
 	}
 	
 	# Give the section parent access
-	$config_section->{_parent} = $self;
-	$config_section->{_section} = $section;
+	$configsection->{parent} = $self;
+	$configsection->{section} = $section;
 	
-	return $config_section;
+	return $configsection;
 }
 
 # Merge two configuration objects
@@ -265,13 +260,13 @@ sub merge($$) {
 	my ($self, $complement) = @_;
 	
 	# Process all keys and update the complement
-	foreach my $key (keys %{$self->{_items}}) {
-		warn("merge call only copies defaults") if (defined $self->{_items}->{$key}->value);
+	foreach my $key (keys %{$self->{items}}) {
+		warn("merge call only copies defaults") if (defined $self->{items}->{$key}->{value});
 		$complement->set_default($key, $self->get_default($key));
 	}
 	
 	# Update self
-	$self->{_items} = $complement->{_items};
+	$self->{items} = $complement->{items};
 }
 
 # Save a value to a configuration file
@@ -283,7 +278,7 @@ sub save($$) {
 	# Case 1: configuration file does not exist, create new one
 	if (! -f $current) {
 		open(WRITE, ">$current");
-		print WRITE "[" . $self->{_section} . "]\n" if (defined $self->{_section});
+		print WRITE "[" . $self->{section} . "]\n" if (defined $self->{section});
 		print WRITE $key . " = " . $self->get($key);
 		close(WRITE);
 	}
@@ -294,15 +289,15 @@ sub save($$) {
 		open(WRITE, ">$temp");
 		
 		# Look for a match and update it
-		my $temp_section;
+		my $tempsection;
 		while (<READ>) {
 			chomp;
 		
 			# Get the key/value pair
 			if (my($temp_key) = /^(.+?)\s*=+\s*.+?$/) {
 				if ($key eq $temp_key) {
-					if (  (defined $self->{_section} && defined $temp_section && $self->{_section} eq $temp_section)
-					   || (!defined $self->{_section} && !defined $temp_section) ) {
+					if (  (defined $self->{section} && defined $tempsection && $self->{section} eq $tempsection)
+					   || (!defined $self->{section} && !defined $tempsection) ) {
 						print WRITE $key . " = " . $self->get($key) . "\n";
 						last;
 					}				
@@ -311,7 +306,7 @@ sub save($$) {
 		
 			# Get section identifier
 			elsif (/^\[(.+)\]$/) {
-				$temp_section = lc($1);
+				$tempsection = lc($1);
 			}
 						
 			print WRITE "$_\n";
@@ -319,8 +314,8 @@ sub save($$) {
 		
 		# No match found, prepend or append key
 		if (eof(READ)) {
-			if (defined $self->{_section}) {
-				print WRITE "\n[" . $self->{_section} . "]\n";
+			if (defined $self->{section}) {
+				print WRITE "\n[" . $self->{section} . "]\n";
 				print WRITE $key . " = " . $self->get($key) . "\n";
 			} else {
 				# Prepend before first section, when not defined
