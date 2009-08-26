@@ -1,6 +1,13 @@
 # GENERAL #
   - add links to running instance
     slimrat --add --list list.txt http://link/1 http://link/2
+  - GUI: notifications Gtk2::Notify?
+  - INTERFACES:
+    * cli
+    * gui
+    * web
+    * ncurses
+    * jabber
   - update the wiki's Readme/Install/... and link them from trunk to /wiki
 
 # VERSION SPECIFIC #
@@ -12,3 +19,5 @@
     which makes it hard to use in the GUI (contrary to its use in the cli). Maybe rewrite the Queue
     with random access in mind?
   - Rotate log?
+  - Consider prepending `pwd` before relative paths of files when 'chdir'ing
+  - Remove 'this is a development release' message ;)

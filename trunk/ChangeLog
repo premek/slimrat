@@ -1,3 +1,8 @@
+2009-08-26  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: default http:// for links on cmdline without protocol
+
+
 2009-08-25 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * configuration: support for multithreading, without altering
