@@ -174,12 +174,12 @@ if (!scalar @ARGV && !$config_cli->get("list")) {
 }
 
 # Initialise a link queue
-while (my $link = shift) {
-	if ($link =~ /^\w+:\/\//) {
-		Queue::add($link);
-	} else {
-		usage("unrecognised option \"$link\"");
+foreach (@ARGV) {
+	if (/^-/) {
+		usage("unrecognised option '$_'");
 	}
+	s{^(?!\w+://)}{http://}; # TODO here or in Queue::add?
+	Queue::add($_);
 }
 if ($config_cli->get("list")) {
 	if($config_cli->get("list") eq "-"){
@@ -208,7 +208,7 @@ if ($config_cli->get("daemon")) {
 # MAIN #
 ########
 
-info("slimrat started (command-line interface)");
+info("slimrat started (noninteractive command-line interface)");
 warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 #
@@ -267,7 +267,7 @@ elsif ($config_cli->get("mode") eq "download") {
 	# Spawn threads
 	my $threads = $config_cli->get("threads");
 	debug("spawning $threads download threads");
-	for (my $i = 0; $i < $threads; $i++) {
+	foreach (1 .. $threads) {
 		my $thread = threads->create(\&thread_download);
 	}
 	
@@ -337,7 +337,7 @@ sub thread_download {
 					my $captchafile = shift;
 					
 					# view
-					system(sprintf $config_cli->get("image_viewer"), "/tmp/slimrat-captcha.tmp");
+					system(sprintf $config_cli->get("image_viewer"), $captchafile);
 					
 					# Ask the user
 					print "Captcha? ";
