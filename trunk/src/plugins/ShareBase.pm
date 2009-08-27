@@ -32,6 +32,9 @@
 #    Yunnan <www.yunnan.tk>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
+# Plugin details:
+##   BUILD 1
+#
 
 #
 # Configuration

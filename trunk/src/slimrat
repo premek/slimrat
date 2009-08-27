@@ -108,6 +108,7 @@ GetOptions (
 		"debug",
 		"quiet|q",
 		"config=s",
+		"update"
 );
 
 # Initialise global configuration
@@ -149,7 +150,9 @@ if ($options{"kill"}) {
 }
 
 # Mode (e.g. what slimrat should do)
+usage("cannot combine --check with --update option") if ($options{"check"} && $options{"update"});
 $config_cli->set("mode", "check") if ($options{"check"});
+$config_cli->set("mode", "update") if ($options{"update"});
 
 # Options we might use later on
 $config_cli->set("list", $options{"list"}) if ($options{"list"});
@@ -168,9 +171,11 @@ $config->section("log")->set("verbosity", 5) if ($options{"debug"});
 # Display thread identification at output if requested
 $config->section("log")->set("show_thread", 1) if ($config_cli->get("threads") > 1);
 
-# Check if we got input files (if certain mode does not require those, prepend those checks _before_ this conditional)
-if (!scalar @ARGV && !$config_cli->get("list")) {
-	usage("no input URLs");
+# Check if we got input files
+if ($config_cli->get("mode") eq "check" || $config_cli->get("mode") eq "download") {
+	if (!scalar @ARGV && !$config_cli->get("list")) {
+		usage("no input URLs");
+	}
 }
 
 # Initialise a link queue
@@ -212,10 +217,23 @@ info("slimrat started (noninteractive command-line interface)");
 warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 #
+# Update
+#
+
+if ($config_cli->get("mode") eq "update") {
+	info("updating plugins");
+	
+	Plugin::update();
+	
+	quit(0);
+}
+
+
+#
 # Check
 #
 
-if ($config_cli->get("mode") eq "check") {
+elsif ($config_cli->get("mode") eq "check") {
 	info("checking URLs");
 	my $dead_links = 0;
 	

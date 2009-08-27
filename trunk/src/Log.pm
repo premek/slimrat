@@ -428,7 +428,7 @@ sub dump_write() {
 		print INFO "\n";
 		
 		# Save (TODO: type bin?)
-		if ($dump->{type} =~ m/(htm|css|log|txt)/) {
+		if ($dump->{type} =~ m/(htm|css|log|txt|pl|pm)/) {
 			open(DATA, ">:utf8", "$tempfolder/$filename");
 		} else {
 			open(DATA, ">", "$tempfolder/$filename");
