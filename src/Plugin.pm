@@ -70,7 +70,8 @@ my $config_global = new Configuration;
 
 # Base configuration
 my $config = new Configuration;
-$config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");
+#config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");	# FIXME: change version to Slimrat::$VERSION when slimrat contains core functionality
+$config->set_default("update_cache", $ENV{HOME}."/.slimrat/updates");
 
 
 #
@@ -126,7 +127,17 @@ sub configure {
 	my $complement = shift;
 	$config_global->merge($complement);
 	$config->merge($config_global->section("plugin"));
-	load();
+	
+	# Load plugins
+	load("$RealBin/plugins");
+	if (-d $config->get("update_cache")) {
+		load($config->get("update_cache"))
+	} else {
+		mkdir $config->get("update_cache") || warning("could not create update cache folder, updating plugins will not work");
+	}
+	execute();
+	fatal("no plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
+	debug("loaded " . keys(%plugins) . " plugins (", join(", ", sort values %plugins), ")");
 }
 
 # Register a plugin
@@ -178,19 +189,18 @@ sub update {
 				elsif ($update =~ m/^##\s*BUILD\s+(.+)/) {
 					dump_add(title => "update '$plugin'", data => $update, type => "pm");
 					if ($1 != $builds{$plugin}) {
-						error("could not update plugin '$plugin' (BUILDS file mismatch)");
+						error("could not update plugin '$plugin' (serverside build number mismatches)");
 						next;
 					}
-					if (-w "$RealBin/plugins/$plugin") {
-						open UPDATE, ">$RealBin/plugins/$plugin";
-						print UPDATE $update;
-						close UPDATE;
-						info("updated plugin '$plugin'");
-					}
-					else {
+					
+					open UPDATE, ">" . $config->get("update_cache") . "/$plugin";
+					if (!-w UPDATE) {
 						error("could not update plugin '$plugin' (plugin file not writable)");
 						next;
 					}
+					print UPDATE $update;
+					close UPDATE;
+					info("updated plugin '$plugin'");
 				}
 				else {
 					dump_add(title => "update '$plugin' (corrupt)", data => $update, type => "pm");
@@ -206,11 +216,14 @@ sub update {
 
 # Load the plugins (dependancy check + execution)
 sub load {
+	my $folder = shift;
+	
 	# Process all plugins
-	my @pluginfiles = glob "$RealBin/plugins/*.pm";
+	my $counter = 0;
+	my @pluginfiles = <$folder/*.pm>;
 	LOOP: foreach my $plugin (@pluginfiles) {
 		# Quick parse
-		$details{basename($plugin)} = ();
+		my %plugin_info = ();
 		open(PLUGIN, $plugin);
 		while (<PLUGIN>) {
 			chomp;
@@ -229,24 +242,48 @@ sub load {
 			
 			# Parse special instructions
 			elsif (m/^##\s*(\w+)\s+(.+)/) {
-				$details{basename($plugin)}{$1} = $2;			
+				$plugin_info{$1} = $2;			
 			}
 		}
 		close(PLUGIN);
-		
-		# Execute
-		do $plugin;
-		if($@) {
-			error("\n".$@);
-			fatal("plugin '$plugin' failed to load".($!?" ($!)":""));
+		if (!defined($plugin_info{BUILD})) {
+			error("plugin '", basename($plugin), "' did not specify build number");
+			next;
 		}
+		$plugin_info{PATH} = $plugin;
+		
+		# Check versions
+		if (!defined($details{basename($plugin)})) {
+			$details{basename($plugin)} = \%plugin_info;
+		} elsif ($details{basename($plugin)}{BUILD} < $plugin_info{BUILD}) {
+			debug("replacing plugin '", basename($plugin), "' with newer version");
+			delete($details{basename($plugin)});
+			$details{basename($plugin)} = \%plugin_info;
+		}
+		
+		$counter++;
 	}
 	
-	# Check and debug
-	fatal("no plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
-	debug("loaded " . keys(%plugins) . " plugins (", join(", ", sort values %plugins), ")");
+	return $counter;
+}
 
-	scalar @pluginfiles; # Returns 0 (= failure to load) if no plugins present
+# Execute all plugins (which effectively includes them in the active slimrat session)
+sub execute {
+	foreach my $plugin (keys %details ) {
+		my $status = do $details{$plugin}{PATH};
+		if (!$status) {
+			if ($@) {
+				fatal("failed to parse plugin '$plugin' ($@)");
+			}
+			elsif ($!) {
+				fatal("failed to compile plugin '$plugin' ($!)");
+			}
+			else {
+				fatal("failed to load plugin '$plugin'");
+			}
+			next;
+		}
+	}
 }
 
 # Return
