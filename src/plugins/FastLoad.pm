@@ -32,7 +32,10 @@
 # Authors:
 #    Tomasz Gągor <timor o2 pl>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
-#    Přemek Vyhnal
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#
+# Plugin details:
+##   BUILD 1
 #
 
 #

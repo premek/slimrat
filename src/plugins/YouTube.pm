@@ -35,6 +35,9 @@
 # Thanks to:
 #    Bartłomiej Palmowski
 #
+# Plugin details:
+##   BUILD 1
+#
 
 #
 # Configuration

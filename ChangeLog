@@ -1,3 +1,8 @@
+2009-08-27 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin: update system.
+
+
 2009-08-26  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * CLI: default http:// for links on cmdline without protocol

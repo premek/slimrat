@@ -28,7 +28,10 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Přemek Vyhnal
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#
+# Plugin details:
+##   BUILD 1
 #
 
 #

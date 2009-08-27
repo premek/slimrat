@@ -37,6 +37,9 @@
 # Notes:
 #    should work with waiting and catches the redownload possibilities without waiting
 #
+# Plugin details:
+##   BUILD 1
+#
 
 #
 # Configuration

@@ -32,6 +32,9 @@
 #    Tomasz Gągor <timor o2 pl>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
+# Plugin details:
+##   BUILD 1
+#
 
 #
 # Configuration

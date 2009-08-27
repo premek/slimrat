@@ -42,7 +42,8 @@ package Plugin;
 # Packages
 use threads;
 use threads::shared;
-use WWW::Mechanize;
+use LWP::Simple;
+use File::Basename;
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -57,14 +58,19 @@ use Proxy;
 use strict;
 use warnings;
 
-# Static hash for plugin registrations (should not get modified while running)
+# Static hashes
 my %plugins;
+my %details;
 
-# Shared hash with available resources
+# Shared hashes
 my %resources:shared;
 
-# Static reference to the configuration object
-my $config = new Configuration; # TODO: thread safe? Changes get shared?
+# Static reference for the global configuration object
+my $config_global = new Configuration;
+
+# Base configuration
+my $config = new Configuration;
+$config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");
 
 
 #
@@ -80,7 +86,7 @@ sub new {
 	my $url = $_[1];
 	my $mech = $_[2];
 	
-	fatal("cannot create plugin without configuration") unless ($config);
+	fatal("cannot create plugin without configuration") unless ($config_global);
 
 	if (my $plugin = get_package($url)) {
 		# Resource handling
@@ -92,7 +98,7 @@ sub new {
 			$resources{$plugin}--;
 			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 		}
-		my $object = new $plugin ($config->section($plugin), $url, $mech);
+		my $object = new $plugin ($config_global->section($plugin), $url, $mech);
 		return $object;
 	}
 	return 0;
@@ -118,8 +124,9 @@ sub DESTROY {
 # Configure the plugin producer
 sub configure {
 	my $complement = shift;
-	$config->merge($complement);
-	load_plugins();
+	$config_global->merge($complement);
+	$config->merge($config_global->section("plugin"));
+	load();
 }
 
 # Register a plugin
@@ -143,17 +150,73 @@ sub get_package {
 	return "Direct";
 }
 
-# Load the plugins (dependancy check + execution, which triggers register())
-sub load_plugins {
+# Update the plugins
+sub update {
+	# Get BUILDS file from update server
+	my $builds = get($config->get("update_server") . "/BUILDS");
+	if ($builds) {
+		# Read builds
+		dump_add(title => "updater build list", data => $builds, type => "log");
+		my %builds;
+		$builds{$1} = $2 while ($builds =~ s/^(.+)\s+(\d+)//);
+		
+		# Compare builds
+		foreach my $plugin (keys %details) {
+			if (!defined $builds{$plugin}) {
+				warning("update server does not provide resources for plugin '$plugin'");
+				next;
+			}
+			if ($builds{$plugin} > $details{$plugin}{BUILD}) {
+				debug("found new version of $plugin");
+				
+				# Download and istall update
+				my $update = get($config->get("update_server") . "/$plugin");
+				if (! $update) {
+					error("could not update plugin '$plugin' (error fetching update)");
+					next;
+				}
+				elsif ($update =~ m/^##\s*BUILD\s+(.+)/) {
+					dump_add(title => "update '$plugin'", data => $update, type => "pm");
+					if ($1 != $builds{$plugin}) {
+						error("could not update plugin '$plugin' (BUILDS file mismatch)");
+						next;
+					}
+					if (-w "$RealBin/plugins/$plugin") {
+						open UPDATE, ">$RealBin/plugins/$plugin";
+						print UPDATE $update;
+						close UPDATE;
+						info("updated plugin '$plugin'");
+					}
+					else {
+						error("could not update plugin '$plugin' (plugin file not writable)");
+						next;
+					}
+				}
+				else {
+					dump_add(title => "update '$plugin' (corrupt)", data => $update, type => "pm");
+					error("could not update plugin '$plugin', (update corrupt)");
+					next;
+				}
+			}
+		}
+	} else {
+		return error("could not update plugins (error fetching builds list)");
+	}	
+}
 
-	# Let all plugins register themselves
+# Load the plugins (dependancy check + execution)
+sub load {
+	# Process all plugins
 	my @pluginfiles = glob "$RealBin/plugins/*.pm";
 	LOOP: foreach my $plugin (@pluginfiles) {
-		# Check for dependencies
+		# Quick parse
+		$details{basename($plugin)} = ();
 		open(PLUGIN, $plugin);
 		while (<PLUGIN>) {
 			chomp;
-			if ((/^\s*use (.+);/) and not (/strict/ || /warnings/)) {
+			
+			# Dependancy checking
+			if ((m/^\s*use (.+);/) and not (m/strict/ || m/warnings/)) {
 				eval;
 				if ($@) {
 					my $module = $1;
@@ -163,7 +226,11 @@ sub load_plugins {
 					next LOOP;
 				}
 			}
-
+			
+			# Parse special instructions
+			elsif (m/^##\s*(\w+)\s+(.+)/) {
+				$details{basename($plugin)}{$1} = $2;			
+			}
 		}
 		close(PLUGIN);
 		
