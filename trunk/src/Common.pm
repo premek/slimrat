@@ -478,7 +478,8 @@ sub download($$$$$) {
 				next if $ce eq "identity";
 				if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
 					debug("uncompressing standard encodings");
-					anyuncompress $filepath => "$filepath.temp" || return error("could not uncompress file ($AnyUncompressError)");
+					anyuncompress $filepath => "$filepath.temp", AutoClose => 1, BinModeOut => 1
+						or return error("could not uncompress file ($AnyUncompressError)");
 					rename("$filepath.temp", $filepath);
 				}
 			}
