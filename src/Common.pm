@@ -496,13 +496,16 @@ sub quit {
 	Proxy::quit();
 	Log::quit();		# pre-last because it writes the dump
 	Configuration::quit();	# last as used by everything
-		
-	# Join finished threads
-	$_->join() foreach (threads->list(threads::joinable));
 	
-	# Detach running threads (which'll kill them silently upon exit)
-	$_->detach() foreach (threads->list(threads::running));
-	
+	# Gently quit running and/or exited threads
+	eval("use threads 1.34");
+	if ($@) {
+		warning("your Perl version is outdated, I cannot quit threads gentily (you might see some warnings down here)")
+	} else {
+		$_->join() foreach (threads->list(threads::joinable));
+		$_->detach() foreach (threads->list(threads::running));
+	}		
+
 	# Exit with correct return value
 	my $return = shift;
 	$return = 255 if ($return !~ /^\d+$/);
