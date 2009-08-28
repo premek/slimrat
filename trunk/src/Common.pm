@@ -53,7 +53,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use POSIX 'setsid';
 use Time::HiRes qw(time);
 use URI;
-use Compress::Zlib;
+use IO::Uncompress::AnyUncompress qw(anyuncompress $AnyUncompressError) ;
 use File::Temp qw/tempfile/;
 
 # Find root for custom packages
@@ -75,7 +75,7 @@ use warnings;
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 10);
-$config->set_default("useragent", "slimrat/$VERSION"); # or (WWW::Mechanize::known_agent_aliases())[0]  ???
+$config->set_default("useragent", "slimrat/$VERSION");
 $config->set_default("redownload", "rename");
 
 # Shared data
@@ -134,7 +134,7 @@ sub configure($) {
 
 sub config_browser {
 	my $mech = WWW::Mechanize->new(autocheck => 0);
-	#$mech->default_header('Accept-Encoding' => ["gzip", "deflate"]); # TODO: fix encoding
+	$mech->default_header('Accept-Encoding' => ["identity", "gzip", "x-gzip", "x-bzip2", "deflate"]);
 	$mech->default_header('Accept-Language' => "en");
 	$mech->agent($config->get("useragent"));
 	$mech->timeout($config->get("timeout"));
@@ -274,7 +274,18 @@ sub download($$$$$) {
 		unless ($flag) {		
 			# Get content encoding
 			$encoding = $res->header("Content-Encoding");
-			debug("content-encoding is $encoding") if $encoding;
+			if ($encoding) {
+			    $encoding =~ s/^\s+//;
+			    $encoding =~ s/\s+$//;
+				debug("content-encoding is $encoding");
+				my @encodings = $mech->default_header('Accept-Encoding');
+				for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+					use Data::Dumper;
+					if (indexof($ce, \@encodings) == -1) {
+						die("cannot handle content-encoding '$encoding'");
+					}
+				}
+			}
 			
 			# Save length and print
 			$size = $res->content_length;
@@ -331,28 +342,7 @@ sub download($$$$$) {
 		}
 		
 		# Write the data
-		if (!defined $encoding) {
-			print FILE $_[0];		
-		}
-		elsif ($encoding eq "gzip") {
-			my $data = Compress::Zlib::memGunzip($_[0]);
-			if (!$data) {
-				die("could not gunzip data: $!");
-			}
-			print FILE $data;
-		} elsif ($encoding eq "deflate") {
-			if (!$encoding_extra) {
-				$encoding_extra = inflateInit(WindowBits => - MAX_WBITS) || return error("could not setup inflation handler");
-			}
-			my ($output, $status) = $encoding_extra->inflate($_[0]);
-			if ($status == Z_OK or $status == Z_STREAM_END) {
-				print FILE $output;
-			} else {
-				die("inflation failed with status '$status': ", $encoding_extra->msg());
-			}
-		} else {
-			die("unhandled content encoding '$encoding'");
-		}
+		print FILE $_[0];
 		
 		# Counters		
 		$size_chunk += length($_[0]);
@@ -480,6 +470,19 @@ sub download($$$$$) {
 			&$progress($size_downloaded, 0, 0, 1);
 		}
 		print "\r\n";
+		
+		# Decode any content-encoding
+		if ($encoding) {
+			for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+				next unless $ce;
+				next if $ce eq "identity";
+				if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
+					debug("uncompressing standard encodings");
+					anyuncompress $filepath => "$filepath.temp" || return error("could not uncompress file ($AnyUncompressError)");
+					rename("$filepath.temp", $filepath);
+				}
+			}
+		}
 		
 		return 1;
 	}
