@@ -4,6 +4,8 @@
 
     * common: fixed content-encoding handling.
 
+    * common: implemented download resuming.
+
 
 2009-08-27 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
