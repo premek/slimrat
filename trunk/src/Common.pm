@@ -283,9 +283,6 @@ sub download($$$$$) {
 			info("file exists, resuming");
 			push(@headers, Range => "bytes=" . (-s $filepath) . "-");
 			$size_downloaded = -s $filepath;
-			#unlink $filepath;
-			#die("resume not implemented yet");
-			# TODO
 		} else {
 			die("unrecognised action upon redownload");
 		}
@@ -521,6 +518,7 @@ sub quit {
 		warning("your Perl version is outdated, I cannot quit threads gentily (you might see some warnings down here)")
 	} else {
 		eval {
+			no strict "subs";	# To prevent Perl with threads <1.34 to crash
 			$_->join() foreach (threads->list(threads::joinable));
 			$_->detach() foreach (threads->list(threads::running));
 		};
