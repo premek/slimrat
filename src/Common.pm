@@ -502,8 +502,10 @@ sub quit {
 	if ($@) {
 		warning("your Perl version is outdated, I cannot quit threads gentily (you might see some warnings down here)")
 	} else {
-		$_->join() foreach (threads->list(threads::joinable));
-		$_->detach() foreach (threads->list(threads::running));
+		eval {
+			$_->join() foreach (threads->list(threads::joinable));
+			$_->detach() foreach (threads->list(threads::running));
+		};
 	}		
 
 	# Exit with correct return value
