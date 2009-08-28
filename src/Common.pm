@@ -248,7 +248,13 @@ sub download($$$$$) {
 	
 	# Get destination filename
 	my $filename = $plugin->get_filename();
-	my $filepath;
+	if (!$filename) {
+		warning("could not deduce filename, falling back to default string");
+		$filename = "SLIMRAT_DOWNLOADED_FILE";
+	} else {
+		$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
+	}
+	my $filepath = "$to/$filename";
 
 	# Download status counters
 	my $size;
@@ -258,189 +264,197 @@ sub download($$$$$) {
 	my $size_chunk;
 	my $speed = 0;
 	
+	# Check if file exists
+	my @headers;
+	if (-e $filepath) {
+		my $action = $config->get("redownload");
+		if ($action eq "overwrite") {
+			info("file exists, overwriting");
+			unlink $filepath;
+		} elsif ($action eq "rename") {
+			info("file exists, renaming");
+			my $counter = 1;
+			$counter++ while (-e "$filepath.$counter");
+			$filepath .= ".$counter";
+		} elsif ($action eq "skip") {
+			info("file exists, skipping download");
+			die("skipped download");
+		} elsif ($action eq "resume") {
+			info("file exists, resuming");
+			push(@headers, Range => "bytes=" . (-s $filepath) . "-");
+			$size_downloaded = -s $filepath;
+			#unlink $filepath;
+			#die("resume not implemented yet");
+			# TODO
+		} else {
+			die("unrecognised action upon redownload");
+		}
+	}
+	info("file will be saved as '$filepath'");
+	
 	# Get data
 	my $encoding;
 	my $encoding_extra;
 	my $flag = 0;
 	my $ocrcounter = 0;
 	$|++; # unbuffered output
-	# store (and later return) return value of get_data()
 	$downloaders++;
-	my $response = $plugin->get_data( sub {
-		# Fetch server response
-		my $res = $_[1];
-
-		# Do one-time stuff
-		unless ($flag) {		
-			# Get content encoding
-			$encoding = $res->header("Content-Encoding");
-			if ($encoding) {
-			    $encoding =~ s/^\s+//;
-			    $encoding =~ s/\s+$//;
-				debug("content-encoding is $encoding");
-				my @encodings = $mech->default_header('Accept-Encoding');
-				for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-					use Data::Dumper;
-					if (indexof($ce, \@encodings) == -1) {
-						die("cannot handle content-encoding '$encoding'");
+	my $response = $plugin->get_data(
+		sub {
+			# Fetch server response
+			my $res = $_[1];
+	
+			# Do one-time stuff
+			unless ($flag) {
+				# Check if server respected Range header
+				if ($config->get("redownload") eq "resume") {
+					if ($res->code() == 206) {
+						debug("Range request correctly aknowledged")	
+					}
+					elsif ($res->code() == 200) {
+						warning("server does not support resuming, restarting download");
+						unlink $filepath;
+						$size_downloaded = 0;
 					}
 				}
-			}
-			
-			# Save length and print
-			$size = $res->content_length;
-			if ($size)
-			{
-				info("filesize: ", bytes_readable($size));
-			} else {
-				info("filesize unknown");
-			}
-
-			# If plugin didn't tell us name of the file, we can get it from http response or request.
-			if(!$filename) {
-				if ($res->headers->{'content-disposition'} && $res->headers->{'content-disposition'} =~ /filename="?([^"]+)"?$/i) {$filename = $1}
-				else {$filename = (URI->new($res->request->uri)->path_segments)[-1]} # last segment of URI
-				if(!$filename) {$filename = "SLIMRAT_DOWNLOADED_FILE";}
-			}
-
-			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
-			$to =~ s/\/+$//;
-			$filepath = "$to/$filename";
-
-			# Check if file exists
-			if (-e $filepath) {
-				my $action = $config->get("redownload");
-				if ($action eq "overwrite") {
-					info("file exists, overwriting");
-					unlink $filepath;
-				} elsif ($action eq "rename") {
-					info("file exists, renaming");
-					my $counter = 1;
-					$counter++ while (-e "$filepath.$counter");
-					$filepath .= ".$counter";
-				} elsif ($action eq "skip") {
-					info("file exists, skipping download");
-					die("skipped download");
-				} elsif ($action eq "resume") {
-					info("file exists, resuming");
-					die("resume not implemented yet");
-					# TODO
-				} else {
-					die("unrecognised action upon redownload");
+				
+				# Get content encoding
+				$encoding = $res->header("Content-Encoding");
+				if ($encoding) {
+				    $encoding =~ s/^\s+//;
+				    $encoding =~ s/\s+$//;
+					debug("content-encoding is $encoding");
+					my @encodings = $mech->default_header('Accept-Encoding');
+					for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+						use Data::Dumper;
+						if (indexof($ce, \@encodings) == -1) {
+							die("cannot handle content-encoding '$encoding'");
+						}
+					}
 				}
-			}
-			info("file will be saved as '$filepath'");	
-
-			# Open file
-			open(FILE, ">$filepath");
-			if (! -w FILE) {
-				die("could not open file to write");
-			}
-			binmode FILE;
-			
-			$flag = 1;
-		}
-		
-		# Write the data
-		print FILE $_[0];
-		
-		# Counters		
-		$size_chunk += length($_[0]);
-		$size_downloaded += length($_[0]);
-		my $dtime_chunk = gettimeofday()-$time_chunk;
-		
-		# Rate control
-		if ($config->get("rate")) {
-			my $speed_cur = $size_chunk / $dtime_chunk;
-			my $speed_aim = $config->get("rate") * 1024 / $downloaders;
-			$s_rate_surplus->down();
-			delete($rate_surplus{thread_id()});
-			$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
-			$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
-			$s_rate_surplus->up();
-			if ($speed_cur > $speed_aim) {
-				sleep($size_chunk / $speed_aim - $dtime_chunk);
-			}
-			$dtime_chunk = gettimeofday()-$time_chunk;
-		}
-		
-		# Download indication
-		if ($time_chunk+1 < time) {	# don't update too often
-			# Weighted speed calculation
-			if ($speed) {
-				$speed /= 2;
-				$speed += ($size_chunk / $dtime_chunk) / 2;
-			} else {
-				$speed = $size_chunk / $dtime_chunk;
+				
+				# Save length and print
+				$size = $res->content_length;
+				if ($size)
+				{
+					$size += $size_downloaded;
+					info("filesize: ", bytes_readable($size));
+				} else {
+					info("filesize unknown");
+				}
+	
+				# Open file
+				open(FILE, ">>$filepath");
+				if (! -w FILE) {
+					die("could not open file to write");
+				}
+				binmode FILE;
+				
+				$flag = 1;
 			}
 			
-			# Calculate ETA
-			my $eta = -1;
-			$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
+			# Write the data
+			print FILE $_[0];
 			
-			# Update progress
-			&$progress($size_downloaded, $size, $speed, $eta);
+			# Counters		
+			$size_chunk += length($_[0]);
+			$size_downloaded += length($_[0]);
+			my $dtime_chunk = gettimeofday() - $time_chunk;
 			
-			# Reset counters for next chunk
-			$size_chunk = 0;
-			$time_chunk = gettimeofday();
-		}
-	}, sub { # autoread captcha if configured, else let user read it
-		my $captcha_data = shift;
-		my $captcha_type = shift;
-		my $captcha_value;		
-		dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
-		
-		# Dump data in temporary file
-		my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
-		print $fh $captcha_data;
-		
-		# OCR
-		if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
-			# Preprocess
-			if ($plugin->can("ocr_preprocess")) {
-				$plugin->ocr_preprocess($captcha_file);
+			# Rate control
+			if ($config->get("rate")) {
+				my $speed_cur = $size_chunk / $dtime_chunk;
+				my $speed_aim = $config->get("rate") * 1024 / $downloaders;
+				$s_rate_surplus->down();
+				delete($rate_surplus{thread_id()});
+				$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
+				$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
+				$s_rate_surplus->up();
+				if ($speed_cur > $speed_aim) {
+					sleep($size_chunk / $speed_aim - $dtime_chunk);
+				}
+				$dtime_chunk = gettimeofday()-$time_chunk;
 			}
 			
-			# Convert if needed
-			my $captcha_file_ocr = $captcha_file;
-			if ($config->get("captcha_format") && $captcha_type ne $config->get("captcha_format")) {
-				my $captcha_want = $config->get("captcha_format");
-				my (undef, $captcha_converted) = tempfile(SUFFIX => ".$captcha_want");
-				my $extra = $config->get("captcha_extra") || "";
-				debug("converting captcha from $captcha_type:$captcha_file to $captcha_want:$captcha_converted");
-				`convert $extra $captcha_type:$captcha_file $captcha_want:$captcha_converted`;
+			# Download indication
+			if ($time_chunk+1 < time) {	# don't update too often
+				# Weighted speed calculation
+				if ($speed) {
+					$speed /= 2;
+					$speed += ($size_chunk / $dtime_chunk) / 2;
+				} else {
+					$speed = $size_chunk / $dtime_chunk;
+				}
+				
+				# Calculate ETA
+				my $eta = -1;
+				$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
+				
+				# Update progress
+				&$progress($size_downloaded, $size, $speed, $eta);
+				
+				# Reset counters for next chunk
+				$size_chunk = 0;
+				$time_chunk = gettimeofday();
+			}
+		}, sub { # autoread captcha if configured, else let user read it
+			my $captcha_data = shift;
+			my $captcha_type = shift;
+			my $captcha_value;		
+			dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
+			
+			# Dump data in temporary file
+			my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
+			print $fh $captcha_data;
+			
+			# OCR
+			if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
+				# Preprocess
+				if ($plugin->can("ocr_preprocess")) {
+					$plugin->ocr_preprocess($captcha_file);
+				}
+				
+				# Convert if needed
+				my $captcha_file_ocr = $captcha_file;
+				if ($config->get("captcha_format") && $captcha_type ne $config->get("captcha_format")) {
+					my $captcha_want = $config->get("captcha_format");
+					my (undef, $captcha_converted) = tempfile(SUFFIX => ".$captcha_want");
+					my $extra = $config->get("captcha_extra") || "";
+					debug("converting captcha from $captcha_type:$captcha_file to $captcha_want:$captcha_converted");
+					`convert $extra $captcha_type:$captcha_file $captcha_want:$captcha_converted`;
+					if ($?) {
+						error("could not convert captcha from given format $captcha_type to needed format $captcha_want, bailing out");
+						goto USER;
+					}
+					$captcha_file_ocr = $captcha_converted;
+				}
+				
+				# Apply OCR
+				my $command = $config->get("captcha_reader");
+				$command =~ s/\$captcha/$captcha_file_ocr/g;
+				$captcha_value = `$command`;
 				if ($?) {
-					error("could not convert captcha from given format $captcha_type to needed format $captcha_want, bailing out");
+					error("OCR failed");
 					goto USER;
 				}
-				$captcha_file_ocr = $captcha_converted;
+				$captcha_value =~ s/\s+//g;
+				debug("captcha read by OCR: '$captcha_value'");
+				
+				# Postprocess
+				if ($plugin->can("ocr_postprocess")) {
+					$captcha_value = $plugin->ocr_postprocess($captcha_value);
+					debug("captcha after post-processing: '$captcha_value'");
+				}
 			}
 			
-			# Apply OCR
-			my $command = $config->get("captcha_reader");
-			$command =~ s/\$captcha/$captcha_file_ocr/g;
-			$captcha_value = `$command`;
-			if ($?) {
-				error("OCR failed");
-				goto USER;
-			}
-			$captcha_value =~ s/\s+//g;
-			debug("captcha read by OCR: '$captcha_value'");
+			# User
+			USER:
+			$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
 			
-			# Postprocess
-			if ($plugin->can("ocr_postprocess")) {
-				$captcha_value = $plugin->ocr_postprocess($captcha_value);
-				debug("captcha after post-processing: '$captcha_value'");
-			}
-		}
-		
-		# User
-		USER:
-		$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
-		
-		return $captcha_value;
-	});
+			return $captcha_value;
+		},
+		\@headers
+	);
 	$downloaders--;
 	
 	# Close file
