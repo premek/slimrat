@@ -261,7 +261,7 @@ $SIG{__WARN__} = sub {
 	
 	# Multiline output
 	output(YELLOW, 1, "warning signal", [shift @args], 2);
-	while (shift @args) {
+	while ($_ = shift @args) {
 		next unless $_;
 		chomp;
 		output(YELLOW, 0, "", [$_], 2);
