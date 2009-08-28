@@ -515,7 +515,7 @@ sub quit {
 	# Gently quit running and/or exited threads
 	eval("use threads 1.34");
 	if ($@) {
-		warning("your Perl version is outdated, I cannot quit threads gentily (you might see some warnings down here)")
+		warning("your Perl version is outdated, I cannot quit threads properly (you might see some warnings down here)");
 	} else {
 		eval {
 			no strict "subs";	# To prevent Perl with threads <1.34 to crash
