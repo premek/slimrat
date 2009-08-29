@@ -375,6 +375,10 @@ sub thread_download {
 				system($command);
 			}
 		}
+		elsif ($result == -3) {
+			$failure = 1;
+			$queue->skip_globally();
+		}
 		elsif ($result == -2) {
 			$queue->skip_locally();
 		} elsif ($result == -1) {

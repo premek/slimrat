@@ -1,3 +1,10 @@
+2009-08-29 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: bugfix in weighter rate calculation.
+
+    * gui: fixed threading code.
+
+
 2009-08-28 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * common: work-around for treads < 1.34 (e.g. Perl v5.8).

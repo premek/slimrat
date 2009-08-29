@@ -214,6 +214,7 @@ sub pid_read() {
 #   -1 = download failed because URL is dead
 #   -2 = couldn't free enough resources (e.g. when the plugin can only download
 #        1 file at a time)
+#   -3 = plugin failure
 sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;
 	
@@ -223,7 +224,7 @@ sub download($$$$$) {
 	my $plugin = Plugin->new($link, $mech);
 	if ($plugin == 0) {
 		debug("object construction failed");
-		return 0;
+		return -3;
 	} elsif ($plugin == -2) {
 		debug("no resources available");
 		return -2;
@@ -304,7 +305,7 @@ sub download($$$$$) {
 			# Do one-time stuff
 			unless ($flag) {
 				# Check if server respected Range header
-				if ($config->get("redownload") eq "resume") {
+				if ($config->get("redownload") eq "resume" && $size_downloaded) {
 					if ($res->code() == 206) {
 						debug("Range request correctly aknowledged")	
 					}
@@ -453,6 +454,7 @@ sub download($$$$$) {
 		\@headers
 	);
 	$downloaders--;
+	delete($rate_surplus{thread_id()});
 	
 	# Close file
 	close(FILE);

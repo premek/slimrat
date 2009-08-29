@@ -94,7 +94,7 @@ sub new {
 		fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
 		if ($resources{$plugin} != -1) {
 			if ($resources{$plugin} < 1) {
-				return -2;
+				return -2;	# TODO: sleep && cond_wait? Static semaphore?
 			}
 			$resources{$plugin}--;
 			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
@@ -115,6 +115,12 @@ sub DESTROY {
 		$resources{$plugin}++;
 		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
 	}
+}
+
+# Return code
+sub code {
+		my ($self) = @_;
+		return $self->{MECH}->status();
 }
 
 
