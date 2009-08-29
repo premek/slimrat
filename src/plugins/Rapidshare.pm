@@ -111,7 +111,9 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Click the "Free" button
-	$self->{MECH}->form_number(1);
+	# TODO: eval get_data to prevent the need of thousand return error(blabla) calls
+	#       OR make sure slimrat doesn't die when a threads exist abnormally
+	$self->{MECH}->form_id("ff") || return error("plugin failure (could not find form)");
 	my $res = $self->{MECH}->submit_form();
 	return error("plugin failure (secondary page error, ", $res->status_line, ")") unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
