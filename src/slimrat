@@ -163,6 +163,9 @@ usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $op
 $config->section("log")->set("verbosity", 2) if ($options{"quiet"});
 $config->section("log")->set("verbosity", 5) if ($options{"debug"});
 
+# Global variable with amount of threads
+my $threads : shared = 0;
+
 
 #
 # Apply configuration
@@ -283,16 +286,14 @@ elsif ($config_cli->get("mode") eq "check") {
 
 elsif ($config_cli->get("mode") eq "download") {
 	# Spawn threads
-	my $threads = $config_cli->get("threads");
+	$threads = $config_cli->get("threads");
 	debug("spawning $threads download threads");
 	foreach (1 .. $threads) {
 		my $thread = threads->create(\&thread_download);
 	}
 	
-	# Wait till all threads finish
-	while (scalar(threads->list(threads::running))) {
-		sleep(1);
-	}
+	# Wait till all threads finish (alternative method to support threads < 1.34)
+	{ lock($threads); cond_wait($threads) until $threads == 0; }
 
 	# Command after all downloads
 	if (my $command = $config_cli->get("post_all")) {
@@ -400,11 +401,12 @@ sub thread_download {
 		}
 		
 		# Advance to the next URL
-		while (! $queue->advance()) {
-			debug("thread couldn't get any work, exiting");
-			return 1;
-		}
+		$queue->advance()
 	}
+	debug("thread couldn't get any work, exiting");
+	lock($threads);
+	$threads--;
+	cond_broadcast($threads);
 }
 
 # Finish
