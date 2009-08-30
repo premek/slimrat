@@ -106,14 +106,17 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 
-	$_ = $self->{PRIMARY}->decoded_content."\n";
+	$_ = $self->{PRIMARY}->decoded_content;
 
-	# TODO: actually wait here
-	if(my($minutes) = m#Or wait (\d+) minutes!#) { error("your Free-Traffic has exceeded, wait $minutes minutes."); return 0; }
+	if(m#Or wait (\d+) minutes!#){ # your Free-Traffic has exceeded
+		wait($1 * 60);
+		$self->{MECH}->reload();
+		$_ = $self->{PRIMARY}->decoded_content;
+	}
 
 	# Extract url
 	my ($download) = m#<form name="download_form" method="post" action="(.+?)">#;
-	if (!$download) { error("plugin failure (could not find url)"); return 0; }		
+	if (!$download) { return error("plugin failure (could not find url)");}		
 	
 	# Download the data
 	my $req = HTTP::Request->new(POST => $download);
