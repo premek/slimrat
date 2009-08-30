@@ -36,7 +36,7 @@
 #    Bartłomiej Palmowski
 #
 # Plugin details:
-##   BUILD 1
+##   BUILD 2
 #
 
 #

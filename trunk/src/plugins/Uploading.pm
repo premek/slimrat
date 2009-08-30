@@ -33,7 +33,7 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Plugin details:
-##   BUILD 1
+##   BUILD 2
 #
 
 #
@@ -88,22 +88,23 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<h3>Download file\s*<\/h3>\s*<b>([^<]+)<\/b>/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<title>Download (.+?) for free on uploading.com</title>#);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/File size: ([^<]+)<br/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<b>Size:</b> (.+?)<br/><br/>#);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/class="downloadbutton"/);
-	return -1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Doownload!</button>#);
+	return 0; # this site returns 404 on dead links. But slimrat says "plugin error", not "dead link"
+	# and... (XXX) should slimrat try to download links with '0' status or not???
 }
 
 # Download data
