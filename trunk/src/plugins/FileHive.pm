@@ -1,7 +1,8 @@
-# slimrat - RomHustler plugin
+# slimrat - FileHive plugin
 #
-# Copyright (c) 2008-2009 Premek Vyhnal
+# Copyright (c) 2008 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
+# Copyright (c) 2009 Mladen Pejaković
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -29,27 +30,31 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Premek Vyhnal <premysl.vyhnal gmail com>
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
-#    Kaleb Elwert <vahki.ttc gmail com>
+#    Mladen Pejaković <pejakm-at-gmail-dot-com>
+#
+# Thanks to:
+#    Bartłomiej Palmowski
 #
 # Plugin details:
 ##   BUILD 1
+#
 
 #
 # Configuration
 #
 
 # Package name
-package RomHustler;
+package FileHive;
 
 # Extend Plugin
 @ISA = qw(Plugin);
 
-# Custom packages
+# Modules
 use Log;
 use Toolbox;
-use Configuration;
+use WWW::Mechanize;
 
 # Write nicely
 use strict;
@@ -65,8 +70,8 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-
 	$self->{MECH} = $_[3];
+	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
@@ -78,29 +83,30 @@ sub new {
 
 # Plugin name
 sub get_name {
-	return "RomHustler";
+	return "FileHive";
 }
 
 # Filename
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m{<title>Rom Hustler - Downloading\.\.\.  (.+?)</title>});
+	return "$3\.$4" if ($self->{PRIMARY}->decoded_content =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/);
 }
 
 # Filesize
 sub get_filesize {
-	return 0
+	my $self = shift;
+
+	# only works for images
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<td><b>Size:<\/b><\/td>\s*<td>\s*([^<]+?)\s*<\/td>/);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
-
-	# Check if the download form is present
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m#<h2>Downloading\.\.\.</h2>#);
-	return -1 if ($self->{PRIMARY}->decoded_content =~ m/Error: Unknown game and\/or system/);
-	return 0;
+	
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<font color=red>The uploaded item is not found!<\/font>/);
+	return 1;
 }
 
 # Download data
@@ -108,19 +114,18 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 
-	(my $link) = $self->{MECH}->content() =~ m#<a href="(.+?)">Download this rom<\/a>#;
-	my $download_page = $self->{MECH}->get('http://www.romhustler.net' . $link);
+	# Fetch the download link
+	my $download = "http://www.filehive.com/files/$2/$3.$4" if ($self->{PRIMARY}->decoded_content =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/);
 
-	(my $download) = $self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#;
-	$download = join("", split("','", $download));
-
+	# Download the data
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
+
 # Amount of resources
-Plugin::provide(1);
+Plugin::provide(-1);
 
 # Register the plugin
-Plugin::register('^([^:/]+://)?([^.]+\.)?romhustler\.net');
+Plugin::register("^[^/]+//(?:www.)?filehive.com");
 
 1;

@@ -182,7 +182,7 @@ if ($config_cli->get("mode") eq "check" || $config_cli->get("mode") eq "download
 }
 
 # Initialise a link queue
-foreach (@ARGV) {
+while ($_ = shift) { # clear @ARGV to be able to read input from user with <> later (captcha)
 	if (/^-/) {
 		usage("unrecognised option '$_'");
 	}
@@ -225,10 +225,7 @@ warning("this is a development release, if you encounter any issues, please re-r
 
 if ($config_cli->get("mode") eq "update") {
 	info("updating plugins");
-	
-	Plugin::update();
-	
-	quit(0);
+	quit(Plugin::update()); # TODO return values
 }
 
 
@@ -360,7 +357,7 @@ sub thread_download {
 					
 					# Ask the user
 					print "Captcha? ";
-					my $captcha = <>;
+					my $captcha = <>; # TODO how to always read input from user and not trying to open files from @ARGV? and.. this should be _noninteractive_ interface but I have no idea how to get captcha from user any other way
 					chomp $captcha;
 					return $captcha;
 				}
