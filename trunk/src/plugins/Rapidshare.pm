@@ -33,7 +33,7 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Plugin details:
-##   BUILD 1
+##   BUILD 2
 #
 
 #
@@ -50,6 +50,7 @@ package Rapidshare;
 use Log;
 use Toolbox;
 use Configuration;
+use HTTP::Request;
 
 # Write nicely
 use strict;
@@ -68,8 +69,14 @@ sub new {
 	$self->{MECH} = $_[3];
 	
 	$self->{CONF}->set_default("interval", 0);
-
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	
+	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
+	# Follow: http://code.google.com/p/www-mechanize/issues/detail?id=124
+	my $req = new HTTP::Request("GET", $self->{URL});
+	$self->{PRIMARY} = $self->{MECH}->request($req);
+	$self->{PRIMARY}->content_type('text/html');
+	$self->{MECH}->_update_page($req, $self->{PRIMARY});
+	
 	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
