@@ -4,6 +4,10 @@
 
     * plugins: added FileHive (thanks to Mladen Pejaković)
 
+    * plugins: fixed YouTube (thanks to oleg.smirnov)
+
+    * plugins: fixed UploadedTo (wait when Free-Traffic exceeded)
+
 
 2009-08-29 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
