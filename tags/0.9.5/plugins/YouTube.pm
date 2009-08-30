@@ -67,7 +67,9 @@ sub check {
 
 sub download {
 	# Extract data from SWF loading script
-	my ($v, $t) = $mech->get(shift)->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*"t"\s*:\s*"(.*?)".*/;
+	$_ = $mech->get(shift)->decoded_content;
+	my ($v) = /swfArgs.*"video_id"\s*:\s*"(.*?)".*/;
+	my ($t) = /swfArgs.*"t"\s*:\s*"(.*?)".*/;
 	return error("plugin error (could not extract video properties)") unless ($v && $t);
 	return "http://www.youtube.com/get_video?video_id=$v&t=$t";
 }
