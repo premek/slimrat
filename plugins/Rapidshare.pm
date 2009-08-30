@@ -70,12 +70,19 @@ sub download {
 	my $file = shift;
 
 	# Get the primary page
-	my $res = $mech->get($file);
-	return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
 	
+	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
+	# Follow: http://code.google.com/p/www-mechanize/issues/detail?id=124
+	my $req = new HTTP::Request("GET", $file);
+	my $PRIMARY = $mech->request($req);
+	$PRIMARY->content_type('text/html');
+	$mech->_update_page($req, $PRIMARY);
+
+	#return error("plugin failure (page 1 error, ", $res->status_line, ")") unless ($res->is_success);
+
 	# Click the "Free" button
 	$mech->form_number(1);
-	$res = $mech->submit_form();
+	my $res = $mech->submit_form();
 	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
 	
 	# Process the resulting page
