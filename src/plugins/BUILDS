@@ -1,11 +1,10 @@
 # This file is used only if named BUILDS and placed on slimrat's update server in plugins folder.
 # Every line contains plugin's filename and build number separated by whitespace(s).
-CZShare.pm 1
+CZshare.pm 1
 DataHu.pm 1
 DepositFiles.pm 1
 DepositFilesFolder.pm 1
 Direct.pm 1
-EasyShare.pm 1
 FastLoad.pm 1
 FastShare.pm 1
 FileFactory.pm 1
@@ -19,6 +18,6 @@ Rapidshare.pm 2
 RomHustler.pm 1
 ShareBase.pm 1
 UploadedTo.pm 1
-Uploading.pm 1
-YouTube.pm 1
+Uploading.pm 2
+YouTube.pm 2
 ZShare.pm 1

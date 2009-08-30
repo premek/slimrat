@@ -1,4 +1,4 @@
-# slimrat - Rapidshare plugin
+# slimrat - CZshare plugin
 #
 # Copyright (c) 2008-2009 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
@@ -180,6 +180,6 @@ sub get_data {
 Plugin::provide(-1);
 
 # Register the plugin
-Plugin::register("^([^:/]+://)?([^.]+\.)?czshare.com/files");
+Plugin::register("^([^:/]+://)?([^.]+\.)?czshare.com/");
 
 1;

@@ -8,6 +8,8 @@
 
     * plugins: fixed UploadedTo (wait when Free-Traffic exceeded)
 
+    * Configuration: support for empty values
+
 
 2009-08-29 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
