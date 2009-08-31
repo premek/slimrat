@@ -225,7 +225,7 @@ warning("this is a development release, if you encounter any issues, please re-r
 
 if ($config_cli->get("mode") eq "update") {
 	info("updating plugins");
-	quit(Plugin::update()); # TODO return values -- what do you mean, update() correctly returns a 0 upon failure / 1 upon success?
+	quit(Plugin::update());
 }
 
 
