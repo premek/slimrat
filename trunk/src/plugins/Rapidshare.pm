@@ -33,7 +33,7 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Plugin details:
-##   BUILD 2
+##   BUILD 3
 #
 
 #
@@ -45,6 +45,10 @@ package Rapidshare;
 
 # Extend Plugin
 @ISA = qw(Plugin);
+
+# Packages
+use WWW::Mechanize 1.52;
+
 
 # Custom packages
 use Log;
