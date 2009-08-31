@@ -212,9 +212,7 @@ sub pid_read() {
 #   1 = download successfully completed
 #   0 = download failed, for unknown reason
 #   -1 = download failed because URL is dead
-#   -2 = couldn't free enough resources (e.g. when the plugin can only download
-#        1 file at a time)
-#   -3 = plugin error
+#   -2 = plugin error
 sub download($$$$$) {
 	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;	
 	info("downloading '$link'");
@@ -226,10 +224,6 @@ sub download($$$$$) {
 	eval {	
 		# Load plugin
 		$plugin = Plugin->new($link, $mech);
-		if ($plugin == -2) {
-			debug("no resources available");
-			return -2;
-		}
 		my $pluginname = $plugin->get_name();
 	
 		debug("instantiated a $pluginname downloader");
@@ -238,7 +232,7 @@ sub download($$$$$) {
 	if ($@) {
 		my $error = substr($@, 0, -2);
 		error("plugin failure while constructing ($error)");
-		return -3;
+		return -2;
 	}
 	
 	
@@ -260,7 +254,7 @@ sub download($$$$$) {
 	if ($@) {
 		my $error = substr($@, 0, -2);
 		error("plugin failure while checking ($error)");
-		return -3;
+		return -2;
 	}	
 	
 	
@@ -286,7 +280,7 @@ sub download($$$$$) {
 	if ($@) {
 		my $error = substr($@, 0, -2);
 		error("plugin failure while preparing ($error)");
-		return -3;
+		return -2;
 	}
 	
 	
@@ -495,7 +489,7 @@ sub download($$$$$) {
 	if ($@) {
 		my $error = substr($@, 0, -2);
 		error("plugin failure while downloading ($error)");
-		return -3;
+		return -2;
 	}
 	
 	# Close file
