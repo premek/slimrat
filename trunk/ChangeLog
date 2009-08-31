@@ -6,6 +6,10 @@
       and makes slimrat invulnerable for crashes within used
       packages (at the expense of a bit performance though).
 
+    * plugin: replaced resource handling by non-busy blocking
+      call, removing the need of slimrat & slimrat-cli to
+      do anything about resource handling.
+
 
 2009-08-30  Přemek Vyhnal  <premysl.vyhnal gmail com>
 

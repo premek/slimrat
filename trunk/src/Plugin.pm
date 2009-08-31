@@ -64,6 +64,7 @@ my %details;
 
 # Shared hashes
 my %resources:shared;
+my $per_plugin = "unaltered";
 
 # Static reference for the global configuration object
 my $config_global = new Configuration;
@@ -82,7 +83,6 @@ $config->set_default("update_cache", $ENV{HOME}."/.slimrat/updates");
 # Get an object
 # Possible return values:
 #  0 = object construction failed
-#  -2 = resource allocation failed
 #  an object = success
 sub new {
 	my $url = $_[1];
@@ -94,9 +94,7 @@ sub new {
 		# Resource handling
 		fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
 		if ($resources{$plugin} != -1) {
-			if ($resources{$plugin} < 1) {
-				return -2;	# TODO: sleep && cond_wait? Static semaphore?
-			}
+			{ lock(%resources); cond_wait(%resources) until $resources{$plugin} >= 1; }
 			$resources{$plugin}--;
 			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 		}
@@ -112,9 +110,11 @@ sub DESTROY {
 	
 	# Resource handling
 	my $plugin = ref($self);
-		if ($resources{$plugin} != -1) {
+	if ($resources{$plugin} != -1) {
+		lock(%resources);
 		$resources{$plugin}++;
 		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
+		cond_signal(%resources);
 	}
 }
 

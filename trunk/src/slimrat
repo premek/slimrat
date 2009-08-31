@@ -253,8 +253,6 @@ elsif ($config_cli->get("mode") eq "check") {
 		if ($@) {
 			error("plugin failure ($@)");
 			status($link, 0, "plugin failure");
-		} elsif ($plugin == -2) {
-			status($link, 0, "could not allocate resources");
 		} else {
 			my $status = $plugin->check();
 			if ($status < 0) {
@@ -375,12 +373,9 @@ sub thread_download {
 				system($command);
 			}
 		}
-		elsif ($result == -3) {
+		elsif ($result == -2) {
 			$failure = 1;
 			$queue->skip_globally();
-		}
-		elsif ($result == -2) {
-			$queue->skip_locally();
 		} elsif ($result == -1) {
 			$failure = 1;
 			$queue->skip_globally("DEAD");

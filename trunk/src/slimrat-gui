@@ -354,57 +354,53 @@ sub on_btnStart1_clicked {
 			Gtk2::Gdk::Threads->leave;
 			
 			# Download
-			my $result = -2;
-			while ($result == -2) {
-				$result = download(
-						$mech,
-						$link,
-						$download_to,
-						sub { # progress
-							my ($done, $total, $speed, $eta) = @_;
-							Gtk2::Gdk::Threads->enter;
-							if ($total) {
-								$row->[COL_FSIZE] = bytes_readable($total) if (!$row->[COL_FSIZE]);
-								my $perc = int(($done / $total)*10000)/100;
-								$row->[COL_PROGR] = $perc;
-							} else {
-								$row->[COL_PROGR] = -1;
-							}
-							Gtk2::Gdk::Threads->leave;
-						},
-						sub { # captcha
-							my $captchafile = shift;
-							my $captcha;
-							
-							# Construct popup
-							my $gui_captcha = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
-							$gui_captcha->signal_autoconnect_from_package('main');
-							my $captcha_dialog = $gui_captcha->get_widget('captchaDialog');
-							
-							# Captcha button handler
-							my $cptsub =  sub {
-								$captcha = shift;
-								$captcha_dialog->destroy();
-								1;
-							};
-							
-							# Connect handlers
-							$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
-							$gui_captcha->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
-							$gui_captcha->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
-							$gui_captcha->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
-	
-							$gui_captcha->get_widget('captchaImage')->set_from_file($captchafile);
-	
-							while(! defined $captcha){
-								sleep 1; # hmm...
-							}
-	
-							return $captcha;
+			my $result = download(
+					$mech,
+					$link,
+					$download_to,
+					sub { # progress
+						my ($done, $total, $speed, $eta) = @_;
+						Gtk2::Gdk::Threads->enter;
+						if ($total) {
+							$row->[COL_FSIZE] = bytes_readable($total) if (!$row->[COL_FSIZE]);
+							my $perc = int(($done / $total)*10000)/100;
+							$row->[COL_PROGR] = $perc;
+						} else {
+							$row->[COL_PROGR] = -1;
 						}
-				);
-				sleep(1) if ($result == -2);
-			}
+						Gtk2::Gdk::Threads->leave;
+					},
+					sub { # captcha
+						my $captchafile = shift;
+						my $captcha;
+							
+						# Construct popup
+						my $gui_captcha = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
+						$gui_captcha->signal_autoconnect_from_package('main');
+						my $captcha_dialog = $gui_captcha->get_widget('captchaDialog');
+							
+						# Captcha button handler
+						my $cptsub =  sub {
+							$captcha = shift;
+							$captcha_dialog->destroy();
+							1;
+						};
+							
+						# Connect handlers
+						$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
+						$gui_captcha->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
+						$gui_captcha->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
+						$gui_captcha->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
+	
+						$gui_captcha->get_widget('captchaImage')->set_from_file($captchafile);
+	
+						while(! defined $captcha){
+							sleep 1; # hmm...
+						}
+	
+						return $captcha;
+					}
+			);
 			
 			# Check return value
 			if ($result > 0) {
@@ -422,7 +418,7 @@ sub on_btnStart1_clicked {
 				$row->[COL_STATUS] = $slist->render_icon ("gtk-no", 'menu');
 				Gtk2::Gdk::Threads->leave;
 			}
-			elsif ($result == -3) {
+			elsif ($result == -2) {
 				Gtk2::Gdk::Threads->enter;
 				$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
 				Gtk2::Gdk::Threads->leave;
@@ -472,15 +468,12 @@ sub on_btnCheck_clicked {
 			# Load plugin
 			my $plugin;
 			eval { $plugin = Plugin->new($link, $mech) };
-			while ($@ || $plugin == -2) {
-				if ($@) {
-					error("plugin failure ($@)");
-					Gtk2::Gdk::Threads->enter;
-					$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
-					Gtk2::Gdk::Threads->leave;
-					next MAIN;				
-				}
-				sleep(1);
+			if ($@) {
+				error("plugin failure ($@)");
+				Gtk2::Gdk::Threads->enter;
+				$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
+				Gtk2::Gdk::Threads->leave;
+				next MAIN;				
 			}
 			
 			# Check link
