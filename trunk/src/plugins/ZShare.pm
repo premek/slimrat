@@ -46,8 +46,10 @@ package zShare;
 # Extend Plugin
 @ISA = qw(Plugin);
 
+# Packages
+use WWW::Mechanize;
+
 # Custom packages
-use Log;
 use Toolbox;
 use Configuration;
 

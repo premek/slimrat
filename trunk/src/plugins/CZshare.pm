@@ -45,8 +45,10 @@ package CZshare;
 # Extend Plugin
 @ISA = qw(Plugin);
 
+# Packages
+use WWW::Mechanize;
+
 # Custom packages
-use Log;
 use Toolbox;
 use Configuration;
 
@@ -54,7 +56,7 @@ use Configuration;
 use strict;
 use warnings;
 
-use utf8;
+use utf8; # FIXME: hm?
 
 #
 # Routines

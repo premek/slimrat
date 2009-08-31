@@ -49,8 +49,10 @@ package YouTube;
 # Extend Plugin
 @ISA = qw(Plugin);
 
-# Modules
-use Log;
+# Packages
+use WWW::Mechanize;
+
+# Custom packages
 use Toolbox;
 use WWW::Mechanize;
 

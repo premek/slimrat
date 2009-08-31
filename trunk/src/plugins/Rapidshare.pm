@@ -49,9 +49,7 @@ package Rapidshare;
 # Packages
 use WWW::Mechanize 1.52;
 
-
 # Custom packages
-use Log;
 use Toolbox;
 use Configuration;
 use HTTP::Request;
