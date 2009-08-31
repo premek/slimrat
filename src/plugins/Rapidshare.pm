@@ -48,11 +48,12 @@ package Rapidshare;
 
 # Packages
 use WWW::Mechanize 1.52;
+use HTTP::Request;
 
 # Custom packages
+use Log;
 use Toolbox;
 use Configuration;
-use HTTP::Request;
 
 # Write nicely
 use strict;

@@ -50,6 +50,7 @@ package zShare;
 use WWW::Mechanize;
 
 # Custom packages
+use Log;
 use Toolbox;
 use Configuration;
 

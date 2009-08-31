@@ -53,8 +53,9 @@ package YouTube;
 use WWW::Mechanize;
 
 # Custom packages
+use Log;
 use Toolbox;
-use WWW::Mechanize;
+use Configuration;
 
 # Write nicely
 use strict;
