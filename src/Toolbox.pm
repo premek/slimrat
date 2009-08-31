@@ -88,17 +88,27 @@ sub bytes_readable {
 
 # Return seconds in m:ss format
 sub seconds_readable {
-	my $sec = shift || return "0:00";
-	return "unknown" if ($sec == -1);
-	my $s = $sec % 60;
-	my $m = ($sec - $s) / 60;
-	# TODO hours???
-	return sprintf('%d:%02d', $m, $s);
+	my $input = shift || return "0:00";
+	return "unknown" if ($input == -1);
+	
+	my $seconds = $input % 60;
+	$input /= 60;
+	
+	my $minutes = $input % 60;
+	$input /= 60;
+	
+	my $hours = int($input);
+	
+	if ($hours) {
+		return sprintf('%dh %d:%02d', $hours, $minutes, $seconds);
+	} else {
+		return sprintf('%d:%02d', $minutes, $seconds);
+	}
 }
 
 # Converts human readable size to bytes 
-# 10.5 KB  10M  10 B  ...
-# Case insensitive! k=K=2**10, b=B=byte - FIXME?? 
+# Case insensitive because most sites don't respect
+# SI conventions (k=K=2**10, but b=bit != B=byte)
 sub readable2bytes {
 	$_ = shift;
 	s/\s+//g;

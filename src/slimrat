@@ -186,7 +186,7 @@ while ($_ = shift) { # clear @ARGV to be able to read input from user with <> la
 	if (/^-/) {
 		usage("unrecognised option '$_'");
 	}
-	s{^(?!\w+://)}{http://}; # TODO here or in Queue::add?
+	s{^(?!\w+://)}{http://};
 	Queue::add($_);
 }
 if ($config_cli->get("list")) {
@@ -225,7 +225,7 @@ warning("this is a development release, if you encounter any issues, please re-r
 
 if ($config_cli->get("mode") eq "update") {
 	info("updating plugins");
-	quit(Plugin::update()); # TODO return values
+	quit(Plugin::update()); # TODO return values -- what do you mean, update() correctly returns a 0 upon failure / 1 upon success?
 }
 
 
@@ -359,7 +359,7 @@ sub thread_download {
 				
 				# Ask the user
 				print "Captcha? ";
-				my $captcha = <>; # TODO how to always read input from user and not trying to open files from @ARGV? and.. this should be _noninteractive_ interface but I have no idea how to get captcha from user any other way
+				my $captcha = <STDIN>; # FIXME: doesn't suit the 'noninteractive' client; fix when an interactive client is available (ncurses)
 				chomp $captcha;
 				return $captcha;
 			}
