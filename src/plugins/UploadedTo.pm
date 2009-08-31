@@ -45,9 +45,12 @@ package UploadedTo;
 @ISA = qw(Plugin);
 
 # Modules
-use Log;
 use Toolbox;
 use WWW::Mechanize;
+
+# Custom packages
+use Toolbox;
+use Configuration;
 
 # Write nicely
 use strict;

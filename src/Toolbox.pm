@@ -44,7 +44,7 @@ use threads;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof timestamp bytes_readable seconds_readable readable2bytes thread_id);
+@EXPORT = qw(dwait indexof timestamp bytes_readable seconds_readable readable2bytes thread_id wait);
 
 # Write nicely
 use strict;
@@ -114,6 +114,14 @@ sub thread_id {
 	my $thr = threads->self();
 	my $tid = $thr->tid();
 	return $tid;
+}
+
+# Wait a while
+sub wait {
+	my $wait = shift or return;
+	require Log;
+	info(sprintf("Waiting ".seconds_readable($wait)));
+	sleep($wait);
 }
 
 # Return

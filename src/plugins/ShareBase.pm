@@ -47,7 +47,6 @@ package ShareBase;
 @ISA = qw(Plugin);
 
 # Modules
-use Log;
 use Toolbox;
 use WWW::Mechanize;
 

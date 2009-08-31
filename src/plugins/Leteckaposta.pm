@@ -47,10 +47,9 @@ package Leteckaposta;
 @ISA = qw(Plugin);
 
 # Packages
-use LWP::UserAgent;
+use WWW::Mechanize;
 
 # Custom packages
-use Log;
 use Toolbox;
 use Configuration;
 

@@ -55,7 +55,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(level debug info warning error usage fatal progress summary status wait dump_add dump_write set_debug);
+@EXPORT = qw(level debug info warning error usage fatal progress summary status dump_add dump_write set_debug);
 
 # Write nicely
 use strict;
@@ -363,13 +363,6 @@ sub set_debug() {
 # Quit the package
 sub quit() {
 	dump_write();
-}
-
-# Wait a while
-sub wait {
-	my $wait = shift or return;
-	info(sprintf("Waiting ".seconds_readable($wait)));
-	sleep($wait);
 }
 
 # Dump data for debugging purposes

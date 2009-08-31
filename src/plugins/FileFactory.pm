@@ -51,7 +51,6 @@ use WWW::Mechanize;
 use HTML::Entities qw(decode_entities);
 
 # Custom packages
-use Log;
 use Toolbox;
 use Configuration;
 
