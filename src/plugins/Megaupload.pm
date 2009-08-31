@@ -135,8 +135,10 @@ sub get_data {
 
 
 	# Wait
-	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
-	wait ($wait);
+	unless ($self->{CONF}->get("skip_waiting")) {
+		my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
+		wait ($wait);
+	}
 
 	# Get download url
 	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;
