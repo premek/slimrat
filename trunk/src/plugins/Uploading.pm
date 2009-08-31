@@ -50,6 +50,7 @@ package Uploading;
 use WWW::Mechanize 1.52;
 
 # Custom packages
+use Log;
 use Toolbox;
 use Configuration;
 

@@ -46,9 +46,13 @@ package ShareBase;
 # Extend Plugin
 @ISA = qw(Plugin);
 
-# Modules
-use Toolbox;
+# Packages
 use WWW::Mechanize;
+
+# Custom packages
+use Log;
+use Toolbox;
+use Configuration;
 
 # Write nicely
 use strict;

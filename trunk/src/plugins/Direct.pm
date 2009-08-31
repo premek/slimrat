@@ -49,6 +49,7 @@ package Direct;
 use LWP::UserAgent;
 
 # Custom packages
+use Log;
 use Toolbox;
 use Configuration;
 
