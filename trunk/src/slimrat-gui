@@ -470,9 +470,11 @@ sub on_btnCheck_clicked {
 			Gtk2::Gdk::Threads->leave;
 	
 			# Load plugin
-			my $plugin = Plugin->new($link, $mech);
-			while (!$plugin || $plugin == -2) {
-				if (!$plugin) {
+			my $plugin;
+			eval { $plugin = Plugin->new($link, $mech) };
+			while ($@ || $plugin == -2) {
+				if ($@) {
+					error("plugin failure ($@)");
 					Gtk2::Gdk::Threads->enter;
 					$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
 					Gtk2::Gdk::Threads->leave;

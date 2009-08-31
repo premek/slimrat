@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -119,7 +119,7 @@ sub get_data {
 		# Wait timer
 		if(m#kell:#) {
 			my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
-			error("plugin error (could not extract wait time)") unless $wait;
+			die("primary page error, could not extract wait time") unless $wait;
 			wait($wait);
 			
 			$res = $self->{MECH}->reload();
@@ -131,7 +131,7 @@ sub get_data {
 
 	# Extract the download URL
 	my ($download) = m/class="download_it"><a href="(.*)" onmousedown/sm;
-	return error("plugin error (could not extract download link)") unless $download;
+	die("primary page error, could not extract download link") unless $download;
 	
 	# Download the data
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);

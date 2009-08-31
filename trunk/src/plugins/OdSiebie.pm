@@ -69,7 +69,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -115,7 +115,7 @@ sub get_data {
 	
 	# Click the download link and extract it
 	$self->{MECH}->follow_link( text => 'kliknij tutaj');
-	#return error("plugin failure (an unspecified error occured)") if ($res->content_is_html);
+	#die("plugin failure (an unspecified error occured)") if ($res->content_is_html);
 	my $download = $self->{MECH}->uri();
 	
 	# Download the data

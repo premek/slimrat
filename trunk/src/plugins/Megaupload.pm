@@ -67,7 +67,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -114,7 +114,7 @@ sub get_data {
 	do {
 		# Get captcha
 		my ($captcha_url) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
-		return error("can't get captcha image") unless ($captcha_url);
+		die("can't get captcha image") unless ($captcha_url);
 		
 		# Download captcha
 		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
@@ -128,7 +128,7 @@ sub get_data {
 		$cont = $self->{MECH}->content();
 	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
 
-	return error("no captcha code entered") unless $captcha;
+	die("no captcha code entered") unless $captcha; # TODO: move to common
 
 
 	# Wait

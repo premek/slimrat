@@ -1,3 +1,12 @@
+2009-08-31 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: all plugin activity now happens in eval context,
+      which enables plugins to use die() instead of slimrat-
+      specific error functionality, removes some duplicate code,
+      and makes slimrat invulnerable for crashes within used
+      packages (at the expense of a bit performance though).
+
+
 2009-08-30  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: added CZshare - first plugin with PREMIUM account support

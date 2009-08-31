@@ -67,7 +67,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -116,7 +116,7 @@ sub get_data {
 
 	# Extract url
 	my ($download) = m#<form name="download_form" method="post" action="(.+?)">#;
-	if (!$download) { return error("plugin failure (could not find url)");}		
+	if (!$download) { die("could not find url");}		
 	
 	# Download the data
 	my $req = HTTP::Request->new(POST => $download);

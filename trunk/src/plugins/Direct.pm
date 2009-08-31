@@ -73,11 +73,11 @@ sub new {
 	if ($self->{CONF}->get("enabled")) {
 		warning("no appropriate plugin found, using 'Direct' plugin");
 	} else {
-		return error("no appropriate plugin found");
+		die("no appropriate plugin found");
 	}
 
 	eval($self->{HEAD} = $self->{MECH}->head($self->{URL}));
-	return error("URL not usable") if ($!);
+	die("URL not usable") if ($!);
 
 	bless($self);
 	return $self;

@@ -63,7 +63,7 @@ use warnings;
 
 # Constructor
 sub new {
-	return error("captcha's not implemented yet");
+	die("captcha's not implemented yet");
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
@@ -71,7 +71,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -113,7 +113,7 @@ sub get_data {
 	# Click the "Free" button
 	$self->{MECH}->form_number(1);
 	my $res = $self->{MECH}->submit_form();
-	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
 	# Process the resulting page
@@ -131,7 +131,7 @@ sub get_data {
 		if ($content =~ m/\/file_contents\/captcha_button\/(\d+)/) {
 			$code = $1;
 			print "Got captcha through button: $code\n";
-			return error("plugin failure (could not extract captcha code)") unless $code;
+			die("could not extract captcha code") unless $code;
 			
 			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
 			dump_add(data => $self->{MECH}->content());
@@ -150,7 +150,7 @@ sub get_data {
 		# Wait if the site requests to (not yet implemented)
 		if($content =~ m/some error message/) { #TODO: find what EasyShare does upon wait request
 			my ($wait) = m/extract some (\d+) minutes/sm;		
-			return error("plugin failure (could not extract wait time)") unless $wait;
+			die("could not extract wait time") unless $wait;
 			wait($wait*60);
 			$res = $self->{MECH}->reload();
 			dump_add(data => $self->{MECH}->content());
@@ -158,18 +158,18 @@ sub get_data {
 		}
 		
 		# We got a problem here
-		return error("plugin failure (page 2 error, could not match any action)");
+		die("secondary page error, could not match any action");
 	}
 	
 	# Get the third page
 	$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-	return error("plugin failure (page 3 error, ", $res->status_line, ")") unless ($res->is_success);
+	die("tertiary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
 	# Extract the download URL
 	$_ = $res->decoded_content."\n";
 	my ($url) = m/action=\"([^"]+)\" class=\"captcha\"/;
-	return error("plugin error (could not extract download link)") unless $url;
+	die("tertiary page error, could not extract download link") unless $url;
 	
 	# Download the data
 	my $req = HTTP::Request->new(POST => $url);

@@ -33,7 +33,7 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Plugin details:
-##   BUILD 3
+##   BUILD 1
 #
 
 #
@@ -71,7 +71,6 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
 	$self->{CONF}->set_default("interval", 0);
 	
 	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
@@ -81,7 +80,7 @@ sub new {
 	$self->{PRIMARY}->content_type('text/html');
 	$self->{MECH}->_update_page($req, $self->{PRIMARY});
 	
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -122,11 +121,9 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Click the "Free" button
-	# TODO: eval get_data to prevent the need of thousand return error(blabla) calls
-	#       OR make sure slimrat doesn't die when a threads exist abnormally
-	$self->{MECH}->form_id("ff") || return error("plugin failure (could not find form)");
+	$self->{MECH}->form_id("ff");
 	my $res = $self->{MECH}->submit_form();
-	return error("plugin failure (secondary page error, ", $res->status_line, ")") unless ($res->is_success);
+	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
 	# Process the resulting page
@@ -161,7 +158,7 @@ sub get_data {
 	
 	# Extract the download URL
 	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
-	return error("plugin error (could not extract download link)") unless $download;
+	die("could not extract download link") unless $download;
 	wait($wait);
 
 	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);

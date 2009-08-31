@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # TODO - broken on 404 links
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -153,7 +153,7 @@ sub get_data {
 		$cont = $self->{MECH}->content();
 	}
 
-	return error("plugin error (could not extract download link)") unless $download;
+	die("could not extract download link") unless $download;
 	$download = $download->url();
 	
 	# Download the data
