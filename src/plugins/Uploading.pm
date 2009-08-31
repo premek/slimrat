@@ -33,7 +33,7 @@
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
 # Plugin details:
-##   BUILD 2
+##   BUILD 1
 #
 
 #
@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -115,7 +115,7 @@ sub get_data {
 	# Click the "Download" button
 	$self->{MECH}->form_id("downloadform");
 	my $res = $self->{MECH}->submit_form();
-	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+	die("page 2 error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
 	# Process the resulting page
@@ -128,7 +128,7 @@ sub get_data {
 			last;
 		}
 		else {
-			return error("plugin error(could not find match)");
+			die("could not find match");
 		}
 		$res = $self->{MECH}->reload();
 		dump_add(data => $self->{MECH}->content());

@@ -70,13 +70,13 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
-	return error("plugin not finished yet");
+	die("plugin not finished yet");
 
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);

@@ -79,7 +79,7 @@ sub new {
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -137,7 +137,7 @@ sub get_data {
 			$wait = 60;
 		} 
 		elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
-			return error("all downloading slots for your country are busy");
+			die("all downloading slots for your country are busy");
 		}
 		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
 			if ($time eq "min") {$wait *= 60;}
@@ -150,7 +150,7 @@ sub get_data {
 			($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
 		}
 
-		return error("plugin error (could not extract download link)") unless ($download || $wait);
+		die("could not extract download link") unless ($download || $wait);
 
 		if ($wait) {
 			wait($wait);

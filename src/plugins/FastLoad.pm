@@ -74,7 +74,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -116,7 +116,7 @@ sub get_data {
 	$_ = $self->{PRIMARY}->content."\n";
 	
 	my ($download) = m#onclick="top\.location='(.+?)';" value#;
-	return error("plugin failure (cannot find download url)") unless ($download);
+	die("cannot find download url") unless ($download);
 
 	$download = "http://www.fast-load.net$download";
 	

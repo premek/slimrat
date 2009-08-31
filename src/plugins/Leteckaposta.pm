@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -115,7 +115,7 @@ sub get_data {
 
 	# Extract the download URL
 	my ($download) = $self->{PRIMARY}->decoded_content =~ m#href='([^']+)' class='download-link'>.+?</a>#;
-	return error("plugin error (could not extract download link)") unless $download;
+	die("could not extract download link") unless $download;
 	$download = "http://leteckaposta.cz$download";
 	
 	# Download the data

@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -114,13 +114,13 @@ sub get_data {
 	$_ = $self->{PRIMARY}->decoded_content."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 	if(!$qk) {
-		error("plugin failure (page 1 error, file doesn't exist or was removed)");
+		die("primary page error, file doesn't exist or was removed");	 #TODO: shouldn't be here, check() guaranteed to be called before
 		return 0;
 	}
 	
 	# Get the secondary page
 	my $res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
-	return error("plugin failure (page 2 error, ", $res->status_line, ")") unless ($res->is_success);
+	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 		
 	$_ = $res->decoded_content."\n";

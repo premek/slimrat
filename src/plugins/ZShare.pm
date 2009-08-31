@@ -70,7 +70,7 @@ sub new {
 	$self->{URL} =~ s#/video/#/download/#;
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -112,9 +112,9 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Click the "Download Now" button
-	$self->{MECH}->form_name("form1") or return error("could not click the 'Download Now' button");
+	$self->{MECH}->form_name("form1") or die("could not click the 'Download Now' button");
 	my $res = $self->{MECH}->submit_form();
-	return error("plugin failure: ", $res->status_line) unless ($res->is_success);
+	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	# We will not wait before download because javascript is encoded 

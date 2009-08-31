@@ -252,18 +252,18 @@ sub fatal {
 
 # Warn
 $SIG{__WARN__} = sub {
-	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return warn @_ if (!defined($^S) || $^S == 1);
+	# Deactivate handlers when parsing (undef) or eval'ing (1, except when in thread eval context [TODO: does not work])
+	return warn @_ if (!defined($^S) || ($^S == 1 && !defined(threads->self()->error())));
 	
 	# Split message
 	my $args_str = join("\n", @_);
 	my @args = split("\n", $args_str);
+	chomp(@args);
 	
 	# Multiline output
 	output(YELLOW, 1, "warning signal", [shift @args], 2);
 	while ($_ = shift @args) {
 		next unless $_;
-		chomp;
 		output(YELLOW, 0, "", [$_], 2);
 	}
 	
@@ -273,18 +273,18 @@ $SIG{__WARN__} = sub {
 
 # Die
 $SIG{__DIE__} = sub {
-	# Deactivate handlers when parsing (undef) or eval'ing (1)
-	return die @_ if (!defined($^S) || $^S == 1);
+	# Deactivate handlers when parsing (undef) or eval'ing (1, except when in thread eval context [TODO: does not work])
+	return die @_ if (!defined($^S) || ($^S == 1 && !defined(threads->self()->error())));
 	
 	# Split message
 	my $args_str = join("\n", @_);
 	my @args = split("\n", $args_str);
+	chomp(@args);
 	
 	# Multiline output
 	output(RED, 1, "fatal signal", [shift @args], 1);
 	while (shift @args) {
 		next unless $_;
-		chomp;
 		output(RED, 0, "", [$_], 1);
 	}
 	

@@ -68,7 +68,7 @@ sub new {
 	$self->{MECH} = $_[3];
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -139,7 +139,7 @@ sub get_data {
 		# FREE download
 		#
 
-		return error("No free slots available. Try again later") 
+		die("no free slots available. Try again later") 
 			if ($self->{PRIMARY}->decoded_content =~ m#vyčerpána maximální kapacita FREE downloadů#); # TODO: wait?
 
 		$self->{MECH}->form_with_fields("id","file","ticket"); # "free" form;
@@ -152,7 +152,7 @@ sub get_data {
 			my $cont = $self->{MECH}->content();
 			# Get captcha
 			my ($captcha_url) = $cont =~ m#<img src="(captcha\.php\?ticket=.+?)" />#ms;
-			return error("can't get captcha image") unless ($captcha_url);
+			die("can't get captcha image") unless ($captcha_url);
 
 			# Download captcha
 			my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;

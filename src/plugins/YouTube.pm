@@ -36,7 +36,7 @@
 #    Bartłomiej Palmowski
 #
 # Plugin details:
-##   BUILD 2
+##   BUILD 1
 #
 
 #
@@ -72,7 +72,7 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	return error("plugin error (primary page error, ", $self->{PRIMARY}->status_line, ")") unless ($self->{PRIMARY}->is_success);
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -112,7 +112,7 @@ sub get_data {
 	# Extract data from SWF loading script
 	my ($v) = $self->{PRIMARY}->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/;
 	my ($t) = $self->{PRIMARY}->decoded_content =~ /swfArgs.*"t"\s*:\s*"(.*?)".*/;
-	return error("plugin error (could not extract video properties)") unless ($v && $t);
+	die("could not extract video properties") unless ($v && $t);
 	my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
 	
 	# Download the data

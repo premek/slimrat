@@ -248,8 +248,10 @@ elsif ($config_cli->get("mode") eq "check") {
 		debug("checking '$link'");
 		
 		# Load plugin
-		my $plugin = Plugin->new($link, $mech);
-		if (!$plugin) {
+		my $plugin;
+		eval { $plugin = Plugin->new($link, $mech) };
+		if ($@) {
+			error("plugin failure ($@)");
 			status($link, 0, "plugin failure");
 		} elsif ($plugin == -2) {
 			status($link, 0, "could not allocate resources");
@@ -333,34 +335,34 @@ sub thread_download {
  		# Download the URL with custom progress indication
  		my $failure = 0;
 		my $result = download(
-				$mech,
-				$link,
-				$config_cli->get("to"),
-				sub { # Progress indication
-					my ($done, $total, $speed, $eta) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
-					if ($total) {
-						my $perc = $done / $total;
-						push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
-						push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable($eta), " remaining" if ($speed);
-						progress(@progr);
-					} else {
-						push my @progr, "Downloaded ", bytes_readable($done);
-						push @progr, " -- speed: ", bytes_readable($speed), "/s" if ($speed);
-						progress(@progr);
-					}
-				},
-				sub { # Captcha handler
-					my $captchafile = shift;
-					
-					# view
-					system(sprintf $config_cli->get("image_viewer"), $captchafile);
-					
-					# Ask the user
-					print "Captcha? ";
-					my $captcha = <>; # TODO how to always read input from user and not trying to open files from @ARGV? and.. this should be _noninteractive_ interface but I have no idea how to get captcha from user any other way
-					chomp $captcha;
-					return $captcha;
+			$mech,
+			$link,
+			$config_cli->get("to"),
+			sub { # Progress indication
+				my ($done, $total, $speed, $eta) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
+				if ($total) {
+					my $perc = $done / $total;
+					push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
+					push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable($eta), " remaining" if ($speed);
+					progress(@progr);
+				} else {
+					push my @progr, "Downloaded ", bytes_readable($done);
+					push @progr, " -- speed: ", bytes_readable($speed), "/s" if ($speed);
+					progress(@progr);
 				}
+			},
+			sub { # Captcha handler
+				my $captchafile = shift;
+				
+				# view
+				system(sprintf $config_cli->get("image_viewer"), $captchafile);
+				
+				# Ask the user
+				print "Captcha? ";
+				my $captcha = <>; # TODO how to always read input from user and not trying to open files from @ARGV? and.. this should be _noninteractive_ interface but I have no idea how to get captcha from user any other way
+				chomp $captcha;
+				return $captcha;
+			}
 		);
 		
 		# Check result
