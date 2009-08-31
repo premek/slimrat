@@ -17,6 +17,9 @@
 
     * gui: fixed threading code.
 
+    * slimrat-cli: workaround to prevend usage of
+      threads::running (to support threads < v1.34).
+
 
 2009-08-28 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
