@@ -74,7 +74,7 @@ use warnings;
 # Main configuration object
 my $config = new Configuration;
 $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
-$config->set_default("timeout", 10);
+$config->set_default("timeout", 900);
 $config->set_default("useragent", "slimrat/$VERSION");
 $config->set_default("redownload", "rename");
 
