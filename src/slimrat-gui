@@ -260,7 +260,7 @@ sub links_parse_add {
 		s/\s+$//;
 		my @newRow;
 		$newRow[COL_PROGR] = -2;
-		$newRow[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
+		$newRow[COL_STATUS] = $slist->render_icon ("gtk-new", 'menu');
 		$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
 		$newRow[COL_LINK] = $_;
 		push @{$slist->{data}},[@newRow];
