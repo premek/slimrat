@@ -63,7 +63,6 @@ use warnings;
 
 # Constructor
 sub new {
-	die("captcha's not implemented yet");
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
@@ -109,73 +108,35 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-
-	# Click the "Free" button
-	$self->{MECH}->form_number(1);
-	my $res = $self->{MECH}->submit_form();
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	my $captcha_reader = shift;
 	
-	# Process the resulting page
-	my $code;
-	while (1) {
-		my $content = $res->decoded_content."\n";
-		
-		# Wait timer?
-		if ($content =~ m/Seconds to wait: (\d+)/) {
-			# Wait
-			wait($1);
-		}
-		
-		# Captcha extraction
-		if ($content =~ m/\/file_contents\/captcha_button\/(\d+)/) {
-			$code = $1;
-			print "Got captcha through button: $code\n";
-			die("could not extract captcha code") unless $code;
-			
-			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-			dump_add(data => $self->{MECH}->content());
-			last;
-		}
-		
-		# Download without wait?
-		if ($content =~ m/http:\/\/www.easy-share.com\/c\/(\d+)/) {
-			$code = $1;
-			print "Got captcha directly: $code\n";
-			$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-			dump_add(data => $self->{MECH}->content());
-			last;
-		}
-		
-		# Wait if the site requests to (not yet implemented)
-		if($content =~ m/some error message/) { #TODO: find what EasyShare does upon wait request
-			my ($wait) = m/extract some (\d+) minutes/sm;		
-			die("could not extract wait time") unless $wait;
-			wait($wait*60);
-			$res = $self->{MECH}->reload();
+	# Solve the captcha
+	# TODO: max failures, plugin global setting?
+	while ($self->{MECH}->is_html()) {
+		# Wait timer
+		my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/;
+		die("could not fetch wait timer") unless defined($seconds);
+		if ($seconds != 0 ) {
+			wait($seconds);
+			$self->{MECH}->reload();
 			dump_add(data => $self->{MECH}->content());
 			next;
 		}
 		
-		# We got a problem here
-		die("secondary page error, could not match any action");
+		# Get captcha
+		my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i) or die("could not find captcha");
+		debug("URL is ", $captcha->url_abs());
+		my $captcha_data = $self->{MECH}->get($captcha->url_abs())->decoded_content;
+		$self->{MECH}->back();
+		
+		# Process captcha
+		my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
+		
+		# Submit captcha form
+		$self->{MECH}->submit_form( with_fields => { "captcha" => $captcha_code });
+		return 0 unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
 	}
-	
-	# Get the third page
-	$res = $self->{MECH}->get('http://www.easy-share.com/c/' . $code);
-	die("tertiary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
-	
-	# Extract the download URL
-	$_ = $res->decoded_content."\n";
-	my ($url) = m/action=\"([^"]+)\" class=\"captcha\"/;
-	die("tertiary page error, could not extract download link") unless $url;
-	
-	# Download the data
-	my $req = HTTP::Request->new(POST => $url);
-	$req->content_type('application/x-www-form-urlencoded');
-	$req->content("id=$code&captcha=1");
-	$self->{MECH}->request($req, $data_processor);
 }
 
 # Amount of resources
