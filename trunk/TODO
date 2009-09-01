@@ -14,12 +14,6 @@
 
 * 1.0
   - Test everything!
-  - Test everything again ;)	-> I've made a full test-pass, can I delete this? ^^
-  - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
-    which makes it hard to use in the GUI (contrary to its use in the cli). Maybe rewrite the Queue
-    with random access in mind?
-    -> Not worth it right now, Queue.pm will not be used anymore in next major when splitting interfaces
-  - Rotate log? -> not our responsibility, from but distro (/etc/logrotate.d) and package manager
   - Consider prepending `pwd` before relative paths of files when 'chdir'ing
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
