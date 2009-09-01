@@ -89,11 +89,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	if ($self->{PRIMARY}->content =~ m/<h1><img.+?\/>([^<]+)<\/h1>/) {
-		my $name = decode_entities($1);
-		$name =~ s/^\s+//;
-		return $name;
-	}
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<span href="" class="last">(.+)<\/span>/);
 	return 0;
 }
 
@@ -126,32 +122,38 @@ sub get_data {
 	dump_add(data => $self->{MECH}->content());
 	
 	# Process the resulting page
-	while(1) {
-		my $wait;
-		$_ = $res->decoded_content."\n";
-		
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while(1) {		
 		# Countdown
-		if (m/<p id="countdown">(\d+)<\/p>/) {
+		if ($self->{MECH}->content() =~ m/<p id="countdown">(\d+)<\/p>/) {
 			wait($1);
-			last;
 		}
-		if (m/currently no free download slots/) {
+		
+		# No free slots
+		if ($self->{MECH}->content() =~ m/currently no free download slots/) {
 			warning("no free download slots");
-			wait(60);
 		}
-		elsif (m/begin your download/) {
-			last;
+		
+		# Download
+		elsif ($self->{MECH}->content() =~ m/begin your download/) {
+			my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
+			return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 		}
-		else {
-			die("could not find match");
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
 		}
-		$res = $self->{MECH}->reload();
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
 		dump_add(data => $self->{MECH}->content());
 	}
-	
-	# Click the "Download" URL
-	my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
-	$self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 }
 
 # Amount of resources

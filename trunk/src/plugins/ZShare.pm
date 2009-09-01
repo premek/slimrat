@@ -119,16 +119,35 @@ sub get_data {
 	my $res = $self->{MECH}->submit_form();
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
-
-	# We will not wait before download because javascript is encoded 
-	# so we dont know how many seconds we have to wait (and because we dont like waiting)
-	# But it is *probably* this number:
-	#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
 	
-	(my $download) = $self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#;
-	$download = join("", split("','", $download));
-
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# We will not wait before download because javascript is encoded 
+		# so we dont know how many seconds we have to wait (and because we dont like waiting)
+		# But it is *probably* this number:
+		#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
+		
+		# Download URL
+		if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
+			my $download = $1;
+			$download = join("", split("','", $download));		
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 }
 
 # Amount of resources

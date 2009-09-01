@@ -72,7 +72,6 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
@@ -102,9 +101,9 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Doownload!</button>#);
-	return 0; # this site returns 404 on dead links. But slimrat says "plugin error", not "dead link"
-	# and... (XXX) should slimrat try to download links with '0' status or not???
+	return -1 unless ($self->{PRIMARY}->is_success);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Download!</button>#);
+	return 0;
 }
 
 # Download data
@@ -117,27 +116,34 @@ sub get_data {
 	my $res = $self->{MECH}->submit_form();
 	die("page 2 error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
-	
-	# Process the resulting page
-	while(1) {
-		my $wait;
-		$_ = $res->decoded_content."\n";
 		
-		if (m/setTimeout\('countdown2\(\)',(\d+)\)/) {
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# Wait timer
+		if ($self->{MECH}->content() =~ m/setTimeout\('countdown2\(\)',(\d+)\)/) {
 			wait($1/10);
-			last;
 		}
-		else {
-			die("could not find match");
+		
+		# Download form
+		if (my $form = $self->{MECH}->form_name("downloadform")) {
+			my $request = $form->make_request;
+			return $self->{MECH}->request($request, $data_processor);
 		}
-		$res = $self->{MECH}->reload();
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
 		dump_add(data => $self->{MECH}->content());
 	}
-	
-	# Click the "Free Download" button
-	my $form = $self->{MECH}->form_name("downloadform");
-	my $request = $form->make_request;
-	$self->{MECH}->request($request, $data_processor);
 }
 
 # Amount of resources

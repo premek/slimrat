@@ -18,7 +18,7 @@
   - Make use of the Queue structure in slimrat-gui. Currently the Queue structure is very sequential,
     which makes it hard to use in the GUI (contrary to its use in the cli). Maybe rewrite the Queue
     with random access in mind?
-  - Rotate log?
+  - Rotate log? -> not our responsibility, from but distro (/etc/logrotate.d) and package manager
   - Consider prepending `pwd` before relative paths of files when 'chdir'ing
   - Remove 'this is a development release' message ;)
   - set update server correctly to 'tags'

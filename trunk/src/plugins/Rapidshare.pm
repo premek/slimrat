@@ -125,42 +125,53 @@ sub get_data {
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
-	# Process the resulting page
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
 	while(1) {
-		my $wait;
-		$_ = $res->decoded_content."\n"; 
-
-		if(m/reached the download limit for free-users/) {
+		# Download limit
+		if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
 			($wait) = m/Or try again in about (\d+) minutes/sm;
-			info("reached the download limit for free-users");
-			
-		} elsif(($wait) = m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			info("currently a lot of users are downloading files");
-		} elsif(($wait) = m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			info("no available slots for free users");
-
-		} elsif(m/already downloading a file/) {
-			info("already downloading a file");
-			$wait = 1;
-		} else {
-			last;
+			$wait *= 60;
+			warning("reached the download limit for free-users");			
 		}
 		
-		if ($self->{CONF}->get("interval") && $wait > $self->{CONF}->get("interval")) {
-			info("should wait $wait minutes, interval-check in " . $self->{CONF}->get("interval") . " minutes");
-			$wait = $self->{CONF}->get("interval");
+		# Free user limit
+		elsif (($wait) = $self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+			warning("currently a lot of users are downloading files");
+			$wait *= 60;
 		}
-		wait($wait*60);
-		$res = $self->{MECH}->reload();
+		
+		# Slot availability
+		elsif (($wait) = $self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+			warning("no available slots for free users");
+			$wait *= 60;
+		}
+		
+		# Already downloading
+		elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
+			warning("already downloading a file");
+		}
+		
+		# Download
+		elsif (my ($download, $wait) = $self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+			wait($wait);
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
 		dump_add(data => $self->{MECH}->content());
 	}
-	
-	# Extract the download URL
-	my ($download, $wait) = m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm;
-	die("could not extract download link") unless $download;
-	wait($wait);
 
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 # Amount of resources

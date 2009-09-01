@@ -110,31 +110,43 @@ sub get_data {
 	my $data_processor = shift;
 	my $captcha_reader = shift;
 	
-	# Solve the captcha
-	# TODO: max failures, plugin global setting?
-	while ($self->{MECH}->is_html()) {
+	
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
 		# Wait timer
 		my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/;
 		die("could not fetch wait timer") unless defined($seconds);
 		if ($seconds != 0 ) {
-			wait($seconds);
-			$self->{MECH}->reload();
-			dump_add(data => $self->{MECH}->content());
-			next;
+			$wait = $seconds;
 		}
 		
 		# Get captcha
-		my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i) or die("could not find captcha");
-		debug("URL is ", $captcha->url_abs());
-		my $captcha_data = $self->{MECH}->get($captcha->url_abs())->decoded_content;
-		$self->{MECH}->back();
+		if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
+			my $captcha_data = $self->{MECH}->get($captcha->url_abs())->content();
+			$self->{MECH}->back();
+			
+			# Process captcha
+			my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
+			
+			# Submit captcha form (TODO: a way to check if the captcha is correct, an is_html on the response?)
+			$self->{MECH}->form_with_fields("captcha");
+			$self->{MECH}->set_fields("captcha" => $captcha_code);
+			my $request = $self->{MECH}->{form}->make_request;
+			return $self->{MECH}->request($request, $data_processor);
+		}
 		
-		# Process captcha
-		my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
-		
-		# Submit captcha form
-		$self->{MECH}->submit_form( with_fields => { "captcha" => $captcha_code });
-		return 0 unless ($self->{MECH}->success());
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
 		dump_add(data => $self->{MECH}->content());
 	}
 }

@@ -1,3 +1,14 @@
+2009-09-01 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: updated to make them work again.
+
+    * plugins: implemented some code allowing a retry
+      upon failure.
+
+    * slimrat-gui: fixed captcha dialog. Still crashes
+      sometimes though.
+
+
 2009-08-31 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * common: all plugin activity now happens in eval context,

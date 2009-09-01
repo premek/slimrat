@@ -74,6 +74,10 @@ sub new {
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
+	
+	if ($_ = $self->{MECH}->find_link(text_regex => qr/Download this rom/i)) {
+		$self->{PRIMARY} = $self->{MECH}->get($_);
+	}
 
 	bless($self);
 	return $self;
@@ -110,14 +114,36 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-
-	(my $link) = $self->{MECH}->content() =~ m#<a href="(.+?)">Download this rom<\/a>#;
-	my $download_page = $self->{MECH}->get('http://www.romhustler.net' . $link);
-
-	(my $download) = $self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#;
-	$download = join("", split("','", $download));
-
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# TODO: Wait timer
+		if ($self->{MECH}->content() =~ m/Download link will appear in (\d+) seconds/i) {
+			wait($1);
+		}
+		
+		# Download URL
+		if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
+			my $download = $1;
+			$download = join("", split("','", $download));
+			
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 }
 
 # Amount of resources

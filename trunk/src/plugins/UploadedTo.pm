@@ -109,24 +109,37 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-
-	$_ = $self->{PRIMARY}->decoded_content;
-
-	if(m#Or wait (\d+) minutes!#){ # your Free-Traffic has exceeded
-		wait($1 * 60);
-		$self->{MECH}->reload();
-		$_ = $self->{PRIMARY}->decoded_content;
-	}
-
-	# Extract url
-	my ($download) = m#<form name="download_form" method="post" action="(.+?)">#;
-	if (!$download) { die("could not find url");}		
 	
-	# Download the data
-	my $req = HTTP::Request->new(POST => $download);
-	$req->content_type('application/x-www-form-urlencoded');
-	$req->content("download_submit=Free%20Download");
-	$self->{MECH}->request($req, $data_processor);
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# Trafic exceeded
+		if($self->{MECH}->content() =~ m#Or wait (\d+) minutes!#) {
+			$wait = $1*60;
+		}
+		
+		# Download URL
+		elsif ($self->{MECH}->content() =~ m#<form name="download_form" method="post" action="(.+?)">#) {
+			my $download = $1;
+			my $req = HTTP::Request->new(POST => $download);
+			$req->content_type('application/x-www-form-urlencoded');
+			$req->content("download_submit=Free%20Download");
+			return $self->{MECH}->request($req, $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 }
 
 

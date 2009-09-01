@@ -116,13 +116,28 @@ sub get_data {
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
 	dump_add(data => $self->{MECH}->content());
 	
-	# Click the download link and extract it
-	$self->{MECH}->follow_link( text => 'kliknij tutaj');
-	#die("plugin failure (an unspecified error occured)") if ($res->content_is_html);
-	my $download = $self->{MECH}->uri();
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# Download URL
+		if ($self->{MECH}->follow_link( text => 'kliknij tutaj')) {
+			my $download = $self->{MECH}->uri();
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 }
 
 # Amount of resources
