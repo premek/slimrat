@@ -480,6 +480,7 @@ sub download($$$$$) {
 				USER:
 				$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
 				
+				debug("final captcha value: $captcha_value");
 				return $captcha_value;
 			},
 			\@headers

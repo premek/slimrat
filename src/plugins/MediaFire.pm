@@ -110,8 +110,10 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# TODO: global retry, see other plugins
 
-	$_ = $self->{PRIMARY}->decoded_content."\n";
+	$_ = $self->{MECH}->content()."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 	if(!$qk) {
 		die("primary page error, file doesn't exist or was removed");	 #TODO: shouldn't be here, check() guaranteed to be called before

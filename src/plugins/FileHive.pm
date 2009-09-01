@@ -116,12 +116,29 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-
-	# Fetch the download link
-	my $download = "http://www.filehive.com/files/$2/$3.$4" if ($self->{PRIMARY}->decoded_content =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/);
-
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {				
+		# Download URL
+		if ($self->{MECH}->content() =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/) {
+			my $download = "http://www.filehive.com/files/$2/$3.$4";	
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}	
 }
 
 

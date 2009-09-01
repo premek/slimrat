@@ -114,68 +114,113 @@ sub get_data {
 
 	my $res;
 
-	if($self->{CONF}->get("login") and $self->{CONF}->get("pass")) {
-		#
-		# "PROFI" download
-		# 
-
-		(my $id) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="id" value="(.+?)" />#;
-		(my $file) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="file" value="(.+?)" />#;
-
-		# hm, why Im not able to do this with Mechanize?
-		$res = $self->{MECH}->post("http://czshare.com/prihlasit.php", {
-				prihlasit=>1,
-				jmeno=>$self->{CONF}->get("login"),
-				heslo=>$self->{CONF}->get("pass"),
-				id=>$id,
-				file=>$file,
-				});
-
-		$_ = $self->{MECH}->content();
-		dump_add(data => $_);
-
-		m#http://.+?/$id/.+?/.+?/#;
-		$self->{MECH}->request(HTTP::Request->new(GET => $&), $data_processor);
-
-	} else { 
-		#
-		# FREE download
-		#
-
-		die("no free slots available. Try again later") 
-			if ($self->{PRIMARY}->decoded_content =~ m#vyčerpána maximální kapacita FREE downloadů#); # TODO: wait?
-
-		$self->{MECH}->form_with_fields("id","file","ticket"); # "free" form;
-		$res = $self->{MECH}->submit_form();
-		dump_add(data => $self->{MECH}->content());
-
-		# captcha
-		my $captcha;
-		do {
-			my $cont = $self->{MECH}->content();
-			# Get captcha
-			my ($captcha_url) = $cont =~ m#<img src="(captcha\.php\?ticket=.+?)" />#ms;
-			die("can't get captcha image") unless ($captcha_url);
-
-			# Download captcha
-			my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-			$captcha = &$read_captcha($captcha_data, "png");
-			$self->{MECH}->back();
-
-			# Submit captcha form
-			$res = $self->{MECH}->submit_form( with_fields => { captchastring => $captcha });
-			return 0 unless ($res->is_success);
+	#
+	# "PROFI" download
+	# 
+	
+	if($self->{CONF}->get("login") and $self->{CONF}->get("pass")) {		
+		my $counter = $self->{CONF}->get("retry_count");
+		my $wait;
+		while (1) {
+			# Download URL
+			if ((my ($id) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="id" value="(.+?)" />#)
+				&& (my ($file) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="file" value="(.+?)" />#)) {
+						
+				# hm, why Im not able to do this with Mechanize?
+				$res = $self->{MECH}->post("http://czshare.com/prihlasit.php", {
+						prihlasit=>1,
+						jmeno=>$self->{CONF}->get("login"),
+						heslo=>$self->{CONF}->get("pass"),
+						id=>$id,
+						file=>$file,
+						});
+		
+				$_ = $self->{MECH}->content();
+				dump_add(data => $_);
+		
+				m#http://.+?/$id/.+?/.+?/#;
+				$self->{MECH}->request(HTTP::Request->new(GET => $&), $data_processor);
+			}
+			
+			# Retry
+			if ($wait) {
+				wait($wait);
+				$wait = 0;
+			} else {
+				warning("could not match any action, retrying");
+				die("retry attempt limit reached") unless (--$counter);
+				wait($self->{CONF}->get("retry_timer"));
+			}
+			$self->{MECH}->reload();
+			die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
 			dump_add(data => $self->{MECH}->content());
-			$self->{MECH}->back() if($self->{MECH}->content() =~ /Error 12/);
-		} while ($captcha && $res->decoded_content !~ m#pre_download_form#);
+		}
+	}
 
-		# generate request
-		my($action, $id, $ticket) = $res->decoded_content =~ m#<form name="pre_download_form" action="(.+?)".+name="id" value="(\d+)".+name="ticket" value="(.+?)"#s;# <input type="submit" name="submit_btn" DISABLED value="stahnout " /> 
-			my $req = HTTP::Request->new(POST => $action);
-		$req->content_type('application/x-www-form-urlencoded');
-		$req->content("id=$id&ticket=$ticket");
 
-		$self->{MECH}->request($req, $data_processor);
+	#
+	# FREE download
+	#
+	
+	else { 
+		my $counter = $self->{CONF}->get("retry_count");
+		my $wait;
+		while (1) {			
+			# Slot availability
+			if ($self->{MECH}->content() =~ m#vyčerpána maximální kapacita FREE downloadů#) {
+				warning("no free slots available");
+			}
+			
+			# Free form
+			elsif ($self->{MECH}->form_with_fields("id","file","ticket")) {
+				# Click form
+				$res = $self->{MECH}->submit_form();
+				dump_add(data => $self->{MECH}->content());
+				
+				# Solve captcha
+				my $captcha;
+				$counter++;
+				do {
+					die("retry attempt limit reached") unless ($counter--);
+					my $cont = $self->{MECH}->content();
+					
+					# Get captcha
+					my ($captcha_url) = $cont =~ m#<img src="(captcha\.php\?ticket=.+?)" />#ms;
+					die("can't get captcha image") unless ($captcha_url);
+		
+					# Download captcha
+					my $captcha_data = $self->{MECH}->get($captcha_url)->content();
+					$captcha = &$read_captcha($captcha_data, "png");
+					$self->{MECH}->back();
+		
+					# Submit captcha form
+					$res = $self->{MECH}->submit_form( with_fields => { captchastring => $captcha });
+					return 0 unless ($res->is_success);
+					dump_add(data => $self->{MECH}->content());
+					$self->{MECH}->back() if($self->{MECH}->content() =~ /Error 12/);
+				} while ($captcha && $res->decoded_content !~ m#pre_download_form#);
+		
+				# Generate request
+				my($action, $id, $ticket) = $res->decoded_content =~ m#<form name="pre_download_form" action="(.+?)".+name="id" value="(\d+)".+name="ticket" value="(.+?)"#s;# <input type="submit" name="submit_btn" DISABLED value="stahnout " /> 
+					my $req = HTTP::Request->new(POST => $action);
+				$req->content_type('application/x-www-form-urlencoded');
+				$req->content("id=$id&ticket=$ticket");		
+				return $self->{MECH}->request($req, $data_processor);
+			}
+			
+			# Retry
+			if ($wait) {
+				wait($wait);
+				$wait = 0;
+			} else {
+				warning("could not match any action, retrying");
+				die("retry attempt limit reached") unless (--$counter);
+				wait($self->{CONF}->get("retry_timer"));
+			}
+			$self->{MECH}->reload();
+			die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+			dump_add(data => $self->{MECH}->content());
+		}
 	}
 }
 

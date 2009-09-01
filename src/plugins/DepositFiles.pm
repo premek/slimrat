@@ -122,47 +122,58 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	my $download;
-	while(1) {
-		my $wait = 0;
-		$download = 0;
-
-		if($self->{MECH}->form_with_fields("gateway_result")) { # TODO There is no form with the requested fields
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while(1) {		
+		# Download button
+		if ($self->{MECH}->form_with_fields("gateway_result")) { # TODO There is no form with the requested fields
 			$self->{MECH}->submit_form();
 			dump_add(data => $self->{MECH}->content());
+			next;
 		} 
-
-		if ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
-			info("you are already downloading a file from Depositfiles.");
-			$wait = 60;
-		} 
+		
+		# Already downloading
+		elsif ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
+			warning("you are already downloading a file from Depositfiles.");
+		}
+		
+		# No free slots
 		elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
-			die("all downloading slots for your country are busy");
+			warning("all downloading slots for your country are busy");
 		}
-		elsif (($wait, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
+		
+		# Wait timer
+		elsif (my ($wait1, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
 			if ($time eq "min") {$wait *= 60;}
-			elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
+			elsif ($time eq "hour") {$wait1 = 60*($wait*60 + $wait2);}
+			$wait = $wait1;
 		}
+		
+		# Download URL
 		elsif ($self->{MECH}->content() =~ m/"repeat"><a href="([^\"]+)">Try downloading this file again/) {
-			($download) = $1;
-		} elsif ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
-			$wait = $1;
-			($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
+			return $self->{MECH}->request(HTTP::Request->new(GET => $1), $data_processor);
 		}
-
-		die("could not extract download link") unless ($download || $wait);
-
+		
+		# Download URL after wait
+		elsif ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
+			wait($1);
+			my ($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
 		if ($wait) {
 			wait($wait);
-			$self->{MECH}->reload();
-			dump_add(data => $self->{MECH}->content());
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
 		}
-		last if $download;
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
 	}
-
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 

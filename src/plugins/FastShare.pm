@@ -116,14 +116,30 @@ sub get_data {
 	# Click the button
 	$self->{MECH}->form_number(0);
 	$self->{MECH}->submit_form();
-	$_ = $self->{MECH}->content;	
 	
-	# Extract the download URL
-	my ($download) = m/<br>Link: <a href=([^>]+)><b>/s;
-	die("could not extract download link") unless $download;
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# Download URL
+		if (my ($download) = $self->{MECH}->content =~ m/<br>Link: <a href=([^>]+)><b>/s) {
+			die("could not extract download link") unless $download;
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 

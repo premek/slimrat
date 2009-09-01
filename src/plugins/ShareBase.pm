@@ -116,36 +116,45 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Click the button to the secondary page
-	$_ = $self->{PRIMARY}->decoded_content;
-	my ($asi) = m/name="asi" value="([^\"]+)">/s;	
+	my ($asi) = $self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;	
 	my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
-	$_ = $res->content."\n";
 	
 	# Process the secondary page which leads to the download
-	my $counter = 0;
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
 	while (1) {
-		my $wait;
-		$counter = $counter + 1;
-		if( ($wait) = m/Du musst noch <strong>([0-9]+)min/ ) {
+		# Wait timer
+		if( $self->{MECH}->content() =~ m/Du musst noch <strong>([0-9]+)min/ ) {
 		    info("reached the download limit for free-users (300 MB)");
-		    wait(($wait+1)*60);
-		    $res = $self->{MECH}->reload();
-		    dump_add(data => $self->{MECH}->content());
-		    $_ = $res->content."\n";
-		} elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
-		    info("something wrong, waiting 60 sec");
-		    wait(60);
-		} else {
-		    last;
+		    $wait = ($1+1)*60;
 		}
-		die("loop error") if($counter > 5);
+		
+		# Redirect to same page
+		elsif( $self->{MECH}->uri() =~ $self->{URL} ) {
+		    info("something's wrong");
+		}
+		
+		# Download
+		else {
+		    my $download = $self->{MECH}->uri();
+		    return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
 	}
-	my $download = $self->{MECH}->uri();
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 

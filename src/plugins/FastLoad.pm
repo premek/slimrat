@@ -113,15 +113,30 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	$_ = $self->{PRIMARY}->content."\n";
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {
+		# Download URL
+		if (my ($download) = $self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
+			die("cannot find download url") unless ($download);
+			return $self->{MECH}->request(HTTP::Request->new(GET => "http://www.fast-load.net$download"), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}	
 	
-	my ($download) = m#onclick="top\.location='(.+?)';" value#;
-	die("cannot find download url") unless ($download);
 
-	$download = "http://www.fast-load.net$download";
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 

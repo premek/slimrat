@@ -116,48 +116,49 @@ sub get_data {
 	my $read_captcha = shift;
 
 
-	my $download;
-	my $watchdog=0;
-	my $cont = $self->{PRIMARY}->decoded_content;
-	while($watchdog++<3){
-
-		my($wait1, $wait2)=0;
-		
-		# Extract primary wait timer
-		if(($wait1) = $cont =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#){
-			$wait1 /= 1000;
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1){
+		# Wait timer
+		if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)
+			&& (my ($wait2) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#)) {
+				wait(($wait1 + $wait2)/1000);
 		}
-
-		# Extract secondary wait timer
-		if(($wait2) = $cont =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#){
-			$wait2 /= 1000;
-		}
-
-		# Wait
-		wait($wait1 + $wait2);
 
 		# Click the button
-		$self->{MECH}->form_name("f") and # free;
-		$self->{MECH}->submit_form() and
-		dump_add(data => $self->{MECH}->content());	
+		if ($self->{MECH}->form_name("f")) {
+			$self->{MECH}->submit_form();
+			dump_add(data => $self->{MECH}->content());
+			next;
+		}
 
 		# Captcha
-		while ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#){
+		elsif ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
 			$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
 			dump_add(data => $self->{MECH}->content());
+			next;
 		}
 
 		# Extract the download URL
-		last if ($download = $self->{MECH}->find_link( text => 'Click here to download' ));
-
-		$cont = $self->{MECH}->content();
+		elsif (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
+			$download = $download->url();
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
 	}
 
-	die("could not extract download link") unless $download;
-	$download = $download->url();
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 # Amount of resources

@@ -112,14 +112,29 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# Extract data from SWF loading script
-	my ($v) = $self->{PRIMARY}->decoded_content =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/;
-	my ($t) = $self->{PRIMARY}->decoded_content =~ /swfArgs.*"t"\s*:\s*"(.*?)".*/;
-	die("could not extract video properties") unless ($v && $t);
-	my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
+		# Download video
+		if ((my ($v) = $self->{MECH}->content() =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/)
+			&& (my ($t) = $self->{MECH}->content() =~ /swfArgs.*"t"\s*:\s*"(.*?)".*/)) {
+			my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
+	}
 }
 
 

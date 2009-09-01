@@ -45,6 +45,7 @@
 
 # Packages
 use threads;
+use threads::shared;
 use Getopt::Long;
 use Pod::Usage;
 use Gtk2 -init;
@@ -370,36 +371,36 @@ sub on_btnStart1_clicked {
 						}
 						Gtk2::Gdk::Threads->leave;
 					},
-					sub { # captcha
-						my $captchafile = shift;
-						my $captcha;
+						sub { # captcha
+							my $captchafile = shift;
+							my $captcha;
 							
-						# Construct popup
-						my $gui_captcha = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
-						$gui_captcha->signal_autoconnect_from_package('main');
-						my $captcha_dialog = $gui_captcha->get_widget('captchaDialog');
+							Gtk2::Gdk::Threads->enter;
+							my $gui_captcha = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
+							$gui_captcha->signal_autoconnect_from_package('main');
+							my $captcha_dialog = $gui_captcha->get_widget('captchaDialog');
+							Gtk2::Gdk::Threads->leave;
+
+							my $cptsub =  sub {
+								$captcha = shift;
+								$captcha_dialog->destroy();
+								1;
+							};
 							
-						# Captcha button handler
-						my $cptsub =  sub {
-							$captcha = shift;
-							$captcha_dialog->destroy();
-							1;
-						};
+							Gtk2::Gdk::Threads->enter;
+							$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
+							$gui_captcha->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
+							$gui_captcha->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($gui_captcha->get_widget('captchaTxt')->get_text); } ); 
+							$gui_captcha->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($gui_captcha->get_widget('captchaTxt')->get_text); } ); 
+							$gui_captcha->get_widget('captchaImage')->set_from_file($captchafile);
+							Gtk2::Gdk::Threads->leave;
+
+							while(! defined $captcha){
+								sleep 1; # hmm...
+							}
 							
-						# Connect handlers
-						$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
-						$gui_captcha->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
-						$gui_captcha->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
-						$gui_captcha->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($captcha_dialog->get_widget('captchaTxt')->get_text); } ); 
-	
-						$gui_captcha->get_widget('captchaImage')->set_from_file($captchafile);
-	
-						while(! defined $captcha){
-							sleep 1; # hmm...
+							return $captcha;
 						}
-	
-						return $captcha;
-					}
 			);
 			
 			# Check return value
@@ -521,10 +522,10 @@ sub on_btnAddClip_clicked {
 # Add
 my ($addDialog, $addDialogBuff);
 sub on_btnAdd1_clicked {
-	my $gui = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'addDialog');
-	$gui->signal_autoconnect_from_package('main');
-	$addDialog = $gui->get_widget('addDialog');
-	$addDialogBuff = $gui->get_widget('addLinks')->get_buffer();
+	my $gui_add = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'addDialog');
+	$gui_add->signal_autoconnect_from_package('main');
+	$addDialog = $gui_add->get_widget('addDialog');
+	$addDialogBuff = $gui_add->get_widget('addLinks')->get_buffer();
 }
 
 # Add dialog cancel button

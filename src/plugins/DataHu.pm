@@ -111,30 +111,37 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;	
 	
-	my $res = $self->{PRIMARY};
-	
-	while (1) {
-		$_ = $res->decoded_content."\n"; 
-		
+	my $counter = $self->{CONF}->get("retry_count");
+	my $wait;
+	while (1) {		
 		# Wait timer
-		if(m#kell:#) {
+		if($self->{MECH}->content() =~ m#kell:#) {
 			my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
 			die("primary page error, could not extract wait time") unless $wait;
-			wait($wait);
-			
-			$res = $self->{MECH}->reload();
-			dump_add(data => $self->{MECH}->content());
-		} else {
-			last;
+			$wait = $1;
 		}
+		
+		# Download URL
+		elsif ($self->{MECH}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
+			my $download = $1;
+			die("primary page error, could not extract download link") unless $download;
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		}
+		
+		# Retry
+		if ($wait) {
+			wait($wait);
+			$wait = 0;
+		} else {
+			warning("could not match any action, retrying");
+			die("retry attempt limit reached") unless (--$counter);
+			wait($self->{CONF}->get("retry_timer"));
+		}
+		$self->{MECH}->reload();
+		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+		dump_add(data => $self->{MECH}->content());
 	}
 
-	# Extract the download URL
-	my ($download) = m/class="download_it"><a href="(.*)" onmousedown/sm;
-	die("primary page error, could not extract download link") unless $download;
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 }
 
 
