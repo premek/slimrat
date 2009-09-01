@@ -41,6 +41,9 @@ package Toolbox;
 # Packages
 use threads;
 
+# Custom packages
+use Configuration;
+
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
@@ -50,10 +53,20 @@ use Exporter;
 use strict;
 use warnings;
 
+# Base configuration
+my $config = new Configuration;
+$config->set_default("skip_waits", 0);
+
 
 #
-# Routines
+# Static functionality
 #
+
+# Configure the package
+sub configure($) {
+	my $complement = shift;
+	$config->merge($complement);
+}
 
 # Look for the index of an item in an array (non-numeric contents)
 sub indexof {
@@ -131,8 +144,7 @@ sub thread_id {
 # $2: this wait can be skipped if true
 sub wait {
 	my $wait = shift or return;
-#XXX
-#	return if shift and $config->get("skip_waits");
+	return if (shift and $config->get("skip_waits"));
 	require Log;
 	Log::info(sprintf("Waiting ".seconds_readable($wait)));
 	sleep($wait);

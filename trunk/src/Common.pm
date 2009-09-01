@@ -122,6 +122,7 @@ sub config_merge {
 	
 	Plugin::configure($config);
 	Common::configure($config);
+	Toolbox::configure($config->section("toolbox"));
 	Log::configure($config->section("log"));
 	Proxy::configure($config->section("proxy"));
 }
@@ -433,6 +434,7 @@ sub download($$$$$) {
 				# Dump data in temporary file
 				my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
 				print $fh $captcha_data;
+				close($fh);
 				
 				# OCR
 				if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
