@@ -161,7 +161,7 @@ sub callstack {
 	my $traces = 0;
 	
 	# Trace an error
-	# FIXME: more accurate confess die's when no actual warn/die signal has occured
+	# FIXME: the more accurate 'confess' function dies when no actual warn/die signal has occured
 	#eval { confess( '' ) };
 	#if ($@) {
 	#	my $stack_string = join(" ", $@);
@@ -353,6 +353,8 @@ sub status {
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
+	
+	$config->path_abs("file_path", "dump_folder");
 }
 
 # Set maximal verbostity without using configuration handler

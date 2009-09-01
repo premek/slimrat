@@ -40,6 +40,7 @@ package Toolbox;
 
 # Packages
 use threads;
+use File::Spec;
 
 # Custom packages
 use Configuration;
@@ -47,7 +48,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(indexof timestamp bytes_readable seconds_readable readable2bytes thread_id wait);
+@EXPORT = qw(indexof timestamp bytes_readable seconds_readable readable2bytes thread_id wait rel2abs);
 
 # Write nicely
 use strict;
@@ -148,6 +149,10 @@ sub wait {
 	require Log;
 	Log::info(sprintf("Waiting ".seconds_readable($wait)));
 	sleep($wait);
+}
+
+sub rel2abs {
+	return File::Spec->rel2abs(@_);
 }
 
 # Return

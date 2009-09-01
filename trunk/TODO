@@ -14,6 +14,5 @@
 
 * 1.0
   - Test everything!
-  - Consider prepending `pwd` before relative paths of files when 'chdir'ing
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'

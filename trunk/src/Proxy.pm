@@ -72,6 +72,9 @@ my @proxies:shared; my $s_proxies:shared = new Semaphore;
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
+	
+	$config->path_abs("list");
+	
 	file_read() if ($config->get("list"));
 }
 
@@ -79,7 +82,7 @@ sub configure($) {
 sub file_read() {
 	debug("reading proxy file '", $config->get("list"), "'");
 
-	open(FILE, $config->get("list")) || fatal("could not read proxy file (NOTE: when daemonized, use absolute paths)");
+	open(FILE, $config->get("list")) || fatal("could not read proxy file");
 	while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
@@ -133,7 +136,7 @@ sub new {
 	my $ua = $_[1];	
 	$self = {
 		ua		=>	$ua,
-		proxy		=>	undef
+		proxy	=>	undef
 	};	
 	bless $self, 'Proxy';
 	

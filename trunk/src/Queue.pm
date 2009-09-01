@@ -57,8 +57,7 @@ use warnings;
 my $config = new Configuration;
 
 # Shared data
-# TODO: $file in $config?
-my $file:shared; my $s_file:shared = new Semaphore;	# Semaphore here manages file _access_, not $file access
+my $s_file:shared = new Semaphore;	# Semaphore here manages file access
 my @queued:shared; my $s_queued:shared = new Semaphore;
 my @processed:shared; my $s_processed:shared = new Semaphore;
 my %busy:shared; my $s_busy:shared = new Semaphore;
@@ -72,19 +71,8 @@ my %busy:shared; my $s_busy:shared = new Semaphore;
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
-	file_read();
-}
-
-# Set the file
-sub file {
-	my $filename = shift;
-	return error("cannot overwrite previously set file") if (defined($file));
-	$file = $filename;
 	
-	fatal("queue file '$file' not readable") unless (-r $file);
-	
-	# Read a first URL
-	file_read() if ($file);
+	$config->path_abs("file");
 }
 
 # Add a single url to the queue
@@ -99,11 +87,11 @@ sub add {
 
 # Add an URL from the file to the queue
 sub file_read {
-	debug("reading queue file '$file'");
+	debug("reading queue file '", $config->get("file") ,"'");
 	my $added = 0;
 	
 	$s_file->down();
-	open(FILE, $file) || fatal("could not read queue file (NOTE: when daemonized, use absolute paths)");
+	open(FILE, $config->get("file")) || fatal("could not read queue file");
 	while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
@@ -169,7 +157,6 @@ sub reset() {
 	$s_processed->down();
 	@queued = ();
 	@processed = ();
-	$file = undef;
 	$s_processed->up();
 	$s_queued->up();
 }
@@ -180,11 +167,11 @@ sub save($) {
 	$s_queued->down();
 	$s_processed->down();
 	my %container = (
-		file		=>	$file,
+		file		=>	$config->get("file"),
 		queued		=>	[@queued],
 		processed	=>	[@processed]
 	);
-	store(\%container, $filename) || error("could not serialize queue to '$file'");
+	store(\%container, $filename) || error("could not serialize queue to '$filename'");
 	$s_queued->up();
 	$s_processed->up();
 }
@@ -199,7 +186,11 @@ sub restore {
 		
 		$s_queued->down();
 		$s_processed->down();
-		$file = $container{file};
+		if ($config->get("file")) {
+			warning("active instance already got a queue file defined, not overwriting");
+		} else {
+			$config->set("file", $container{file});
+		}
 		@queued = @{$container{queued}};
 		@processed = @{$container{processed}};
 		$s_queued->up();
@@ -277,7 +268,7 @@ sub advance($) {
 	if (!$self->{item}) {
 		$s_queued->down();
 		while (!$self->{item} || indexof($self->{item}, $self->{processed}) != -1) {
-			unless ($file && file_read()) {
+			unless ($config->get("file") && file_read()) {
 				$s_queued->up();
 				debug("queue exhausted");
 				return 0;
@@ -306,9 +297,9 @@ sub skip_globally {
 		# Only update if we got a file
 		my $url = $self->{item};
 		$s_file->down();
-		if (defined($file)) {
-			open (FILE, $file);
-			open (FILE2, ">".$file.".temp");
+		if (defined($config->get("file"))) {
+			open (FILE, $config->get("file"));
+			open (FILE2, ">".$config->get("file").".temp");
 			while(<FILE>) {
 				if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
 					print FILE2 "# ".$self->{status}.": ";
@@ -317,8 +308,8 @@ sub skip_globally {
 			}
 			close FILE;
 			close FILE2;
-			unlink $file;
-			rename $file.".temp", $file;
+			unlink $config->get("file");
+			rename $config->get("file").".temp", $config->get("file");
 		}
 		$s_file->up();
 	}

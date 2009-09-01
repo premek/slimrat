@@ -113,7 +113,6 @@ GetOptions (
 
 # Initialise global configuration
 my $config = config_init($options{"config"});
-config_merge($config);
 
 # Initialise own configuration
 my $config_cli = new Configuration;
@@ -162,9 +161,15 @@ $config_cli->set("to", $options{"to"}) if ($options{"to"});
 usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
 $config->section("log")->set("verbosity", 2) if ($options{"quiet"});
 $config->section("log")->set("verbosity", 5) if ($options{"debug"});
+$config->section("queue")->set("file", $options{"list"}) if ($options{"list"} && $options{"list"} ne "-");
 
 # Global variable with amount of threads
 my $threads : shared = 0;
+
+# Propagate the configuration to all packages
+# NOTE: this step includes conversion from relative to absolute paths,
+#       if paths get added after this step, convert them using Toolbox::rel2abs
+config_propagate($config);
 
 
 #
@@ -189,12 +194,8 @@ while ($_ = shift) { # clear @ARGV to be able to read input from user with <> la
 	s{^(?!\w+://)}{http://};
 	Queue::add($_);
 }
-if ($config_cli->get("list")) {
-	if($config_cli->get("list") eq "-"){
-		chomp and Queue::add($_) while (<>);
-	} else {
-		Queue::file($config_cli->get("list"));
-	}
+if ($config_cli->get("list") && $config_cli->get("list") eq "-") {
+	chomp and Queue::add($_) while (<>);
 }
 
 # Set socket local address if needed

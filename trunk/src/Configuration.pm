@@ -41,6 +41,7 @@ package Configuration;
 # Packages
 use threads;
 use threads::shared;
+use File::Spec;
 
 # Write nicely
 use strict;
@@ -346,6 +347,17 @@ sub save($$) {
 	}
 }
 
+# Convert a path to absolute setting
+sub path_abs {
+	my $self = shift;
+	while (my $key = shift) {
+		if (my $value = $self->get($key)) {	# No need to update default values
+			return error("cannot convert immutable key") unless $self->{items}->{$key}->{mutable};
+			$self->set($key, File::Spec->rel2abs($value));
+		}
+	}
+}
+
 # Return
 1;
 
@@ -457,6 +469,11 @@ This function will make a configuration entry persistent, by saving it into a gi
 That file gets parsed, and when possible a key will get updated. When the key doesn't
 exist in the file yet, it will get appended (when within a subsection) or prepended (when
 not within a subsection). When the file does not exist, a new one will get created.
+
+=head2 $config->path_abs(@keys)
+
+Converts the paths saved in the given keys (if available) from a relative to an absolute setting.
+Can be used before daemonisation.
 
 =head1 AUTHOR
 
