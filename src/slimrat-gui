@@ -110,7 +110,7 @@ GetOptions (
 
 # Initialise global configuration
 my $config = config_init($options{"config"});
-config_merge($config);
+config_propagate($config);
 
 # Initialise own configuration
 my $config_gui = new Configuration;

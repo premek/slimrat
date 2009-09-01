@@ -8,6 +8,9 @@
     * slimrat-gui: fixed captcha dialog. Still crashes
       sometimes though.
 
+    * configuration: implemented path_abs, to convert paths from
+      a relative to an absolute setting.
+
 
 2009-08-31 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

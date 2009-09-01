@@ -44,7 +44,7 @@ our $VERSION = '1.0.0-trunk';
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_init config_merge config_browser configure daemonize pid_read download);
+@EXPORT = qw(config_init config_propagate config_browser configure daemonize pid_read download);
 
 # Packages
 use threads;
@@ -117,7 +117,7 @@ sub config_init {
 }
 
 # Merge a given main configuration handler with handlers from all subpackages
-sub config_merge {
+sub config_propagate {
 	my $config = shift;
 	
 	Plugin::configure($config);
@@ -125,12 +125,15 @@ sub config_merge {
 	Toolbox::configure($config->section("toolbox"));
 	Log::configure($config->section("log"));
 	Proxy::configure($config->section("proxy"));
+	Queue::configure($config->section("queue"));
 }
 
 # Configure the package
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
+	
+	$config->path_abs("state_file");
 }
 
 sub config_browser {

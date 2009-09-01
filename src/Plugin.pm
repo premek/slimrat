@@ -143,6 +143,8 @@ sub configure {
 	$config_global->merge($complement);
 	$config->merge($config_global->section("plugin"));
 	
+	$config->path_abs("update_cache");
+	
 	# Load plugins
 	load("$RealBin/plugins");
 	if (-d $config->get("update_cache")) {
