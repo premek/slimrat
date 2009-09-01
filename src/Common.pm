@@ -340,7 +340,7 @@ sub download($$$$$) {
 						}
 						elsif ($res->code() == 200) {
 							warning("server does not support resuming, restarting download");
-							unlink $filepath; # XXX can we really delete it?
+							unlink $filepath;
 							$size_downloaded = 0;
 						}
 					}

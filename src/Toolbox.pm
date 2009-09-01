@@ -44,7 +44,7 @@ use threads;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(dwait indexof timestamp bytes_readable seconds_readable readable2bytes thread_id wait);
+@EXPORT = qw(indexof timestamp bytes_readable seconds_readable readable2bytes thread_id wait);
 
 # Write nicely
 use strict;
@@ -127,10 +127,14 @@ sub thread_id {
 }
 
 # Wait a while
+# $1: seconds to wait
+# $2: this wait can be skipped if true
 sub wait {
 	my $wait = shift or return;
+#XXX
+#	return if shift and $config->get("skip_waits");
 	require Log;
-	info(sprintf("Waiting ".seconds_readable($wait)));
+	Log::info(sprintf("Waiting ".seconds_readable($wait)));
 	sleep($wait);
 }
 
