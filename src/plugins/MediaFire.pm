@@ -112,13 +112,10 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# TODO: global retry, see other plugins
-
+	
+	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
-	if(!$qk) {
-		die("primary page error, file doesn't exist or was removed");	 #TODO: shouldn't be here, check() guaranteed to be called before
-		return 0;
-	}
 	
 	# Get the secondary page
 	my $res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
