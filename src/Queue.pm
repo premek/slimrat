@@ -225,7 +225,13 @@ sub DESTROY {
 	my ($self) = @_;
 	
 	if (defined($self->{item}) && !$self->{status}) {
-		debug("found queued item without status, merging back to main queue");
+		debug("found queued item without status, unblocking and merging back to main queue");
+		
+		$self->{item} = undef;
+		$s_busy->down();
+		delete($busy{thread_id()});
+		$s_busy->up();
+		
 		$s_queued->down();
 		push(@queued, $self->{item});
 		$self->{item} = undef;
@@ -279,6 +285,7 @@ sub advance($) {
 		$s_queued->up();
 	}
 	
+	# Mark the item as being in use
 	$s_busy->down();
 	$busy{thread_id()} = $self->{item};
 	$s_busy->up();
