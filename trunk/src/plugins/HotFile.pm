@@ -71,9 +71,9 @@ sub new {
 	$self->{MECH} = $_[3];
 	
 	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL}); # TODO - broken on 404 links
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
+	dump_add(data => $self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
 
 	bless($self);
 	return $self;
@@ -87,7 +87,7 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-
+	
 	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Downloading <b>(.+?)<\/b>/);
 }
 
@@ -102,10 +102,11 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	$_ = $self->{PRIMARY}->decoded_content;
-	return 1  if(m/Downloading/);
-	return -1  if(m/file is either removed/);
+	# TODO: which error cases REALLY occur? I only saw the 404 one...
+	return -1 if ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code != 404);
+	return -1  if ($self->{PRIMARY}->decoded_content =~ m/file is either removed/);
 	return -1 unless length; # server returns 0-sized page on dead links
+	return 1  if ($self->{PRIMARY}->decoded_content =~ m/Downloading/);
 	return 0;
 }
 
