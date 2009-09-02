@@ -385,7 +385,7 @@ sub thread_download {
 			}
 		);
 		
-		# Check result
+		# download() result
 		if ($result > 0) {
 			push @oklinks, $link;
 			$queue->skip_globally("DONE");
