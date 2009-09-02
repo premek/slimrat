@@ -72,7 +72,8 @@ sub new {
 	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	dump_add(data => $self->{MECH}->content());
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
+	dump_add(data => $self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
 
 	bless($self);
 	return $self;
@@ -101,7 +102,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return -1 unless ($self->{PRIMARY}->is_success);
+	return -1 unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code != 404);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Download!</button>#);
 	return 0;
 }
