@@ -148,7 +148,12 @@ sub wait {
 	return if (shift and $config->get("skip_waits"));
 	require Log;
 	Log::info(sprintf("Waiting ".seconds_readable($wait)));
-	sleep($wait);
+	#sleep($wait);
+	# TODO: sleep() postpones SIG_INT till end of sleep
+	while ($wait) {
+		$wait -= 1;
+		sleep(1);
+	}
 }
 
 sub rel2abs {

@@ -292,7 +292,14 @@ elsif ($config_cli->get("mode") eq "download") {
 	}
 	
 	# Wait till all threads finish (alternative method to support threads < 1.34)
-	{ lock($threads); cond_wait($threads) until $threads == 0; }
+	if ($THRCOMP) {
+		#{ lock($threads); cond_wait($threads) until $threads == 0; }
+		# TODO: cond_wait blocks SIG_INT
+		sleep(1) while $threads;
+	} else {
+		no strict "subs";
+		sleep(1) while (scalar(threads->list(threads::running)));
+	}	
 	
 	# Check if there is work left (e.g. if the last thread -- or the only thread -- eliminated
 	# some work by skipping_locally, that work has to be retried at least)
@@ -324,7 +331,16 @@ else {
 ############
 
 # Download thread
-sub thread_download {
+sub thread_download {	
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("thread exiting prematurely");
+		threads->exit();
+		# No need to adjust $threads here, as this handler is only used when Common::quit()
+		# wants to forcedly quit the thread. Broadcasting $thread would cause main::quit()
+		# to get unblocked which'd call Common::quit() _again_
+	};
+	
  	# Instantiate per-thread objects
 	my $mech = config_browser();
 	my $proxy = new Proxy($mech);

@@ -44,7 +44,7 @@ our $VERSION = '1.0.0-trunk';
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(config_init config_propagate config_browser configure daemonize pid_read download);
+@EXPORT = qw(config_init config_propagate config_browser configure daemonize pid_read download $THRCOMP);
 
 # Packages
 use threads;
@@ -81,6 +81,14 @@ $config->set_default("redownload", "rename");
 # Shared data
 my $downloaders:shared = 0;
 my %rate_surplus:shared; my $s_rate_surplus = new Semaphore;
+
+# Threads compatibility
+our $THRCOMP = 0;
+eval("use threads 1.34");
+if ($@) {
+	warning("your Perl version is outdated, thread might behave fishy");
+	$THRCOMP = 1;
+}
 
 
 
@@ -560,15 +568,15 @@ sub quit {
 	Configuration::quit();	# last as used by everything
 	
 	# Gently quit running and/or exited threads
-	eval("use threads 1.34");
-	if ($@) {
-		warning("your Perl version is outdated, I cannot quit threads properly (you might see some warnings down here)");
+	debug("killing threads");
+	if ($THRCOMP) {
+		foreach (threads->list()) {
+			$_->kill('INT')->join();
+		}
 	} else {
-		eval {
-			no strict "subs";	# To prevent Perl with threads <1.34 to crash
-			$_->join() foreach (threads->list(threads::joinable));
-			$_->detach() foreach (threads->list(threads::running));
-		};
+		no strict "subs";
+		$_->join() foreach (threads->list(threads::joinable));
+		$_->kill('INT')->join() foreach (threads->list(threads::running));
 	}		
 
 	# Exit with correct return value
