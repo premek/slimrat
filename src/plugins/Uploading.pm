@@ -68,8 +68,7 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-	$self->{MECH} = $_[3];
-	
+	$self->{MECH} = $_[3];	
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
@@ -102,7 +101,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return -1 unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code != 404);
+	return -1 if ($self->{PRIMARY}->code == 404);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Download!</button>#);
 	return 0;
 }
@@ -118,33 +117,18 @@ sub get_data {
 	die("page 2 error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 		
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {		
-		# Wait timer
-		if ($self->{MECH}->content() =~ m/setTimeout\('countdown2\(\)',(\d+)\)/) {
-			wait($1/10);
-		}
-		
-		# Download form
-		if (my $form = $self->{MECH}->form_name("downloadform")) {
-			my $request = $form->make_request;
-			return $self->{MECH}->request($request, $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+	# Wait timer
+	if ($self->{MECH}->content() =~ m/setTimeout\('countdown2\(\)',(\d+)\)/) {
+		wait($1/10);
 	}
+	
+	# Download form
+	if (my $form = $self->{MECH}->form_name("downloadform")) {
+		my $request = $form->make_request;
+		return $self->{MECH}->request($request, $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

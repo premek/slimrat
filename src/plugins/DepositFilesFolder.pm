@@ -74,12 +74,11 @@ sub new {
 
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 

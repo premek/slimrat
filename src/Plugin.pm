@@ -132,6 +132,25 @@ sub code {
 		return $self->{MECH}->status();
 }
 
+# Reload the page
+sub reload {
+	my ($self) = @_;
+	my $res = $self->{MECH}->reload();
+	die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+	dump_add(data => $self->{MECH}->content());
+	return $res;
+}
+
+# Get an URL
+sub fetch($) {
+	my ($self, $url) = @_;
+	$url = $self->{URL} unless $url;
+	my $res = $self->{MECH}->get($url);
+	die("error reloading '$url', ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+	dump_add(data => $self->{MECH}->content());
+	return $res;
+}
+
 
 #
 # Static functionality

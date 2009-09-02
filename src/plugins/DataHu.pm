@@ -69,13 +69,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -111,37 +109,22 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;	
 	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {		
-		# Wait timer
-		if($self->{MECH}->content() =~ m#kell:#) {
-			my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
-			die("primary page error, could not extract wait time") unless $wait;
-			$wait = $1;
-		}
-		
-		# Download URL
-		elsif ($self->{MECH}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
-			my $download = $1;
-			die("primary page error, could not extract download link") unless $download;
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+	# Wait timer
+	if ($self->{PRIMARY}->decoded_content =~ m#kell:#) {
+		my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
+		die("primary page error, could not extract wait time") unless $wait;
+		wait($1);
+		$self->{PRIMARY} = $self->reload();
 	}
-
+	
+	# Download URL
+	if ($self->{PRIMARY}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
+		my $download = $1;
+		die("primary page error, could not extract download link") unless $download;
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 

@@ -69,13 +69,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -111,32 +109,31 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	# TODO: global retry, see other plugins
-	
 	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";
 	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 	
 	# Get the secondary page
-	my $res = $self->{MECH}->get("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
-		
+	my $res = $self->fetch("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	$_ = $res->decoded_content."\n";
 	
 	# Save all variables in a hashmap
-	my %variables;
-	while (s/var ([^= ]+)\s*=\s*'([^']*)';//) {
-		$variables{$1} = $2;
+	if (m/var ([^= ]+)\s*=\s*'([^']*)';/) {
+		my %variables;
+		while (s/var ([^= ]+)\s*=\s*'([^']*)';//) {
+			$variables{$1} = $2;
+		}
+		
+		# Construct URL
+		my ($url_constr) = m/sServer \+'\/' \+(.+)\+ 'g\/'/;
+		$url_constr =~ s/(\w+)\+*/$variables{$1}/g;
+		my $download = 'http://' . $variables{"sServer"} . '/' . $url_constr . 'g/' . $variables{"sQk"} . '/' . $variables{"sFile"};
+		
+		# Download the data
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	# Construct URL
-	my ($url_constr) = m/sServer \+'\/' \+(.+)\+ 'g\/'/;
-	$url_constr =~ s/(\w+)\+*/$variables{$1}/g;
-	my $download = 'http://' . $variables{"sServer"} . '/' . $url_constr . 'g/' . $variables{"sQk"} . '/' . $variables{"sFile"};
-	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	die("could not match any action");
 }
 
 # Amount of resources

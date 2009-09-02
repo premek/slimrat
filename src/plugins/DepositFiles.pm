@@ -77,12 +77,11 @@ sub new {
 	
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -122,57 +121,41 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while(1) {		
-		# Download button
-		if ($self->{MECH}->form_with_fields("gateway_result")) { # TODO There is no form with the requested fields
-			$self->{MECH}->submit_form();
-			dump_add(data => $self->{MECH}->content());
-			next;
-		} 
-		
-		# Already downloading
-		elsif ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
-			warning("you are already downloading a file from Depositfiles.");
-		}
-		
-		# No free slots
-		elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
-			warning("all downloading slots for your country are busy");
-		}
-		
-		# Wait timer
-		elsif (my ($wait1, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
-			if ($time eq "min") {$wait *= 60;}
-			elsif ($time eq "hour") {$wait1 = 60*($wait*60 + $wait2);}
-			$wait = $wait1;
-		}
-		
-		# Download URL
-		elsif ($self->{MECH}->content() =~ m/"repeat"><a href="([^\"]+)">Try downloading this file again/) {
-			return $self->{MECH}->request(HTTP::Request->new(GET => $1), $data_processor);
-		}
-		
-		# Download URL after wait
-		elsif ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
-			wait($1);
-			my ($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+	# Download button
+	if ($self->{MECH}->form_with_fields("gateway_result")) { # TODO mute "There is no form with the requested fields" error if not found
+		$self->{MECH}->submit_form();
 		dump_add(data => $self->{MECH}->content());
+	} 
+	
+	# Already downloading
+	if ($self->{MECH}->content() =~ m/Your IP [0-9.]+ is already downloading/) {
+		die("you are already downloading a file from Depositfiles.");
+	}
+	
+	# No free slots
+	if ($self->{MECH}->content() =~ m/slots for your country are busy/) {
+		die("all downloading slots for your country are busy");
+	}
+	
+	# Wait timer
+	if (my ($wait1, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
+		my $wait;
+		if ($time eq "min") {$wait *= 60;}
+		elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
+		wait($wait);
+		$self->reload();
+	}
+	
+	# Download URL
+	if ($self->{MECH}->content() =~ m/"repeat"><a href="([^\"]+)">Try downloading this file again/) {
+		return $self->{MECH}->request(HTTP::Request->new(GET => $1), $data_processor);
+	}
+	
+	# Download URL after wait
+	if ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
+		wait($1);
+		my ($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 }
 

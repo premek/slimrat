@@ -67,13 +67,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -109,46 +107,32 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	my $captcha_reader = shift;
-	
-	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {		
-		# Wait timer
-		my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/;
-		die("could not fetch wait timer") unless defined($seconds);
-		if ($seconds != 0 ) {
-			$wait = $seconds;
-		}
-		
-		# Get captcha
-		if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
-			my $captcha_data = $self->{MECH}->get($captcha->url_abs())->content();
-			$self->{MECH}->back();
-			
-			# Process captcha
-			my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
-			
-			# Submit captcha form (TODO: a way to check if the captcha is correct, an is_html on the response?)
-			$self->{MECH}->form_with_fields("captcha");
-			$self->{MECH}->set_fields("captcha" => $captcha_code);
-			my $request = $self->{MECH}->{form}->make_request;
-			return $self->{MECH}->request($request, $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+
+	# Wait timer
+	if (my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
+		wait($seconds);
+		$self->reload();
+		# Normally the form gets filled in by some Javascript, but upon reload
+		# EasyShare detects the user have been waiting and sends the form along.
+		# Not ideally, but the only option as we don't support Javascript.
 	}
+	
+	# Get captcha
+	if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
+		my $captcha_data = $self->{MECH}->get($captcha->url_abs())->content();
+		$self->{MECH}->back();
+		
+		# Process captcha
+		my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
+		
+		# Submit captcha form (TODO: a way to check if the captcha is correct, an is_html on the response?)
+		$self->{MECH}->form_with_fields("captcha");
+		$self->{MECH}->set_fields("captcha" => $captcha_code);
+		my $request = $self->{MECH}->{form}->make_request;
+		return $self->{MECH}->request($request, $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

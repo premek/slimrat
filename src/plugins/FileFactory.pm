@@ -70,13 +70,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -121,39 +119,23 @@ sub get_data {
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
-	# Process the resulting page
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while(1) {		
-		# Countdown
-		if ($self->{MECH}->content() =~ m/<p id="countdown">(\d+)<\/p>/) {
-			wait($1);
-		}
-		
-		# No free slots
-		if ($self->{MECH}->content() =~ m/currently no free download slots/) {
-			warning("no free download slots");
-		}
-		
-		# Download
-		elsif ($self->{MECH}->content() =~ m/begin your download/) {
-			my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
-			return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+	# Countdown
+	if ($self->{MECH}->content() =~ m/<p id="countdown">(\d+)<\/p>/) {
+		wait($1);
 	}
+	
+	# No free slots
+	if ($self->{MECH}->content() =~ m/currently no free download slots/) {
+		die("no free download slots");
+	}
+	
+	# Download
+	if ($self->{MECH}->content() =~ m/begin your download/) {
+		my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
+		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources
