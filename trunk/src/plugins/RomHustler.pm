@@ -68,18 +68,16 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-
 	$self->{MECH} = $_[3];
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
-	
-	if ($_ = $self->{MECH}->find_link(text_regex => qr/Download this rom/i)) {
-		$self->{PRIMARY} = $self->{MECH}->get($_);
-	}
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
+	if ($_ = $self->{MECH}->find_link(text_regex => qr/Download this rom/i)) {
+		$self->{PRIMARY} = $self->fetch($_);
+	}
+
 	return $self;
 }
 
@@ -114,39 +112,24 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
-	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {		
-		# Wait timer
-		my $res = $self->{MECH}->get("http://romhustler.net/download.js");
-		die("wait timer page error, ", $res->status_line) unless ($res->is_success);
-		if ($self->{MECH}->content() =~ m/time = (\d+);/i) {
-			wait($1, 1);
-		}
-		$self->{MECH}->back();
-		
-		# Download URL
-		if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
-			my $download = $1;
-			$download = join("", split("','", $download));
-			
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+
+	# Wait timer
+	my $res = $self->{MECH}->get("http://romhustler.net/download.js");
+	die("wait timer page error, ", $res->status_line) unless ($res->is_success);
+	if ($self->{MECH}->content() =~ m/time = (\d+);/i) {
+		wait($1, 1);
 	}
+	$self->{MECH}->back();
+	
+	# Download URL
+	if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
+		my $download = $1;
+		$download = join("", split("','", $download));
+		
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

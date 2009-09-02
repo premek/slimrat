@@ -3,6 +3,17 @@
     * slimrat: upon request, configurable option in case
       of plugin failure (issue 69).
 
+    * plugins: removed all loop-based code, get_data now
+      just exists upon failure. It's up to the caller to
+      support some retry-on-failure stuff.
+
+    * common: adjusted some threading code, exporting a
+      flag when an old threads library has been found
+      ($THRCOMP).
+
+    * plugin: added some auxilary functions to avoid code
+      duplication within the plugins.
+
 
 2009-09-01 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

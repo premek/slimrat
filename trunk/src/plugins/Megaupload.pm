@@ -112,8 +112,6 @@ sub get_data {
 	my $data_processor = shift;
 	my $read_captcha = shift;
 	
-	# TODO: global retry, see other plugins
-	
 	my ($res, $captcha);
 	my $cont = $self->{MECH}->content();
 	do {
@@ -138,14 +136,16 @@ sub get_data {
 
 
 	# Wait
-	my ($wait) = $res->decoded_content =~ m#count=(\d+);#;
-	wait ($wait, 1);
+	if (my ($wait) = $res->decoded_content =~ m#count=(\d+);#) {
+		wait ($wait, 1);
+	}
 
 	# Get download url
-	my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#;
+	if (my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#) {
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
 	
-	# Download the data
-	$self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	die("could not match any action")
 }
 
 # Postprocess captcha value

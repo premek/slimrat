@@ -68,15 +68,13 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-	$self->{MECH} = $_[3];
-	
+	$self->{MECH} = $_[3];	
 	$self->{URL} =~ s#/video/#/download/#;
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -120,34 +118,19 @@ sub get_data {
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {		
-		# We will not wait before download because javascript is encoded 
-		# so we dont know how many seconds we have to wait (and because we dont like waiting)
-		# But it is *probably* this number:
-		#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
-		
-		# Download URL
-		if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
-			my $download = $1;
-			$download = join("", split("','", $download));		
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+	# We will not wait before download because javascript is encoded 
+	# so we dont know how many seconds we have to wait (and because we dont like waiting)
+	# But it is *probably* this number:
+	#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
+	
+	# Download URL
+	if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
+		my $download = $1;
+		$download = join("", split("','", $download));		
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

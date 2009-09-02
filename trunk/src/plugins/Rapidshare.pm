@@ -125,53 +125,40 @@ sub get_data {
 	die("secondary page error, ", $res->status_line) unless ($res->is_success);
 	dump_add(data => $self->{MECH}->content());
 	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while(1) {
-		# Download limit
-		if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
-			($wait) = m/Or try again in about (\d+) minutes/sm;
-			$wait *= 60;
-			warning("reached the download limit for free-users");			
-		}
-		
-		# Free user limit
-		elsif (($wait) = $self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			warning("currently a lot of users are downloading files");
-			$wait *= 60;
-		}
-		
-		# Slot availability
-		elsif (($wait) = $self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
-			warning("no available slots for free users");
-			$wait *= 60;
-		}
-		
-		# Already downloading
-		elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
-			warning("already downloading a file");
-		}
-		
-		# Download
-		elsif (my ($download, $wait) = $self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
-			wait($wait);
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
+	# Download limit
+	if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
+		my $minutes = m/Or try again in about (\d+) minutes/sm;
+		warning("reached the download limit for free-users");
+		wait($minutes*60);
+		$self->reload();
 	}
-
+	
+	# Free user limit
+	if (my ($minutes) = $self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+		warning("currently a lot of users are downloading files");
+		wait($minutes*60);
+		$self->reload();
+	}
+	
+	# Slot availability
+	if (my ($minutes) = $self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+		warning("no available slots for free users");
+		wait($minutes*60);
+		$self->reload();
+	}
+	
+	# Already downloading
+	if ($self->{MECH}->content() =~ m/already downloading a file/) {
+		die("already downloading a file");
+	}
+	
+	# Download
+	if (my ($download, $wait) = $self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+		wait($wait);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

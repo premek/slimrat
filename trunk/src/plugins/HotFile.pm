@@ -103,7 +103,7 @@ sub check {
 	my $self = shift;
 	
 	return -1  if ($self->{PRIMARY}->decoded_content =~ m/file is either removed/); # when link is removed by uploader
-	return -1 if (!$self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404); # when 2nd number in link is wrong
+	return -1 if ($self->{PRIMARY}->code == 404); # when 2nd number in link is wrong
 	return -1 unless length $self->{PRIMARY}->decoded_content; # when 1st number in link is wrong
 	return 1  if ($self->{PRIMARY}->decoded_content =~ m/Downloading/);
 	return 0;
@@ -115,50 +115,31 @@ sub get_data {
 	my $data_processor = shift;
 	my $read_captcha = shift;
 
-
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1){
-		# Wait timer
-		if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)
-			&& (my ($wait2) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#)) {
-				wait(($wait1 + $wait2)/1000);
-		}
-
-		# Click the button
-		if ($self->{MECH}->form_name("f")) {
-			$self->{MECH}->submit_form();
-			dump_add(data => $self->{MECH}->content());
-			next;
-		}
-
-		# Captcha
-		elsif ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
-			$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
-			dump_add(data => $self->{MECH}->content());
-			next;
-		}
-
-		# Extract the download URL
-		elsif (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
-			$download = $download->url();
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
+	# Wait timer
+	if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)
+		&& (my ($wait2) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#)) {
+			wait(($wait1 + $wait2)/1000);
+	}
+	
+	# Click the button
+	if ($self->{MECH}->form_name("f")) {
+		$self->{MECH}->submit_form();
 		dump_add(data => $self->{MECH}->content());
 	}
-
+	
+	# Captcha
+	if ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
+		$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
+		dump_add(data => $self->{MECH}->content());
+	}
+	
+	# Extract the download URL
+	if (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
+		$download = $download->url();
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources

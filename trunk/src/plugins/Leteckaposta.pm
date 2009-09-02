@@ -69,13 +69,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-	
-	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
 
 	bless($self);
+	
+	$self->{PRIMARY} = $self->fetch();
+	
 	return $self;
 }
 
@@ -113,27 +111,12 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
-	my $counter = $self->{CONF}->get("retry_count");
-	my $wait;
-	while (1) {	
-		# Download URL
-		if (my ($download) = $self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
-			return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download"), $data_processor);
-		}
-		
-		# Retry
-		if ($wait) {
-			wait($wait);
-			$wait = 0;
-		} else {
-			warning("could not match any action, retrying");
-			die("retry attempt limit reached") unless (--$counter);
-			wait($self->{CONF}->get("retry_timer"));
-		}
-		$self->{MECH}->reload();
-		die("error reloading page, ", $self->{MECH}->status()) unless ($self->{MECH}->success());
-		dump_add(data => $self->{MECH}->content());
-	}	
+	# Download URL
+	if (my ($download) = $self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
+		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download"), $data_processor);
+	}
+	
+	die("could not match any action");
 }
 
 # Amount of resources
