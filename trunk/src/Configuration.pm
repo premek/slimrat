@@ -202,7 +202,6 @@ sub file_read($$) {
 		if (my($key, $separator, $value) = /^(.+?)\s*(=+)\s*(.*?)$/) {		# The extra "?" makes perl prefer a shorter match (to avoid "\w " keys)
 
 			# Replace '~' with HOME of user who started slimrat
-			# XXX  we dont want to do this on every value. only on paths. maybe it is not needed anymore after r305
 			$value =~ s#^~/#$ENV{'HOME'}/#;
 			
 			# Substitute negatively connoted values
