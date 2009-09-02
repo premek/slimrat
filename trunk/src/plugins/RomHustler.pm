@@ -118,10 +118,13 @@ sub get_data {
 	my $counter = $self->{CONF}->get("retry_count");
 	my $wait;
 	while (1) {		
-		# TODO: Wait timer
-		if ($self->{MECH}->content() =~ m/Download link will appear in (\d+) seconds/i) {
-			wait($1);
+		# Wait timer
+		my $res = $self->{MECH}->get("http://romhustler.net/download.js");
+		die("wait timer page error, ", $res->status_line) unless ($res->is_success);
+		if ($self->{MECH}->content() =~ m/time = (\d+);/i) {
+			wait($1, 1);
 		}
+		$self->{MECH}->back();
 		
 		# Download URL
 		if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {

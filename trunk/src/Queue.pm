@@ -87,6 +87,7 @@ sub add {
 
 # Add an URL from the file to the queue
 sub file_read {
+	return 0 unless ($config->get("file") && -r $config->get("file"));
 	debug("reading queue file '", $config->get("file") ,"'");
 	my $added = 0;
 	
@@ -274,7 +275,7 @@ sub advance($) {
 	if (!$self->{item}) {
 		$s_queued->down();
 		while (!$self->{item} || indexof($self->{item}, $self->{processed}) != -1) {
-			unless ($config->get("file") && file_read()) {
+			unless (file_read()) {
 				$s_queued->up();
 				debug("queue exhausted");
 				return 0;
@@ -304,7 +305,7 @@ sub skip_globally {
 		# Only update if we got a file
 		my $url = $self->{item};
 		$s_file->down();
-		if (defined($config->get("file"))) {
+		if ($config->get("file") && -r $config->get("file")) {
 			open (FILE, $config->get("file"));
 			open (FILE2, ">".$config->get("file").".temp");
 			while(<FILE>) {
