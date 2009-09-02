@@ -102,10 +102,9 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	# TODO: which error cases REALLY occur? I only saw the 404 one...
-	return -1 if ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code != 404);
-	return -1  if ($self->{PRIMARY}->decoded_content =~ m/file is either removed/);
-	return -1 unless length; # server returns 0-sized page on dead links
+	return -1  if ($self->{PRIMARY}->decoded_content =~ m/file is either removed/); # when link is removed by uploader
+	return -1 if (!$self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404); # when 2nd number in link is wrong
+	return -1 unless length $self->{PRIMARY}->decoded_content; # when 1st number in link is wrong
 	return 1  if ($self->{PRIMARY}->decoded_content =~ m/Downloading/);
 	return 0;
 }

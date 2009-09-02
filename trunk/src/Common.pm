@@ -253,14 +253,6 @@ sub download($$$$$) {
 	
 	eval {
 		$status = $plugin->check();
-		if ($status < 0){
-			error("check failed (dead link)");
-			return $status;
-		}
-		elsif ($status == 0) {
-			warning("check failed (unknown reason)");
-			return $status;
-		}
 	};
 	
 	if ($@) {
@@ -268,8 +260,13 @@ sub download($$$$$) {
 		error("plugin failure while checking ($error)");
 		return -2;
 	}	
+
+	warning("check failed (unknown reason)") if ($status == 0);
 	
+	error("check failed (dead link)") if ($status < 0);
+	return $status if ($status < 0); # XXX or <= 0? do we want to try to download links with unknown status? probably yes - check function can stop working but download can be done
 	
+
 	# PREPARATION #
 	my $filename;
 	my $filepath;
