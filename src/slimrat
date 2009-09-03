@@ -60,6 +60,7 @@ use Toolbox;
 use Queue;
 use Log;
 use Configuration;
+use Semaphore;
 
 # Function prototypes
 sub quit($);
@@ -84,6 +85,9 @@ $SIG{'INT'} = 'quit';
 # Global variables
 my @failedlinks:shared;
 my @oklinks:shared;
+
+# Shared data
+my %data:shared; my $s_data = new Semaphore;
 
 
 #
@@ -283,7 +287,11 @@ elsif ($config_cli->get("mode") eq "check") {
 #
 
 elsif ($config_cli->get("mode") eq "download") {
-	# Spawn threads
+	# Spawn progress indicator
+	debug("spawning progress indicator");
+	threads->create(\&thread_progress);
+	
+	# Spawn downloaders
 	$threads = $config_cli->get("threads");
 	debug("spawning $threads download threads");
 	foreach (1 .. $threads) {
@@ -325,20 +333,58 @@ else {
 
 
 
-############
-# ROUTINES #
-############
+###########
+# THREADS #
+###########
 
-# Download thread
+# Progress indicator
+sub thread_progress {
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("progress indicator exiting");
+		threads->exit();
+	};
+	
+	while (1) {
+		$s_data->down();
+		my @threads = keys %data;
+		if (scalar(@threads)) {
+			my $string = "Downloading " . scalar(@threads) . " file";
+			$string .= "s" if scalar(@threads) > 1;
+			
+			my $speed = 0;
+			my $eta_min = 0;
+			my $eta = 0;
+			foreach my $thread (@threads) {
+				$speed += $data{$thread}{speed};
+				$eta += $data{$thread}{eta};
+				$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+			}
+			
+			$string .= " at " . bytes_readable($speed) . "/s";
+			$string .= ", " . seconds_readable($eta) . " remaining";
+			$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
+			
+			progress($string); 
+		}
+		$s_data->up();
+		sleep(1);
+	}
+}
+
+# Downloader
 sub thread_download {	
 	# Signal handler
 	$SIG{INT} = sub {
-		debug("thread exiting prematurely");
+		debug("downloader exiting prematurely");
 		threads->exit();
 		# No need to adjust $threads here, as this handler is only used when Common::quit()
 		# wants to forcedly quit the thread. Broadcasting $thread would cause main::quit()
 		# to get unblocked which'd call Common::quit() _again_
 	};
+	
+	# Thread ID
+	my $id = thread_id();
 	
  	# Instantiate per-thread objects
 	my $mech = config_browser();
@@ -358,17 +404,20 @@ sub thread_download {
 			$link,
 			$config_cli->get("to"),
 			sub { # Progress indication
-				my ($done, $total, $speed, $eta) = @_; # Bytes downloaded, Filesize in bytes, Bytes downloaded from last run of this function, Time from last run
-				if ($total) {
-					my $perc = $done / $total;
-					push my @progr, "Downloaded: ", int($perc*10000)/100, "%";
-					push @progr, " -- speed: ", bytes_readable($speed), "/s -- ", seconds_readable($eta), " remaining" if ($speed);
-					progress(@progr);
-				} else {
-					push my @progr, "Downloaded ", bytes_readable($done);
-					push @progr, " -- speed: ", bytes_readable($speed), "/s" if ($speed);
-					progress(@progr);
+							
+				# Create data container
+				$s_data->down();
+				if (!defined($data{$id})) {
+					share($data{$id});
+					$data{$id} = &share({});
 				}
+				
+				# Save data
+				$data{$id}{done} = shift;	# bytes downloaded
+				$data{$id}{total} = shift;	# filesize in bytes
+				$data{$id}{speed} = shift;	# speed in bytes per second
+				$data{$id}{eta} = shift;		# time remaining in seconds
+				$s_data->up();
 			},
 			sub { # Captcha handler
 				my $captchafile = shift;
@@ -419,10 +468,19 @@ sub thread_download {
 		$queue->advance()
 	}
 	debug("thread couldn't get any work, exiting");
+	$s_data->down();
+	delete($data{$id});
+	$s_data->up();
 	lock($threads);
 	$threads--;
 	cond_broadcast($threads);
 }
+
+
+
+############
+# ROUTINES #
+############
 
 # Finish
 sub quit($) {
