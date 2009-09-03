@@ -7,6 +7,8 @@
 
     * configuration (merge): support for merging values.
 
+    * slimrat-cli: single progress-bar for all threads.
+
 
 2009-09-02 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
