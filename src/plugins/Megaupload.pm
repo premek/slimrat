@@ -191,6 +191,6 @@ sub ocr_postprocess {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register("^[^/]+//(.*?)\.mega(upload|rotic|porn).com/");
+Plugin::register("^[^/]+//((.*?)\.)?mega(upload|rotic|porn).com/");
 
 1;
