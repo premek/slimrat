@@ -3,6 +3,10 @@
     * common (download): introduced some "retry" code, managing
       failed download and optionally retrying them.
 
+    * log (output): automatic "closing" of the progress bar.
+
+    * configuration (merge): support for merging values.
+
 
 2009-09-02 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
