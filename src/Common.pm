@@ -531,16 +531,10 @@ sub download($$$$$) {
 		# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
 		# Any errors get sent to the upper eval{} clause
 		if (! $response) {
-			# Finish the progress bar
-			print "\r\n" if ($size_downloaded);
 			die("plugin did not return HTTP::Response object");
 		} elsif (! $response->is_success) {
-			# Finish the progress bar
-			print "\r\n" if ($size_downloaded);
 			die($response->status_line);
 		} elsif ($response->header("X-Died")) {
-			# Finish the progress bar
-			print "\r\n" if ($size_downloaded);
 			die($response->header("X-Died"));
 		} else {
 			# Finish the progress bar
@@ -549,7 +543,6 @@ sub download($$$$$) {
 			} else {
 				&$progress($size_downloaded, 0, 0, 1);
 			}
-			print "\r\n";
 			
 			# Decode any content-encoding
 			if ($encoding) {
