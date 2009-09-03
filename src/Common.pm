@@ -77,6 +77,8 @@ $config->set_default("state_file", $ENV{HOME}."/.slimrat/pid");
 $config->set_default("timeout", 900);
 $config->set_default("useragent", "slimrat/$VERSION");
 $config->set_default("redownload", "rename");
+$config->set_default("retry_count", 0);
+$config->set_default("retry_timer", 60);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -193,7 +195,7 @@ sub daemonize() {
 sub pid_save() {
 	my $state_file = $config->get("state_file");
 	open(WRITE, ">$state_file") || return 0;	# Open and check existance
-	return 0 unless (-w WRITE);			# Check write access
+	return 0 unless (-w WRITE);	# Check write access
 	print WRITE $$;
 	close(WRITE);
 	return 1;
@@ -231,7 +233,11 @@ sub download($$$$$) {
 	
 	
 	# CONSTRUCTION #
+	CONSTRUCTION:
 	my $plugin;
+	
+	# Load the retry counter
+	my $counter = $config->get("retry_count");
 	
 	eval {	
 		# Load plugin
@@ -243,12 +249,21 @@ sub download($$$$$) {
 	
 	if ($@) {
 		my $error = substr($@, 0, -2);
-		error("plugin failure while constructing ($error)");
+		my $fatal = $error =~ s/^fatal: //i;
+		error("download failed while constructing ($error)");
+		if (!$fatal && $counter-- > 0) {
+			info("retrying $counter more times");
+			wait($config->get("retry_wait"));
+			goto CONSTRUCTION;
+		} elsif ($fatal) {
+			info("error to severe to attempt another try, bailing out");
+		}
 		return -2;
 	}
 	
 	
 	# CHECK #
+	CHECK:
 	my $status;
 	
 	eval {
@@ -257,17 +272,25 @@ sub download($$$$$) {
 	
 	if ($@) {
 		my $error = substr($@, 0, -2);
-		error("plugin failure while checking ($error)");
+		my $fatal = $error =~ s/^fatal: //i;
+		error("download failed while checking ($error)");
+		if (!$fatal && $counter-- > 0) {
+			info("retrying $counter more times");
+			wait($config->get("retry_wait"));
+			goto CHECK;
+		} elsif ($fatal) {
+			info("error to severe to attempt another try, bailing out");
+		}
 		return -2;
 	}	
 
-	warning("check failed (unknown reason)") if ($status == 0);
-	
+	warning("check failed (unknown reason)") if ($status == 0);	
 	error("check failed (dead link)") if ($status < 0);
-	return $status if ($status < 0); # XXX or <= 0? do we want to try to download links with unknown status? probably yes - check function can stop working but download can be done
+	return $status if ($status < 0);
 	
 
 	# PREPARATION #
+	PREPARATION:
 	my $filename;
 	my $filepath;
 	
@@ -288,12 +311,21 @@ sub download($$$$$) {
 	
 	if ($@) {
 		my $error = substr($@, 0, -2);
-		error("plugin failure while preparing ($error)");
+		my $fatal = $error =~ s/^fatal: //i;
+		error("download failed while preparing ($error)");
+		if (!$fatal && $counter-- > 0) {
+			info("retrying $counter more times");
+			wait($config->get("retry_wait"));
+			goto PREPARATION;
+		} elsif ($fatal) {
+			info("error to severe to attempt another try, bailing out");
+		}
 		return -2;
 	}
 	
 	
 	# DOWNLOAD #
+	DOWNLOAD:
 	my $size;
 	my $time_start = time;
 	my $time_chunk = time;
@@ -495,61 +527,63 @@ sub download($$$$$) {
 		);
 		$downloaders--;
 		delete($rate_surplus{thread_id()});
+		
+		# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
+		# Any errors get sent to the upper eval{} clause
+		if (! $response) {
+			# Finish the progress bar
+			print "\r\n" if ($size_downloaded);
+			die("plugin did not return HTTP::Response object");
+		} elsif (! $response->is_success) {
+			# Finish the progress bar
+			print "\r\n" if ($size_downloaded);
+			die($response->status_line);
+		} elsif ($response->header("X-Died")) {
+			# Finish the progress bar
+			print "\r\n" if ($size_downloaded);
+			die($response->header("X-Died"));
+		} else {
+			# Finish the progress bar
+			if ($size) {
+				&$progress($size, $size, 0, 1);
+			} else {
+				&$progress($size_downloaded, 0, 0, 1);
+			}
+			print "\r\n";
+			
+			# Decode any content-encoding
+			if ($encoding) {
+				for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+					next unless $ce;
+					next if $ce eq "identity";
+					if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
+						debug("uncompressing standard encodings");
+						anyuncompress $filepath => "$filepath.temp", AutoClose => 1, BinModeOut => 1
+							or die("could not decompress $ce, $AnyUncompressError");
+						rename("$filepath.temp", $filepath);
+					}
+				}
+			}
+		}
 	};
 	
 	if ($@) {
 		my $error = substr($@, 0, -2);
-		error("plugin failure while downloading ($error)");
+		my $fatal = $error =~ s/^fatal: //i;
+		error("download failed ($error)");
+		if (!$fatal && $counter-- > 0) {
+			info("retrying $counter more times");
+			wait($config->get("retry_wait"));
+			goto DOWNLOAD;
+		} elsif ($fatal) {
+			info("error to severe to attempt another try, bailing out");
+		}
 		return -2;
 	}
 	
 	# Close file
-	close(FILE);
-	
-	
-	# FINISH #
-	
-	# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
-	if (! $response) {
-		# Finish the progress bar
-		print "\r\n" if ($size_downloaded);
-		
-		return error("download failed for unknown reason");	
-	} elsif (! $response->is_success) {
-		# Finish the progress bar
-		print "\r\n" if ($size_downloaded);
-		
-		return error("download failed (", $response->status_line, ")");
-	} elsif ($response->header("X-Died")) {
-		# Finish the progress bar
-		print "\r\n" if ($size_downloaded);
-		
-		return error($response->header("X-Died"));
-	} else {
-		# Finish the progress bar
-		if ($size) {
-			&$progress($size, $size, 0, 1);
-		} else {
-			&$progress($size_downloaded, 0, 0, 1);
-		}
-		print "\r\n";
-		
-		# Decode any content-encoding
-		if ($encoding) {
-			for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-				next unless $ce;
-				next if $ce eq "identity";
-				if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
-					debug("uncompressing standard encodings");
-					anyuncompress $filepath => "$filepath.temp", AutoClose => 1, BinModeOut => 1
-						or return error("could not uncompress file ($AnyUncompressError)");
-					rename("$filepath.temp", $filepath);
-				}
-			}
-		}
-		
-		return 1;
-	}
+	close(FILE);	
+
 }
 
 # Quit all packages
