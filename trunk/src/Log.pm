@@ -119,8 +119,13 @@ sub output : locked {
 	}
 	
 	# Aesthetics: endline handling
-	print "\n" if ((!$omit_endl) && ($flags & 1));
-	$flags ^= $omit_endl || 0 unless ($flags & 1);	# Parameters have to be normalized (0 or 1, not 42 or "oh dear yes, please omit that endline")
+	$omit_endl = 0 unless $omit_endl;
+	if ($omit_endl) {
+		$flags |= 1;
+	} else {
+		print "\n" if ($flags & 1);
+		$flags &= ~1;
+	}
 	
 	# Screen output
 	if ($config->get("screen")) {
@@ -217,6 +222,7 @@ sub progress {
 	my $erase = $progress_length-$length;
 	$progress_length = $length;
 	output("", 0, "", ["\r", &timestamp, @_, " " x $erase], 3, 1) unless ($config->get("mode") eq "log");	# Extra spaces act as eraser
+	# TODO: mode log check should not be here, yet _another_ parameter to output()?  Maybe pass hash instead (output(text => "", options => "no_endl"))
 }
 
 # Warning
