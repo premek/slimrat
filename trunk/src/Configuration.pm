@@ -133,7 +133,7 @@ sub get($$) {
 	my ($self, $key) = @_;
 	
 	# Check if it contains the key (not present returns false)
-	return 0 unless ($self->contains($key));
+	return 0 unless ($self->contains($key));	# TODO: return undef, and honour by using "if ... //" instead of "if ... ||"
 	
 	# Return value or default
 	if (defined $self->{items}->{$key}->{value}) {
@@ -262,8 +262,12 @@ sub merge($$) {
 	
 	# Process all keys and update the complement
 	foreach my $key (keys %{$self->{items}}) {
-		warn("merge call only copies defaults") if (defined $self->{items}->{$key}->{value});
-		$complement->set_default($key, $self->get_default($key));
+		if (my $default = $self->get_default($key)) {
+			$complement->set_default($key, $default);
+		}
+		if (my $value = $self->{items}->{$key}->{value}) {	# TODO: get_value
+			$complement->set($key, $value);
+		}		
 	}
 	
 	# Update self
