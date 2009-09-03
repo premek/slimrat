@@ -21,4 +21,3 @@
     a problem arises when the plugin uses $self->{MECH} after it has
     been navigated away from the primary page. Maybe ditch the {PRIMARY}
     usage in get_data and re-fetch the primary URL into $self->{MECH}?
-  - Retry-upon-failure code in Common::download

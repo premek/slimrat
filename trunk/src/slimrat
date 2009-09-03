@@ -120,7 +120,6 @@ $config_cli->set_default("mode", "download");
 $config_cli->set_default("to", ".");
 $config_cli->set_default("threads", 1);
 $config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
-$config_cli->set_default("plugin_failure", "skip_globally");
 $config_cli->merge($config->section("cli"));
 
 # Give the usage or manual
@@ -397,16 +396,7 @@ sub thread_download {
 		}
 		elsif ($result == -2) {	# Plugin failure
 			$failure = 1;
-			my $action = $config_cli->get("plugin_failure");
-			if ($action eq "skip_forever") {
-				$queue->skip_globally("FAILURE");
-			} elsif ($action eq "skip_globally") {
-				$queue->skip_globally();
-			} elsif ($action eq "skip_locally") {
-				$queue->skip_locally();
-			} else {
-				fatal("unknow action upon plugin failure");
-			}
+			skip_globally();
 		} elsif ($result == -1) {	# URL dead
 			$failure = 1;
 			$queue->skip_globally("DEAD");
