@@ -78,6 +78,10 @@ my $dump_output:shared = "";
 # Progress length variable
 my $progress_length = 0;
 
+# Flags
+# bit 1: last message was not finished by an endline (ie. progress())
+my $flags : shared = 0;
+
 
 #
 # Internal functions
@@ -113,6 +117,10 @@ sub output : locked {
 		$messages_ucfirst[0] = ucfirst $messages_ucfirst[0];
 		$args[3] = \@messages_ucfirst;
 	}
+	
+	# Aesthetics: endline handling
+	print "\n" if ((!$omit_endl) && ($flags & 1));
+	$flags ^= $omit_endl || 0 unless ($flags & 1);	# Parameters have to be normalized (0 or 1, not 42 or "oh dear yes, please omit that endline")
 	
 	# Screen output
 	if ($config->get("screen")) {
