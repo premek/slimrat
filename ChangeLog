@@ -6,6 +6,9 @@
     * configuration: support for values which Perl evaluates
       to FALSE.
 
+    * log: cleaned the documentation, and replaced argument passing
+      to output() routines with passing of a hash.
+
 
 2009-09-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
