@@ -133,10 +133,7 @@ sub get_data {
 		return 0 unless ($res->is_success);
 		dump_add(data => $self->{MECH}->content());
 		$cont = $self->{MECH}->content();
-	} while ($captcha && $res->decoded_content !~ m#downloadlink#);
-
-	die("no captcha code entered") unless $captcha; # TODO: move to common
-
+	} while ($res->decoded_content !~ m#downloadlink#);
 
 	# Wait
 	if (my ($wait) = $res->decoded_content =~ m#count=(\d+);#) {
