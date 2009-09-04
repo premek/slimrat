@@ -113,6 +113,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Click the button to the secondary page
 	my ($asi) = $self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;	
 	my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );

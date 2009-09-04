@@ -109,15 +109,18 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 
-	# Check if the download form is present
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/);
-	return -1;
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<h1>Error<\/h1>/i);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Click the "Free" button
 	$self->{MECH}->form_id("ff");

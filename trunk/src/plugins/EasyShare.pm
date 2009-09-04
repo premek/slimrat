@@ -99,7 +99,8 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/msg-err/);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/<title>Download/);
+	return 0;
 }
 
 # Download data
@@ -107,6 +108,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	my $captcha_reader = shift;
+	
+	# Fetch primary page
+	$self->load();
 
 	# Wait timer
 	if (my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/) {

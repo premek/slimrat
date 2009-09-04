@@ -100,7 +100,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	#return -1 if  ...TODO: detect the 302 redirect to the upload form 
+	return -1 if ($self->{MECH}->uri() =~ m/upload.html/);
 	return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
 	return 0;
 }
@@ -109,6 +109,9 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Click to the secondary page
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );

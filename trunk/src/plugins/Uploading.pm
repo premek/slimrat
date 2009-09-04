@@ -102,7 +102,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->code == 404);
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m#>Download!</button>#);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#File download#);
 	return 0;
 }
 
@@ -110,6 +110,9 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Click the "Download" button
 	$self->{MECH}->form_id("downloadform");

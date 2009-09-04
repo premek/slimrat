@@ -112,6 +112,9 @@ sub check {
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 
 	# Wait timer
 	my $res = $self->{MECH}->get("http://romhustler.net/download.js");

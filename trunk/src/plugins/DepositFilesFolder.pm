@@ -104,6 +104,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	$_ = $self->{MECH}->content();
 
 

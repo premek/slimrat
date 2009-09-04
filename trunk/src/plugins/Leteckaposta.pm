@@ -111,6 +111,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Download URL
 	if (my ($download) = $self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
 		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download"), $data_processor);

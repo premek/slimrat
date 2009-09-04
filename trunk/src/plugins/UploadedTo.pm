@@ -100,13 +100,17 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m#File doesn't exist#);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#Free Download#);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Trafic exceeded
 	if($self->{MECH}->content() =~ m#Or wait (\d+) minutes!#) {

@@ -113,6 +113,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Click the "Free Download" button
 	$self->{MECH}->form_number(3);
 	my $res = $self->{MECH}->submit_form();

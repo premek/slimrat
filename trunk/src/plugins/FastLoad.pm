@@ -102,14 +102,18 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m#Diese Datei existiert nicht#);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#onclick="top\.location='(.+?)';" value#);
-	return -1;
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Download URL
 	if (my ($download) = $self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
