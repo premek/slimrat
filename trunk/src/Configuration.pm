@@ -108,6 +108,7 @@ sub new {
 # Check if the configuration contains a specific key
 sub contains($$) {
 	my ($self, $key) = @_;
+	die("no key specified") unless $key;
 	if (exists $self->{items}->{$key}) {
 		return 1;
 	} else {
@@ -156,9 +157,9 @@ sub get($$) {
 	return unless ($self->contains($key));
 	
 	# Return value or default
-	if (defined(my $value = $self->get_value())) {
+	if (defined(my $value = $self->get_value($key))) {
 		return $value;
-	} elsif (defined(my $default = $self->get_default())) {
+	} elsif (defined(my $default = $self->get_default($key))) {
 		return $default;
 	}
 	warn("key $key exists without actual contents");
@@ -277,7 +278,7 @@ sub merge($$) {
 			warn("merge overwrites default value of key $key") if (defined($complement->get_default($key)));
 			$complement->set_default($key, $default);
 		}
-		if (defined(my $value = $self->get_value())) {
+		if (defined(my $value = $self->get_value($key))) {
 			warn("merge overwrites value of key $key") if (defined($complement->get_value($key)));
 			$complement->set($key, $value);
 		}		
