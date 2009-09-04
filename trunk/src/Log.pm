@@ -89,38 +89,42 @@ my $flags : shared = 0;
 
 # Print a message
 sub output_raw {
-	my ($filehandle, $colour, $timestamp, $category, $messages, $verbosity, $omit_endl) = @_;
+	my ($fh, $dataref) = @_;
+	my %data = %$dataref;
 	
-	print $filehandle $colour if ($colour);
-	print $filehandle $timestamp?&timestamp:(" " x length(&timestamp));
-	print $filehandle "THR", thread_id(), " " if ($config->get("show_thread") && $config->get("verbosity") > 4);
-	print $filehandle uc($category).": " if ($category);
-	defined $_ and print $filehandle $_ foreach (@{$messages});
-	print $filehandle RESET if ($colour);
-	print $filehandle "\n" unless ($omit_endl);
+	print $fh $data{colour} if $data{colour};
+	print $fh $data{omit_timestamp}?(" " x length(&timestamp)):&timestamp;
+	print $fh "THR", thread_id(), " " if ($config->get("show_thread") && $config->get("verbosity") > 4);
+	print $fh uc($data{category}).": " if $data{category};
+	print $fh $_ foreach (@{$data{messages}});
+	print $fh RESET if ($data{colour});
+	print $fh "\n" unless ($data{omit_endline});
 }
 
 # Print a message
 sub output : locked {
-	my ($colour, $timestamp, $category, $messages, $verbosity, $omit_endl) = @_;
+	my %data = @_;
+	$data{colour} = "" unless defined($data{colour});
+	$data{category} = "" unless defined($data{category});
+	$data{omit_timestamp} = 0 unless defined($data{omit_timestamp});
+	$data{omit_endline} = 0 unless defined($data{omit_endline});
+	$data{verbosity} = 3 unless defined($data{verbosity});
 	
 	# Verbosity
-	return unless ($config->get("verbosity") >= $verbosity);
+	return unless ($config->get("verbosity") >= $data{verbosity});
 	
-	# Mode
-	my @args = @_;
-	$args[0] = "" if ($config->get("mode") eq "log");
+	# Mode (TODO: mode PER output)
+	delete($data{colour}) if ($config->get("mode") eq "log");
 	
 	# Aesthetics: uppercase first character
-	if (!$category) {
-		my @messages_ucfirst = @$messages;
-		$messages_ucfirst[0] = ucfirst $messages_ucfirst[0];
-		$args[3] = \@messages_ucfirst;
+	if (!$data{category}) {
+		my @messages = @{$data{messages}};
+		$messages[0] = ucfirst $messages[0];
+		$data{messages} = \@messages;
 	}
 	
 	# Aesthetics: endline handling
-	$omit_endl = 0 unless $omit_endl;
-	if ($omit_endl) {
+	if ($data{omit_endl}) {
 		$flags |= 1;
 	} else {
 		print "\n" if ($flags & 1);
@@ -131,19 +135,19 @@ sub output : locked {
 	if ($config->get("screen")) {
 		my $fh;
 		open($fh, ">&STDOUT");
-		output_raw($fh, @args);
+		output_raw($fh, \%data);
 		close($fh);
 	}
 	
 	# Delete colours
-	delete($args[0]);
+	delete($data{colour});
 	
 	# Debug log output when in --debug mode
 	if ($config->get("verbosity") >= 5) {
 		my ($fh, $temp);	# Perl doesn't like filehandles to shared variables (bug?)
 		$temp = "";
 		open($fh, ">>", \$temp);
-		output_raw($fh, @args);
+		output_raw($fh, \%data);
 		close($fh);
 		$dump_output .= $temp;
 	}
@@ -152,7 +156,7 @@ sub output : locked {
 	if ($config->get("file") && -d dirname($config->get("file_path")) && -w dirname($config->get("file_path"))) {
 		my $fh;
 		open($fh, ">>".$config->get("file_path")) || die("could not open given logfile");
-		output_raw($fh, @args);
+		output_raw($fh, \%data);
 		close($fh);	
 	}
 }
@@ -164,7 +168,11 @@ sub output : locked {
 
 # Debug message
 sub debug {
-	output(GREEN, 1, "debug", \@_, 4);
+	output(	colour => GREEN,
+			category => "debug",
+			messages => \@_,
+			verbosity => 4
+	);
 	return 0;
 }
 
@@ -196,22 +204,33 @@ sub callstack {
 	
 	# Do a regular trace and hope the error happened in this thread
 	#else {
-		output(GREEN, 1, "", ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"], 5);
+		output(	colour => GREEN,
+				messages => ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"],
+				verbosity => 5
+		);
 		
 		for (my $i = 1+$offset; 1; $i++) {
 			last unless (caller($i));
 			$traces++;
-			output(GREEN, 0, "", [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]], 5);		
+			output(	colour => GREEN,
+					omit_timestamp => 1,
+					messages => [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]],
+					verbosity => 5
+		);		
 		}
 	#}
 	
 	# No stack at all
-	output(GREEN, 0, "", ["(stack is empty)"], 5) unless ($traces);
+	output(	colour => GREEN,
+			omit_timestamp => 0,
+			messages => ["(stack is empty)"],
+			verbosity => 5
+	) unless ($traces);
 }
 
 # Informative message
 sub info {
-	output("", 1, "", \@_, 3);
+	output(messages => \@_);
 	return 0;
 }
 
@@ -221,27 +240,44 @@ sub progress {
 	$length += length($_) foreach (@_);
 	my $erase = $progress_length-$length;
 	$progress_length = $length;
-	output("", 0, "", ["\r", &timestamp, @_, " " x $erase], 3, 1) unless ($config->get("mode") eq "log");	# Extra spaces act as eraser
-	# TODO: mode log check should not be here, yet _another_ parameter to output()?  Maybe pass hash instead (output(text => "", options => "no_endl"))
+	output(	omit_timestamp => 1,
+			messages => ["\r", &timestamp, @_, " " x $erase],	# Extra spaces act as eraser
+			omit_endline => 1
+	) unless ($config->get("mode") eq "log");
 }
 
 # Warning
 sub warning {
-	output(YELLOW, 1, "warning", \@_, 2);
+	output(	colour => YELLOW,
+			category => "warning",
+			messages => \@_,
+			verbosity => 2
+	);
 	return 0;
 }
 
 # Non-fatal error
 sub error {
-	output(RED, 1, "error", \@_, 1);
+	output(	colour => RED,
+			category => "error",
+			messages => \@_,
+			verbosity => 1
+	);
 	callstack(1);
 	return 0;
 }
 
 # Usage error
 sub usage {
-	output(YELLOW, 1, "invalid usage", \@_, 0);
-	output("", 1, "", ["Try `$0 --help` or `$0 --man` for more information"], 0);
+	output(	colour => YELLOW,
+			category => "invalid usage",
+			messages => \@_,
+			verbosity => 0
+	);
+	output(	omit_timestamp =>  1,
+			messages => ["Try `$0 --help` or `$0 --man` for more information"],
+			verbosity => 0
+	);
 	
 	# Quit
 	if (defined(&main::quit)) {
@@ -253,7 +289,11 @@ sub usage {
 
 # Fatal runtime error
 sub fatal {
-	output(RED, 1, "fatal error", \@_, 0);
+	output(	colour => RED,
+			category => "fatal error",
+			messages => \@_,
+			verbosity => 0
+	);
 	callstack(1);
 	
 	# Quit
@@ -275,10 +315,18 @@ $SIG{__WARN__} = sub {
 	chomp(@args);
 	
 	# Multiline output
-	output(YELLOW, 1, "warning signal", [shift @args], 2);
+	output(	colour => YELLOW,
+			category => "warning signal",
+			messages => [shift @args],
+			verbosity => 2
+	);
 	while ($_ = shift @args) {
 		next unless $_;
-		output(YELLOW, 0, "", [$_], 2);
+		output(	colour => YELLOW,
+				omit_timestamp => 1,
+				messages => [$_],
+				verbosity => 2
+		);
 	}
 	
 	# Callstack
@@ -296,10 +344,18 @@ $SIG{__DIE__} = sub {
 	chomp(@args);
 	
 	# Multiline output
-	output(RED, 1, "fatal signal", [shift @args], 1);
+	output(	colour => RED,
+			category => "fatal signal",
+			messages => [shift @args],
+			verbosity => 1
+	);
 	while (shift @args) {
 		next unless $_;
-		output(RED, 0, "", [$_], 1);
+		output(	colour => RED,
+				omit_timestamp => 1,
+				messages => [$_],
+				verbosity => 1
+		);
 	}
 	
 	# Callstack
@@ -333,12 +389,23 @@ sub summary {
 	}
 	
 	if(scalar @oklinks){
-		output(GREEN, 0, "", ["DOWNLOADED:"], 3);
-		output("", 0, "", ["\t", $_], 3) foreach @oklinks;
+		output(	colour => GREEN,
+				omit_timestamp => 1,
+				messages => ["DOWNLOADED:"],
+				verbosity => 3
+		);
+		output(	omit_timestamp => 1,
+				messages => ["\t", $_]
+		) foreach @oklinks;
 	}
 	if(scalar @faillinks){
-		output(RED, 0, "", ["FAILED:"], 3);
-		output("", 0, "", ["\t", $_], 3) foreach @faillinks;
+		output(	colour => RED,
+				omit_timestamp => 1,
+				messages => ["FAILED:"]
+		);
+		output(	omit_timestamp => 1,
+				messages => ["\t", $_]
+		) foreach @faillinks;
 	}
 }
 
@@ -350,11 +417,20 @@ sub status {
 	$extra = " ($extra)" if $extra;
 
 	if ($status>0) {
-		output(GREEN, 0, "", ["[ALIVE] ", RESET, $link, $extra], 3);
+		output(	colour => GREEN,
+				omit_timestamp => 1,
+				messages => ["[ALIVE] ", RESET, $link, $extra]
+		);
 	} elsif ($status<0) {
-		output(RED, 0, "", ["[DEAD] ", RESET, $link, $extra], 3);
+		output(	colour => RED,
+				omit_timestamp => 1,
+				messages => ["[DEAD] ", RESET, $link, $extra]
+		);
 	} else {
-		output(YELLOW, 0, "", ["[?] ", RESET, $link, $extra], 3);
+		output(	colour => YELLOW,
+				omit_timestamp => 1,
+				messages => ["[?] ", RESET, $link, $extra]
+		);
 	}
 }
 
@@ -503,26 +579,29 @@ Merges the local base config with a set of user-defined configuration
 values. This is a static method, and saves the configuration statically,
 which means it applies to all (have been and to be) instantiated objects.
 
-=head2 Log::output($colour, $timestamp, $category, \@messages, $verbosity))
+=head2 Log::output(%data)
 
-This is the main function of the Log module, but mustn't be used directly. It prints
-a set of messages, prefixed by $colour (to colourize the message), and optionally
-adds in a category notice (e.g. DEBUG, or FATAL ERROR) after having it uppercased.
-The message can get hidden when the verbosity is greater than the configured
-verbosity level. The $timestamp value controls whether a timestamp is printed, when
-absent spaces pad the message to line it out ($timestamp=0 is thus ideally for
-a multiline message).
+This is the main function of the Log module, but shouldn't be used directly.
+It prints a set of messages, prefixed by $data{$colour} (to colourize the
+message), and optionally adds in the category notice $data{category} (e.g.
+DEBUG, or FATAL ERROR) after having it uppercased.
+The message can get hidden when the verbosity $data{verbosity} is greater
+than the configured verbosity level. The $data{omit_timestamp} value controls
+whether a timestamp is printed, when set spaces pad the message to line it out.
+$data{omit_endl} can be used to prevent to construct progress bars.
+
+Summarized, all possible options to this method:
+   colour
+   verbosity
+   messages
+   category
+   omit_timestamp
+   omit_endline
 
 =head2 Log::timestamp()
 
 This generates a timestamp, and is also mainly intended for internal use by the
 output() function.
-
-=head2 Log::level($level)
-
-This sets the application-wide verbosity level, in which a higher level will print
-more, and a lower level less (see the actual message functions to see which type of
-message each level correlates with).
 
 =head2 Log::debug(@messages)
 
