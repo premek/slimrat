@@ -3,6 +3,9 @@
     * plugins: went through all once again, removing {PRIMARY}
       usage in get_data to make it reusable more than once.
 
+    * configuration: support for values which Perl evaluates
+      to FALSE.
+
 
 2009-09-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 

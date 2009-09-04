@@ -73,7 +73,7 @@ sub init($$) {
 	# Add at right spot (self or parent)
 	if ($self->{parent}) {
 		$self->{parent}->init($self->{section} . ":" . $key);
-		$self->{items}->{$key} = $self->{parent}->{items}->{$self->{section} . ":" . $key};	# Item was ref, will shared hash pass?
+		$self->{items}->{$key} = $self->{parent}->{items}->{$self->{section} . ":" . $key};
 	} else {
 		share($self->{items}->{$key});
 		$self->{items}->{$key} = &share({});
@@ -128,30 +128,41 @@ sub set_default($$$) {
 	$self->{items}->{$key}->{default} = $value;
 }
 
+# Get the default value
+sub get_default($$) {
+	my ($self, $key) = @_;
+	
+	if ($self->contains($key) && defined $self->{items}->{$key}->{default}) {
+		return $self->{items}->{$key}->{default};
+	}
+	return;
+}
+
+# Get the actual value (ie. do not return default if not defined)
+sub get_value($$) {
+	my ($self, $key) = @_;
+	
+	if ($self->contains($key) && defined $self->{items}->{$key}->{value}) {
+		return $self->{items}->{$key}->{value};
+	}
+	return,
+}
+
 # Get a value
 sub get($$) {
 	my ($self, $key) = @_;
 	
 	# Check if it contains the key (not present returns false)
-	return 0 unless ($self->contains($key));	# TODO: return undef, and honour by using "if ... //" instead of "if ... ||"
+	return unless ($self->contains($key));
 	
 	# Return value or default
-	if (defined $self->{items}->{$key}->{value}) {
-		return $self->{items}->{$key}->{value};
-	} else {
-		return $self->{items}->{$key}->{default};
+	if (defined(my $value = $self->get_value())) {
+		return $value;
+	} elsif (defined(my $default = $self->get_default())) {
+		return $default;
 	}
-}
-
-# Get the default value
-sub get_default($$) {
-	my ($self, $key) = @_;
-	
-	# Check if it contains the key (not present returns false)
-	return 0 unless ($self->contains($key));
-	
-	# Return default
-	return $self->{items}->{$key}->{default};
+	warn("key $key exists without actual contents");
+	return;
 }
 
 # Set a value
@@ -262,10 +273,12 @@ sub merge($$) {
 	
 	# Process all keys and update the complement
 	foreach my $key (keys %{$self->{items}}) {
-		if (my $default = $self->get_default($key)) {
+		if (defined(my $default = $self->get_default($key))) {
+			warn("merge overwrites default value of key $key") if (defined($complement->get_default($key)));
 			$complement->set_default($key, $default);
 		}
-		if (my $value = $self->{items}->{$key}->{value}) {	# TODO: get_value
+		if (defined(my $value = $self->get_value())) {
+			warn("merge overwrites value of key $key") if (defined($complement->get_value($key)));
 			$complement->set($key, $value);
 		}		
 	}
@@ -406,8 +419,21 @@ be accessed with the default() call.
 
 =head2 $config->get($key)
 
-Return the value for a specific key. Returns 0 if not found, and if found but no values
-are found it returns the default value (which is "undef" if not specified).
+Return the value for a specific key. If not value specified, returns the default value.
+Returns undef if no default value specified either.
+
+NOTE: recently behaviour of this function has altered, there it now supports and correctly
+returns values which Perl evaluates to FALSE. When checking if a configuration value
+is present, please use defined() now instead of regular boolean testing.
+
+=head2 $config->get_default($key)
+
+Returns the default value, or undef if not specified.
+
+=head2 $config->get_value($key)
+
+Returns the value of the key, or undef if not specified. Does not return the default
+value.
 
 =head2 $config->contains($key)
 
@@ -452,7 +478,7 @@ When however the configuration object is needed before user-defined values get p
 a static package, see Log.pm), there will be a pre-existent configuration object containing
 the default values. Upon configuration, the merge() call can be used to merge that object
 with the passed one containing user-defined values. Again, this should be rarely used, and when
-needed check the usage in Log.pm.
+needed check the usage in Log.pm or other packages.
   use Configuration;
 
   # A package creates an initial Configuration object (e.g. at BEGIN block)
@@ -466,6 +492,12 @@ needed check the usage in Log.pm.
   # The package receives the configuration entries it is interested in, and merges them
   # with the existing default values
   $config_package->merge($config_main->section("package"));
+
+Previously the merge() call did only transfer default values from the pre-existent object
+to the new object, but this has recently changed to support more advanced actions (ie. Plugin.pm,
+where per-plugin configuration objects get merged with the plugin-global "Plugin" section). A
+warning will however be omitted when the merge calls overwrites a previously set (default or non-
+default) value.
 
 =head2 $config->save($key, $file)
 
