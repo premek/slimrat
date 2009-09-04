@@ -111,6 +111,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Click the button
 	$self->{MECH}->form_number(0);
 	$self->{MECH}->submit_form();

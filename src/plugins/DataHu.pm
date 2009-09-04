@@ -101,7 +101,8 @@ sub check {
 	my $self = shift;
 	
 	return -1 if($self->{PRIMARY}->decoded_content =~ m#error_box#);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/class="download_it"><a href="(.*)" onmousedown/sm);
+	return 0;
 }
 
 # Download data
@@ -109,16 +110,18 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;	
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Wait timer
-	if ($self->{PRIMARY}->decoded_content =~ m#kell:#) {
+	if ($self->{MECH}->content() =~ m#kell:#) {
 		my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
 		die("primary page error, could not extract wait time") unless $wait;
 		wait($1);
-		$self->{PRIMARY} = $self->reload();
 	}
 	
 	# Download URL
-	if ($self->{PRIMARY}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
+	if ($self->{MECH}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
 		my $download = $1;
 		die("primary page error, could not extract download link") unless $download;
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);

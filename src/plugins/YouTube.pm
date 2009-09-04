@@ -102,13 +102,17 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<div class="errorBox">/);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/var swfArgs/);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Download video
 	if ((my ($v) = $self->{MECH}->content() =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/)

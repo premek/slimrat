@@ -101,13 +101,17 @@ sub check {
 	my $self = shift;
 	
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/);
-	return -1;
+	return -1 if ($self->{MECH}->uri() =~ m/error.php/);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";

@@ -110,8 +110,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	my $read_captcha = shift;
-
-	my $res;
+	
+	# Fetch primary page
+	$self->load();
 
 	#
 	# "PROFI" download
@@ -119,26 +120,24 @@ sub get_data {
 	
 	if($self->{CONF}->get("login") and $self->{CONF}->get("pass")) {
 		# Download URL
-		if ((my ($id) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="id" value="(.+?)" />#)
-			&& (my ($file) = $self->{PRIMARY}->decoded_content =~ m#<input type="hidden" name="file" value="(.+?)" />#)) {
+		if ((my ($id) = $self->{MECH}->content() =~ m#<input type="hidden" name="id" value="(.+?)" />#)
+			&& (my ($file) = $self->{MECH}->content() =~ m#<input type="hidden" name="file" value="(.+?)" />#)) {
 					
 			# hm, why Im not able to do this with Mechanize?
-			$res = $self->{MECH}->post("http://czshare.com/prihlasit.php", {
-					prihlasit=>1,
-					jmeno=>$self->{CONF}->get("login"),
-					heslo=>$self->{CONF}->get("pass"),
-					id=>$id,
-					file=>$file,
-					});
+			my $res = $self->{MECH}->post("http://czshare.com/prihlasit.php", {
+				prihlasit=>1,
+				jmeno=>$self->{CONF}->get("login"),
+				heslo=>$self->{CONF}->get("pass"),
+				id=>$id,
+				file=>$file,
+			});
+			die("secondary page error (" . $res->status_line() . ")") unless ($res->is_success);
+			dump_add(data => $self->{MECH}->content());
 	
-			$_ = $self->{MECH}->content();
-			dump_add(data => $_);
-	
-			m#http://.+?/$id/.+?/.+?/#;
-			return $self->{MECH}->request(HTTP::Request->new(GET => $&), $data_processor);
+			if ($self->{MECH}->content() =~ m#http://.+?/$id/.+?/.+?/# ) {
+				return $self->{MECH}->request(HTTP::Request->new(GET => $&), $data_processor);
+			}
 		}
-		
-		die("could not match any action");
 	}
 
 
@@ -155,7 +154,7 @@ sub get_data {
 		# Free form
 		if ($self->{MECH}->form_with_fields("id","file","ticket")) {
 			# Click form
-			$res = $self->{MECH}->submit_form();
+			$self->{MECH}->submit_form();
 			dump_add(data => $self->{MECH}->content());
 			
 			# Solve captcha
@@ -173,22 +172,22 @@ sub get_data {
 				$self->{MECH}->back();
 	
 				# Submit captcha form
-				$res = $self->{MECH}->submit_form( with_fields => { captchastring => $captcha });
+				my $res = $self->{MECH}->submit_form( with_fields => { captchastring => $captcha });
 				return 0 unless ($res->is_success);
 				dump_add(data => $self->{MECH}->content());
 				$self->{MECH}->back() if($self->{MECH}->content() =~ /Error 12/);
-			} while ($captcha && $res->decoded_content !~ m#pre_download_form#);
+			} while ($captcha && $self->{MECH}->content() !~ m#pre_download_form#);
 	
 			# Generate request
-			my($action, $id, $ticket) = $res->decoded_content =~ m#<form name="pre_download_form" action="(.+?)".+name="id" value="(\d+)".+name="ticket" value="(.+?)"#s;# <input type="submit" name="submit_btn" DISABLED value="stahnout " /> 
+			my($action, $id, $ticket) = $self->{MECH}->content() =~ m#<form name="pre_download_form" action="(.+?)".+name="id" value="(\d+)".+name="ticket" value="(.+?)"#s;# <input type="submit" name="submit_btn" DISABLED value="stahnout " /> 
 				my $req = HTTP::Request->new(POST => $action);
 			$req->content_type('application/x-www-form-urlencoded');
 			$req->content("id=$id&ticket=$ticket");		
 			return $self->{MECH}->request($req, $data_processor);
 		}
-		
-		die("could not match any action");
 	}
+		
+	die("could not match any action");
 }
 
 # Amount of resources

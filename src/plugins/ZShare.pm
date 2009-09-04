@@ -112,6 +112,9 @@ sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	# Click the "Download Now" button
 	$self->{MECH}->form_name("form1") or die("could not click the 'Download Now' button");
 	my $res = $self->{MECH}->submit_form();

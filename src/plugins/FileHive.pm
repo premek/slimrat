@@ -107,13 +107,17 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<font color=red>The uploaded item is not found!<\/font>/);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/Report that this image is illegal or copyrighted/);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;	
+	
+	# Fetch primary page
+	$self->load();
 		
 	# Download URL
 	if ($self->{MECH}->content() =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/) {

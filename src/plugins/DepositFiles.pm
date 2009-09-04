@@ -113,13 +113,17 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/does not exist/);
-	return 1;
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/Download the file/);
+	return 0;
 }
 
 # Download data
 sub get_data {
 	my $self = shift;
 	my $data_processor = shift;
+	
+	# Fetch primary page
+	$self->load();
 	
 	# Download button
 	if ($self->{MECH}->form_with_fields("gateway_result")) { # TODO mute "There is no form with the requested fields" error if not found

@@ -112,6 +112,9 @@ sub get_data {
 	my $data_processor = shift;
 	my $read_captcha = shift;
 	
+	# Fetch primary page
+	$self->load();
+	
 	my ($res, $captcha);
 	my $cont = $self->{MECH}->content();
 	do {

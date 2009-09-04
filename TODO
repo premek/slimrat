@@ -16,8 +16,3 @@
   - Test everything!
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
-  - Make sure all plugins use $self->{PRIMARY|MECH} properly, e.g.
-    get_data must support being called multiple times (in which case
-    a problem arises when the plugin uses $self->{MECH} after it has
-    been navigated away from the primary page. Maybe ditch the {PRIMARY}
-    usage in get_data and re-fetch the primary URL into $self->{MECH}?
