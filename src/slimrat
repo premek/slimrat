@@ -445,7 +445,7 @@ sub thread_download {
 		}
 		elsif ($result == -2) {	# Plugin failure
 			$failure = 1;
-			skip_globally();
+			$queue->skip_globally();
 		} elsif ($result == -1) {	# URL dead
 			$failure = 1;
 			$queue->skip_globally("DEAD");
