@@ -94,6 +94,8 @@ if ($@) {
 	$THRCOMP = 1;
 }
 
+# Emit warning when using development version
+warning("this is a development release (SVN build $BUILD), if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 
 ############
