@@ -115,7 +115,8 @@ sub get_data {
 	$self->load();
 	
 	# Download URL
-	if (my ($download) = $self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
+	if ($self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
+		my $download = $1;
 		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download"), $data_processor);
 	}
 	

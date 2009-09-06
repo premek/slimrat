@@ -130,21 +130,26 @@ sub get_data {
 	
 	# Download limit
 	if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
-		my $minutes = m/Or try again in about (\d+) minutes/sm;
 		warning("reached the download limit for free-users");
-		wait($minutes*60);
+		if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
+			wait($1*60);			
+		} else {
+			die("could not extract wait timer");
+		}
 		$self->reload();
 	}
 	
 	# Free user limit
-	if (my ($minutes) = $self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+	if ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+		my $minutes = $1; 
 		warning("currently a lot of users are downloading files");
 		wait($minutes*60);
 		$self->reload();
 	}
 	
 	# Slot availability
-	if (my ($minutes) = $self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+	if ($self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+		my $minutes = $1;
 		warning("no available slots for free users");
 		wait($minutes*60);
 		$self->reload();
@@ -156,7 +161,8 @@ sub get_data {
 	}
 	
 	# Download
-	if (my ($download, $wait) = $self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+	if ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+		my ($download, $wait) = ($1, $2);
 		wait($wait);
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}

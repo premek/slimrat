@@ -142,11 +142,11 @@ sub get_data {
 	}
 	
 	# Wait timer
-	if (my ($wait1, my $wait2, my $time) = $self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
-		my $wait;
-		if ($time eq "min") {$wait *= 60;}
-		elsif ($time eq "hour") {$wait = 60*($wait*60 + $wait2);}
-		wait($wait);
+	if ($self->{MECH}->content() =~ m/Please try in\s+(\d+)(?::(\d+))? (min|sec|hour)/s) {
+		my ($wait1, $wait2, $time) = ($1, $2, $3);
+		if ($time eq "min") {$wait1 *= 60;}
+		elsif ($time eq "hour") {$wait1 = 60*($wait1*60 + $wait2);}
+		wait($wait1);
 		$self->reload();
 	}
 	
