@@ -222,7 +222,6 @@ if ($config_cli->get("daemon")) {
 ########
 
 info("slimrat started (noninteractive command-line interface)");
-warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 #
 # Update

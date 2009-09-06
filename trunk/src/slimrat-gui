@@ -143,7 +143,6 @@ config_propagate($config);
 #######
 
 info("slimrat started (graphical user interface)");
-warning("this is a development release, if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 # Enable threads
 Glib::Object->set_threadsafe(TRUE) || error("could not guarantee thread safetyness, kittens might die");
