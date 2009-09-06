@@ -40,6 +40,8 @@
 # Package name
 package Common;
 our $VERSION = '1.0.0-trunk';
+our $BUILD = '$Rev$';
+$BUILD =~ s/^\$Rev: (\d+) \$$/$1/;
 
 # Export functionality
 use Exporter;
