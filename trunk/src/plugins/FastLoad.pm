@@ -116,7 +116,8 @@ sub get_data {
 	$self->load();
 	
 	# Download URL
-	if (my ($download) = $self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
+	if ($self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
+		my $download = $1;
 		return $self->{MECH}->request(HTTP::Request->new(GET => "http://www.fast-load.net$download"), $data_processor);
 	}
 	

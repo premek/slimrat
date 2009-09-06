@@ -113,8 +113,8 @@ sub get_data {
 	$self->load();
 
 	# Wait timer
-	if (my ($seconds) = $self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
-		wait($seconds);
+	if ($self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
+		wait($1);
 		$self->reload();
 		# Normally the form gets filled in by some Javascript, but upon reload
 		# EasyShare detects the user have been waiting and sends the form along.

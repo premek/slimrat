@@ -115,13 +115,14 @@ sub get_data {
 	$self->load();
 	
 	# Click the "Download" button
-	$self->{MECH}->form_id("downloadform");
-	my $res = $self->{MECH}->submit_form();
-	die("page 2 error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->form_id("downloadform")) {
+		my $res = $self->{MECH}->submit_form();
+		die("page 2 error, ", $res->status_line) unless ($res->is_success);
+		dump_add(data => $self->{MECH}->content());
+	}
 		
 	# Wait timer
-	if ($self->{MECH}->content() =~ m/setTimeout\('countdown2\(\)',(\d+)\)/) {
+	if ($self->{MECH}->content() =~ m/setTimeout\('.+', (\d+)\)/) {
 		wait($1/10);
 	}
 	

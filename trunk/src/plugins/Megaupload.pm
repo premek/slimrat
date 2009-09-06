@@ -136,12 +136,13 @@ sub get_data {
 	} while ($res->decoded_content !~ m#downloadlink#);
 
 	# Wait
-	if (my ($wait) = $res->decoded_content =~ m#count=(\d+);#) {
-		wait ($wait, 1);
+	if ($res->decoded_content =~ m#count=(\d+);#) {
+		wait($1, 1);
 	}
 
 	# Get download url
-	if (my ($download) = $res->decoded_content =~ m#downloadlink"><a href="(.*?)"#) {
+	if ($res->decoded_content =~ m#downloadlink"><a href="(.*?)"#) {
+		my $download = $1;
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	

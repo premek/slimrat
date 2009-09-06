@@ -119,8 +119,8 @@ sub get_data {
 	$self->{MECH}->submit_form();
 	
 	# Download URL
-	if (my ($download) = $self->{MECH}->content =~ m/<br>Link: <a href=([^>]+)><b>/s) {
-		die("could not extract download link") unless $download;
+	if ($self->{MECH}->content =~ m/<br>Link: <a href=([^>]+)><b>/s) {
+		my $download = $1;
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
