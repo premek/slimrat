@@ -39,6 +39,8 @@
 
 # Package name
 package Common;
+
+# Version information (NOTE: build nubmer is that of Common.pm)
 our $VERSION = '1.0.0-trunk';
 our $BUILD = '$Rev$';
 $BUILD =~ s/^\$Rev: (\d+) \$$/$1/;
@@ -95,7 +97,7 @@ if ($@) {
 }
 
 # Emit warning when using development version
-warning("this is a development release (SVN build $BUILD), if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
+warning("this is a development release (Common SVN build $BUILD), if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 
 ############
