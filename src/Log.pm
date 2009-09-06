@@ -124,7 +124,7 @@ sub output : locked {
 	}
 	
 	# Aesthetics: endline handling
-	if ($data{omit_endl}) {
+	if ($data{omit_endline}) {
 		$flags |= 1;
 	} else {
 		print "\n" if ($flags & 1);
@@ -588,7 +588,7 @@ DEBUG, or FATAL ERROR) after having it uppercased.
 The message can get hidden when the verbosity $data{verbosity} is greater
 than the configured verbosity level. The $data{omit_timestamp} value controls
 whether a timestamp is printed, when set spaces pad the message to line it out.
-$data{omit_endl} can be used to prevent to construct progress bars.
+$data{omit_endline} can be used to prevent to construct progress bars.
 
 Summarized, all possible options to this method:
    colour
