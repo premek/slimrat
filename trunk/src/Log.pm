@@ -125,6 +125,7 @@ sub output : locked {
 	
 	# Aesthetics: endline handling
 	if ($data{omit_endline}) {
+		print "\r" if ($flags & 1);
 		$flags |= 1;
 	} else {
 		print "\n" if ($flags & 1);
@@ -240,8 +241,7 @@ sub progress {
 	$length += length($_) foreach (@_);
 	my $erase = $progress_length-$length;
 	$progress_length = $length;
-	output(	omit_timestamp => 1,
-			messages => ["\r", &timestamp, @_, " " x $erase],	# Extra spaces act as eraser
+	output(	messages => [@_, " " x $erase],	# Extra spaces act as eraser
 			omit_endline => 1
 	) unless ($config->get("mode") eq "log");
 }

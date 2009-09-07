@@ -304,7 +304,7 @@ elsif ($config_cli->get("mode") eq "download") {
 		sleep(1) while $threads;
 	} else {
 		no strict "subs";
-		sleep(1) while (scalar(threads->list(threads::running)));
+		sleep(1) while (scalar(threads->list(threads::running)) > 1);
 	}	
 	
 	# Check if there is work left (e.g. if the last thread -- or the only thread -- eliminated
