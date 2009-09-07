@@ -158,7 +158,7 @@ sub ocr_postprocess {
 	s/</C/g;
 	s/\(/C/g;
 	s/\)/D/g;
-	s/V1/D/g;
+	s/V1(.+)/D$1/g;
 	s/l1/D/g;
 	s/\\\.\\/H/g;
 	s/N\\/M/g;
