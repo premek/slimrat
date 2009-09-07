@@ -1,3 +1,10 @@
+2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin (megaupload): fixed captcha substitution.
+
+    * config: relocated post_* config values.
+
+
 2009-09-04 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * plugins: went through all once again, removing {PRIMARY}
