@@ -3,6 +3,8 @@
 
 = Introduction =
 
+*This page is outdated, please have a look at the plugins provided in SVN.*
+
 This page is meant to be a guide on plugin development. It describes which routines should be implemented, what their function signature is, and how they might be implemented.
 
 This guide is based upon Slimrat 0.9.6, as of 2009-07-16 the *development version*. For information on earlier versions, have a look at existing plugins.
