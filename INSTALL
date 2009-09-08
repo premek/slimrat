@@ -1,16 +1,9 @@
-RPM-based distro's
-------------------
-
-RPMs (though currently outdated) are available at:
-   http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
-
-
-
 Arch Linux
 ----------
 
 You can install Slimrat from AUR:
-   http://aur.archlinux.org/packages.php?ID=20499
+  - stable version: http://aur.archlinux.org/packages.php?ID=20499
+  - SVN version: http://aur.archlinux.org/packages.php?ID=29697
 
 
 
@@ -52,6 +45,48 @@ does require subversion. A hard mask will not update automaticly.
 
 NOTE: Overlays will not update themselves. You must run layman -S,
       along with emerge --sync to update all ebuilds, then run your update
+
+
+
+PLD linux
+---------
+
+Currently no prebuilt RPM package is available, but the projects
+CVS repository contains a SPEC file to generate one.
+
+1) Initialise the folder structure
+
+Do this by issuing the command
+   builder --init-rpm-dir
+
+After that, enter the "rpm" directory at your home folder.
+
+
+2) Download the spec file from the CVS repository into "~/rpm/SPECS"
+
+You can find the spec file at the following url:
+    http://cvs.pld-linux.org/cgi-bin/cvsweb/packages/slimrat/
+
+Currently the spec file does not require any other files from the
+CVS repository, but this could change with time. You might need to
+check out more files from that location.
+
+
+3) Build the RMP
+
+Execute the next command to build a binary RPM:
+   ./builder -bb -bc -R foo
+
+
+4) Install the resulting RPM
+
+
+
+Other RPM-based distro's
+------------------
+
+RPMs (though currently outdated) are available at:
+   http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
 
 
 
