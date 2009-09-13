@@ -5,6 +5,8 @@
    * log (output): extra omit_file flag to prevent progress
      indications to stack up in the log file.
 
+   * INSTALL: updated Gentoo installation instructions.
+
 
 2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
