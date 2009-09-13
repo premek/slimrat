@@ -7,6 +7,9 @@
 
    * INSTALL: updated Gentoo installation instructions.
 
+   * Common/Plugin/Slimrat: -cli threads now indicate the amount
+     of concurrent downloads.
+
 
 2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
