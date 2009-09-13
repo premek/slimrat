@@ -1,3 +1,11 @@
+2009-09-13 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * log (quit): fix when progress indication was last message.
+
+   * log (output): extra omit_file flag to prevent progress
+     indications to stack up in the log file.
+
+
 2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
     * plugin (megaupload): fixed captcha substitution.
