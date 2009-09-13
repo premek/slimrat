@@ -87,16 +87,24 @@ $config->section("all")->set_default("retry_timer", 60);
 #  0 = object construction failed
 #  an object = success
 sub new {
-	my $url = $_[1];
-	my $mech = $_[2];
+	my ($class, $url, $mech, $no_lock) = @_;
+	$no_lock = 0 unless defined($no_lock);
 	
 	fatal("cannot create plugin without configuration") unless ($config_global);
 
 	if (my $plugin = get_package($url)) {
 		# Resource handling
-		fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
-		if ($resources{$plugin} != -1) {
-			{ lock(%resources); cond_wait(%resources) until $resources{$plugin} >= 1; }
+		{
+			lock(%resources);
+			fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
+			if ($resources{$plugin} == 0) {
+				debug("insufficient resources available");
+				if ($no_lock) {
+					return -1;
+				} else {
+					cond_wait(%resources) until $resources{$plugin} >= 1;
+				}
+			}
 			$resources{$plugin}--;
 			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 		}
@@ -118,12 +126,9 @@ sub DESTROY {
 	
 	# Resource handling
 	my $plugin = ref($self);
-	if ($resources{$plugin} != -1) {
-		lock(%resources);
-		$resources{$plugin}++;
-		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
-		cond_signal(%resources);
-	}
+	lock(%resources);
+	$resources{$plugin}++;
+	debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
 }
 
 # Return code
@@ -356,13 +361,15 @@ dispatching plugins.
 
 =head1 METHODS
 
-=head2 Plugin::new($url, $ua)
+=head2 Plugin::new($url, $mech, $no_lock)
 
 Constructs a new object which is able to download the given URL. This object
 is no instance of this package, but from a plugin which has been registered
 to be able to process a given set of URLs.
-$ua is the browser (LWP::UserAgent object) which shall be used to download
+$mech is the browser (WWW::Mechanize object) which shall be used to download
 the file (upon the plugins get_data call).
+When $no_lock is set, the construction return -1 when there are no resources
+available, instead of lock automatically.
 
 =head2 Plugin::configure($config)
 

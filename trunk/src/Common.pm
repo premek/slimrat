@@ -233,8 +233,9 @@ sub pid_read() {
 #   0 = download failed, for unknown reason
 #   -1 = download failed because URL is dead
 #   -2 = plugin error
-sub download($$$$$) {
-	my ($mech, $link, $to, $progress, $captcha_user_read) = @_;	
+sub download {
+	my ($mech, $link, $to, $progress, $captcha_user_read, $no_lock) = @_;
+	$no_lock = 0 unless defined($no_lock);
 	info("downloading '$link'");
 	
 	
@@ -247,7 +248,14 @@ sub download($$$$$) {
 	
 	eval {	
 		# Load plugin
-		$plugin = Plugin->new($link, $mech);
+		$plugin = Plugin->new($link, $mech, $no_lock);
+		
+		# Return -3 if the caller requested to manage insufficient resources hisself	
+		if ($no_lock && $plugin == -1) {
+			return -3;
+		}
+		
+		# Get plugin name
 		my $pluginname = $plugin->get_name();
 	
 		debug("instantiated a $pluginname downloader");
@@ -265,6 +273,12 @@ sub download($$$$$) {
 			info("error to severe to attempt another try, bailing out");
 		}
 		return -2;
+	}
+		
+	# Return -3 if the caller requested to manage insufficient resources hisself
+	# FIXME: yeah this sucks, I know
+	if ($no_lock && $plugin == -1) {
+		return -3;
 	}
 	
 	

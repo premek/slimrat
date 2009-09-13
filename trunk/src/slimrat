@@ -429,7 +429,8 @@ sub thread_download {
 				my $captcha = <STDIN>; # FIXME: doesn't suit the 'noninteractive' client; fix when an interactive client is available (ncurses)
 				chomp $captcha;
 				return $captcha;
-			}
+			},
+			1	# Do not lock automatically if resources are unsuficcient, but return -3 so we can manage threads manually
 		);
 		
 		# download() result
@@ -442,7 +443,9 @@ sub thread_download {
 				system($command);
 			}
 		}
-		elsif ($result == -2) {	# Plugin failure
+		elsif ($result == -3) { # Insufficient resources
+			$queue->skip_locally();
+		} elsif ($result == -2) {	# Plugin failure
 			$failure = 1;
 			$queue->skip_globally();
 		} elsif ($result == -1) {	# URL dead
