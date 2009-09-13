@@ -10,6 +10,8 @@
    * Common/Plugin/Slimrat: -cli threads now indicate the amount
      of concurrent downloads.
 
+   * slimrat-cli: mark as error if image_viewer not installed.
+
 
 2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
 
