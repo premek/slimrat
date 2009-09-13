@@ -64,7 +64,6 @@ use warnings;
 # Base configuration
 my $config = new Configuration;
 $config->set_default("verbosity", 3);
-$config->set_default("mode", "full");
 $config->set_default("screen", 1);
 $config->set_default("file", 1);
 $config->set_default("file_path", $ENV{HOME} . "/.slimrat/log");
@@ -108,13 +107,11 @@ sub output : locked {
 	$data{category} = "" unless defined($data{category});
 	$data{omit_timestamp} = 0 unless defined($data{omit_timestamp});
 	$data{omit_endline} = 0 unless defined($data{omit_endline});
+	$data{omit_file} = 0 unless defined($data{omit_file});
 	$data{verbosity} = 3 unless defined($data{verbosity});
 	
 	# Verbosity
 	return unless ($config->get("verbosity") >= $data{verbosity});
-	
-	# Mode (TODO: mode PER output)
-	delete($data{colour}) if ($config->get("mode") eq "log");
 	
 	# Aesthetics: uppercase first character
 	if (!$data{category}) {
@@ -154,7 +151,7 @@ sub output : locked {
 	}
 	
 	# File output
-	if ($config->get("file") && -d dirname($config->get("file_path")) && -w dirname($config->get("file_path"))) {
+	if (!$data{omit_file} && $config->get("file") && -d dirname($config->get("file_path")) && -w dirname($config->get("file_path"))) {
 		my $fh;
 		open($fh, ">>".$config->get("file_path")) || die("could not open given logfile");
 		output_raw($fh, \%data);
@@ -242,8 +239,9 @@ sub progress {
 	my $erase = $progress_length-$length;
 	$progress_length = $length;
 	output(	messages => [@_, " " x $erase],	# Extra spaces act as eraser
-			omit_endline => 1
-	) unless ($config->get("mode") eq "log");
+			omit_endline => 1,
+			omit_file => 1
+	);
 }
 
 # Warning
@@ -590,6 +588,9 @@ The message can get hidden when the verbosity $data{verbosity} is greater
 than the configured verbosity level. The $data{omit_timestamp} value controls
 whether a timestamp is printed, when set spaces pad the message to line it out.
 $data{omit_endline} can be used to prevent to construct progress bars.
+Similarly, omit_file should be set if a certain output should not be written
+to the log file (e.g. progress indications, which cannot be overwritten
+using \r and would clutter the log file).
 
 Summarized, all possible options to this method:
    colour
@@ -598,6 +599,7 @@ Summarized, all possible options to this method:
    category
    omit_timestamp
    omit_endline
+   omit_file
 
 =head2 Log::timestamp()
 
