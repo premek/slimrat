@@ -455,6 +455,7 @@ sub set_debug() {
 # Quit the package
 sub quit() {
 	dump_write();
+	print "\n" if ($flags & 1);
 }
 
 # Dump data for debugging purposes

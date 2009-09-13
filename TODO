@@ -16,3 +16,4 @@
   - Test everything!
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
+  - Megaupload: JDownloader supports resuming, slimrat doesn't?
