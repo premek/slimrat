@@ -421,6 +421,13 @@ sub thread_download {
 			sub { # Captcha handler
 				my $captchafile = shift;
 				
+				# Check if the image viewer is installed (TODO: more generic)
+				if ($config_cli->get("image_viewer") =~ m/^(\w+)/) {
+					if (! `which $1`) {
+						die("$1 not found, could not query user for captcha");
+					}
+				}
+				
 				# view
 				system(sprintf $config_cli->get("image_viewer"), $captchafile);
 				
