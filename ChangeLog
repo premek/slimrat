@@ -1,3 +1,10 @@
+2009-09-15 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * configuration (get): warn upon undefined keys.
+
+   * common (download): fix wait timer.
+
+
 2009-09-13 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * log (quit): fix when progress indication was last message.
