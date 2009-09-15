@@ -124,6 +124,7 @@ $config_cli->set_default("mode", "download");
 $config_cli->set_default("to", ".");
 $config_cli->set_default("threads", 1);
 $config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
+$config_cli->set_default("daemon", 0);
 $config_cli->merge($config->section("cli"));
 
 # Give the usage or manual
@@ -203,9 +204,9 @@ if ($config_cli->get("list") && $config_cli->get("list") eq "-") {
 }
 
 # Set socket local address if needed
-if($config_cli->get("address")){
-	no warnings;
-	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $options{"address"});
+if($config_cli->contains("address")) {
+	use LWP::Protocol::http;
+	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $config_cli->get("address"));
 }
 
 # Fork in background

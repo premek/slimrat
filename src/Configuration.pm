@@ -154,7 +154,10 @@ sub get($$) {
 	my ($self, $key) = @_;
 	
 	# Check if it contains the key (not present returns false)
-	return unless ($self->contains($key));
+	if (! $self->contains($key)) {
+		warn("request for undefined key '$key', consider configuring a default value");
+		return;
+	}
 	
 	# Return value or default
 	if (defined(my $value = $self->get_value($key))) {
