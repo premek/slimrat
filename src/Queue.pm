@@ -87,7 +87,7 @@ sub add {
 
 # Add an URL from the file to the queue
 sub file_read {
-	return 0 unless ($config->get("file") && -r $config->get("file"));
+	return 0 unless ($config->contains("file") && -r $config->get("file"));
 	debug("reading queue file '", $config->get("file") ,"'");
 	my $added = 0;
 	

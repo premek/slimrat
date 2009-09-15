@@ -4,6 +4,15 @@
 
    * common (download): fix wait timer.
 
+   * log (callstack): reintroduced confess-based callstack
+     traces.
+
+   * common (download): added code which traces the callstack
+     withing the inner evaluation block.
+
+   * all: avoided Configuration::get() calls on potentially
+     undefined values.
+
 
 2009-09-13 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 

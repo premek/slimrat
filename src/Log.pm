@@ -55,7 +55,7 @@ use Configuration;
 # Export functionality
 use Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(level debug info warning error usage fatal progress summary status dump_add dump_write set_debug);
+@EXPORT = qw(level debug info warning error usage fatal progress summary status dump_add dump_write set_debug callstack_confess);
 
 # Write nicely
 use strict;
@@ -174,56 +174,90 @@ sub debug {
 	return 0;
 }
 
-# Print a callstack
-sub callstack {
+# Print a callstack based on passed "confess" data
+sub callstack_confess {
+	my $confess = shift;
+	my $offset = shift;
+	my $traces = 0;
+	
+	while ($confess =~ s/\s*(.+)//) {
+		if (--$offset == -1) {
+			if ($1 =~ m/^.*(at .+)/) {
+				output(	colour => GREEN,
+						messages => ["Call stack leading to erroneous instruction $1:"],
+						verbosity => 5
+				);
+			} else {
+				output(	colour => GREEN,
+						messages => ["Call stack leading to erroneous instruction:"],
+						verbosity => 5
+				);
+			}
+			next;
+		} elsif ($offset >= -1) {
+			next;
+		}			
+		$traces++;
+		output(	colour => GREEN,
+				omit_timestamp => 1,
+				messages => ["\t", $1],
+				verbosity => 5
+		);
+	}
+	
+	output(	colour => GREEN,
+			omit_timestamp => 0,
+			messages => ["\t", "(stack is empty)"],
+			verbosity => 5
+	) unless ($traces);
+}
+
+# Manually trace the callstack
+sub callstack_manual {
 	my $offset = shift || 0;
 	my $traces = 0;
 	
-	# Trace an error
-	# FIXME: the more accurate 'confess' function dies when no actual warn/die signal has occured
-	#eval { confess( '' ) };
-	#if ($@) {
-	#	my $stack_string = join(" ", $@);
-	#	while ($stack_string =~ s/\s*(.+)//) {
-	#		if (--$offset == -3) {
-	#			if ($1 =~ m/(at .+)/) {
-	#				output(GREEN, 1, "", ["Call stack leading to erroneous instruction $1:"], 5);
-	#			} else {
-	#				output(GREEN, 1, "", ["Call stack leading to erroneous instruction:"], 5);
-	#			}
-	#			next;
-	#		} elsif ($offset >= -3) {
-	#			next;
-	#		}			
-	#		$traces++;
-	#		output(GREEN, 0, "", [$1], 5);
-	#	}
-	#}
+	output(	colour => GREEN,
+			messages => ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"],
+			verbosity => 5
+	);
 	
-	# Do a regular trace and hope the error happened in this thread
-	#else {
+	for (my $i = $offset; 1; $i++) {
+		last unless (caller($i));
+		$traces++;
 		output(	colour => GREEN,
-				messages => ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"],
+				omit_timestamp => 1,
+				messages => ["\t", (caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]],
 				verbosity => 5
-		);
-		
-		for (my $i = 1+$offset; 1; $i++) {
-			last unless (caller($i));
-			$traces++;
-			output(	colour => GREEN,
-					omit_timestamp => 1,
-					messages => [(caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]],
-					verbosity => 5
 		);		
-		}
-	#}
+	}
 	
-	# No stack at all
 	output(	colour => GREEN,
 			omit_timestamp => 0,
-			messages => ["(stack is empty)"],
+			messages => ["\t", "(stack is empty)"],
 			verbosity => 5
-	) unless ($traces);
+	) unless ($traces);	
+}
+
+# Print a callstack
+sub callstack {
+	my $offset = shift || 0;
+	
+	# Strip "sub callstack" and eval in which "confess" happens
+	$offset += 2;
+	
+	# Trace an error
+	eval { confess( '' ) };
+	if ($@) {
+		# Strip 2 stack steps (sub callstack and signal handler)
+		callstack_confess($@, $offset);
+	}
+	
+	# Do a regular trace and hope the error happened in this thread
+	else {
+		callstack_manual($offset);
+	}
+
 }
 
 # Informative message
@@ -261,7 +295,7 @@ sub error {
 			messages => \@_,
 			verbosity => 1
 	);
-	callstack(1);
+	callstack(1);	# Strip "sub error"
 	return 0;
 }
 
@@ -328,7 +362,7 @@ $SIG{__WARN__} = sub {
 	}
 	
 	# Callstack
-	callstack(1);
+	callstack(2);
 };
 
 # Die
@@ -357,7 +391,7 @@ $SIG{__DIE__} = sub {
 	}
 	
 	# Callstack
-	callstack(1);
+	callstack(2);
 	
 	# Quit
 	if (defined(&main::quit)) {
