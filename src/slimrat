@@ -316,8 +316,8 @@ elsif ($config_cli->get("mode") eq "download") {
 	thread_download();
 
 	# Command after all downloads
-	if (my $command = $config_cli->get("post_all")) {
-		system($command);
+	if ($config_cli->contains("post_all")) {
+		system($config_cli->get("post_all"));
 	}
 	
 	# Quit
@@ -450,8 +450,8 @@ sub thread_download {
 			$queue->skip_globally("DONE");
 
 			# Command after successful download
-			if (my $command = $config_cli->get("post_download")) {
-				system($command);
+			if ($config_cli->contains("post_download")) {
+				system($config_cli->get("post_download"));
 			}
 		}
 		elsif ($result == -3) { # Insufficient resources
@@ -472,8 +472,8 @@ sub thread_download {
 			push @failedlinks, $link;
 
 			# Command after failed download
-			if (my $command = $config_cli->get("post_failure")) {
-				system($command);
+			if ($config_cli->contains("post_failure")) {
+				system($config_cli->get("post_failure"));
 			}
 		}
 		

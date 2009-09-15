@@ -168,10 +168,10 @@ sub save($) {
 	$s_queued->down();
 	$s_processed->down();
 	my %container = (
-		file		=>	$config->get("file"),
 		queued		=>	[@queued],
 		processed	=>	[@processed]
 	);
+	$container{file} = $config->get("file") if $config->contains("file");
 	store(\%container, $filename) || error("could not serialize queue to '$filename'");
 	$s_queued->up();
 	$s_processed->up();
@@ -187,10 +187,12 @@ sub restore {
 		
 		$s_queued->down();
 		$s_processed->down();
-		if ($config->get("file")) {
-			warning("active instance already got a queue file defined, not overwriting");
-		} else {
-			$config->set("file", $container{file});
+		if (defined($container{file})) {
+			if ($config->get("file")) {
+				warning("active instance already got a queue file defined, not overwriting");
+			} else {
+				$config->set("file", $container{file});
+			}
 		}
 		@queued = @{$container{queued}};
 		@processed = @{$container{processed}};
@@ -305,7 +307,7 @@ sub skip_globally {
 		# Only update if we got a file
 		my $url = $self->{item};
 		$s_file->down();
-		if ($config->get("file") && -r $config->get("file")) {
+		if ($config->contains("file") && -r $config->get("file")) {
 			open (FILE, $config->get("file"));
 			open (FILE2, ">".$config->get("file").".temp");
 			while(<FILE>) {
