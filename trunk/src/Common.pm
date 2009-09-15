@@ -82,7 +82,7 @@ $config->set_default("timeout", 900);
 $config->set_default("useragent", "slimrat/$VERSION");
 $config->set_default("redownload", "rename");
 $config->set_default("retry_count", 0);
-$config->set_default("retry_timer", 60);
+$config->set_default("retry_wait", 60);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -581,7 +581,7 @@ sub download {
 		}
 	};
 	
-	if ($@) {
+	if ($@) {	# TODO: trace where the die() was called, error->callstack only traces the error()
 		my $error = substr($@, 0, -2);
 		my $fatal = $error =~ s/^fatal: //i;
 		error("download failed ($error)");
