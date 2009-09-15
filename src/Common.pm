@@ -483,7 +483,7 @@ sub download {
 				my $dtime_chunk = gettimeofday() - $time_chunk;
 				
 				# Rate control
-				if ($config->get("rate")) {
+				if ($config->contains("rate")) {
 					my $speed_cur = $size_chunk / $dtime_chunk;
 					my $speed_aim = $config->get("rate") * 1024 / $downloaders;
 					$s_rate_surplus->down();
