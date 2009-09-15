@@ -51,6 +51,7 @@ use Exporter;
 @EXPORT = qw(config_init config_propagate config_browser configure daemonize pid_read download $THRCOMP);
 
 # Packages
+use Carp qw(confess);
 use threads;
 use threads::shared;
 use Time::HiRes qw(sleep gettimeofday);
@@ -246,7 +247,13 @@ sub download {
 	# Load the retry counter
 	my $counter = $config->get("retry_count");
 	
-	eval {	
+	eval {
+		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
 		# Load plugin
 		$plugin = Plugin->new($link, $mech, $no_lock);
 		
@@ -262,9 +269,11 @@ sub download {
 	};
 	
 	if ($@) {
-		my $error = substr($@, 0, -2);
+		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+		my ($error) = $@ =~ m/^(.+)\sat/; 
 		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while constructing ($error)");
+		error("download failed while constructing ($error)");	# TODO: this error prints a callstack as well
+		callstack_confess($error_raw, 1);	# Strip the signal handler
 		if (!$fatal && $counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
@@ -287,13 +296,22 @@ sub download {
 	my $status;
 	
 	eval {
+		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
+		# Check the URL
 		$status = $plugin->check();
 	};
 	
 	if ($@) {
-		my $error = substr($@, 0, -2);
+		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+		my ($error) = $@ =~ m/^(.+)\sat/; 
 		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while checking ($error)");
+		error("download failed while checking ($error)");	# TODO: this error prints a callstack as well
+		callstack_confess($error_raw, 1);	# Strip the signal handler
 		if (!$fatal && $counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
@@ -315,6 +333,12 @@ sub download {
 	my $filepath;
 	
 	eval {
+		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
 		# Check if we can write to "to" directory
 		return error("directory '$to' not writable") unless (-d $to && -w $to);
 		
@@ -330,9 +354,11 @@ sub download {
 	};
 	
 	if ($@) {
-		my $error = substr($@, 0, -2);
+		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+		my ($error) = $@ =~ m/^(.+)\sat/; 
 		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while preparing ($error)");
+		error("download failed while preparing ($error)");	# TODO: this error prints a callstack as well
+		callstack_confess($error_raw, 1);	# Strip the signal handler
 		if (!$fatal && $counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
@@ -387,6 +413,13 @@ sub download {
 	$downloaders++;
 	my $response;
 	eval {
+		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
+		# Get the data
 		$response = $plugin->get_data(
 			sub {
 				# Fetch server response
@@ -581,10 +614,12 @@ sub download {
 		}
 	};
 	
-	if ($@) {	# TODO: trace where the die() was called, error->callstack only traces the error()
-		my $error = substr($@, 0, -2);
+	if ($@) {
+		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+		my ($error) = $@ =~ m/^(.+)\sat/; 
 		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed ($error)");
+		error("download failed ($error)");	# TODO: this error prints a callstack as well
+		callstack_confess($error_raw, 1);	# Strip the signal handler
 		if (!$fatal && $counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));

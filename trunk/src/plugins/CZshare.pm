@@ -116,7 +116,7 @@ sub get_data {
 
 	#
 	# "PROFI" download
-	# 
+	#
 	
 	if($self->{CONF}->get("login") and $self->{CONF}->get("pass")) {
 		# Download URL

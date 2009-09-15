@@ -75,11 +75,12 @@ sub configure($) {
 	
 	$config->path_abs("list");
 	
-	file_read() if ($config->get("list"));
+	file_read();
 }
 
 # Read proxy file
 sub file_read() {
+	return 0 unless ($config->contains("file") && -r $config->get("file"));
 	debug("reading proxy file '", $config->get("list"), "'");
 
 	open(FILE, $config->get("list")) || fatal("could not read proxy file");

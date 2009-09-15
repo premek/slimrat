@@ -104,9 +104,9 @@ sub new {
 				} else {
 					cond_wait(%resources) until $resources{$plugin} >= 1;
 				}
+				$resources{$plugin}--;
+				debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 			}
-			$resources{$plugin}--;
-			debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
 		}
 		
 		# Configuration handling (propagate global plugin settings)

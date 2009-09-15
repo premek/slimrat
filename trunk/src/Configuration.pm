@@ -146,10 +146,11 @@ sub get_value($$) {
 	if ($self->contains($key) && defined $self->{items}->{$key}->{value}) {
 		return $self->{items}->{$key}->{value};
 	}
-	return,
+	return;
 }
 
 # Get a value
+# TODO: can we return undef, do we warn? E.G., do we allow get("not_defined_key") and return undef, or do we oblige a contains() check?
 sub get($$) {
 	my ($self, $key) = @_;
 	
@@ -372,7 +373,7 @@ sub save($$) {
 sub path_abs {
 	my $self = shift;
 	while (my $key = shift) {
-		if (my $value = $self->get($key)) {	# No need to update default values
+		if (my $value = $self->get_value($key)) {	# No need to update default values
 			return error("cannot convert immutable key") unless $self->{items}->{$key}->{mutable};
 			$self->set($key, File::Spec->rel2abs($value));
 		}

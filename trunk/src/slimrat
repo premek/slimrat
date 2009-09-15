@@ -199,7 +199,7 @@ while ($_ = shift) { # clear @ARGV to be able to read input from user with <> la
 	s{^(?!\w+://)}{http://};
 	Queue::add($_);
 }
-if ($config_cli->get("list") && $config_cli->get("list") eq "-") {
+if ($config_cli->contains("list") && $config_cli->get("list") eq "-") {
 	chomp and Queue::add($_) while (<>);
 }
 
@@ -256,7 +256,10 @@ elsif ($config_cli->get("mode") eq "check") {
 		my $plugin;
 		eval { $plugin = Plugin->new($link, $mech) };
 		if ($@) {
-			error("plugin failure ($@)");
+			my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+			my ($error) = $@ =~ m/^(.+)\sat/; 
+			error("plugin failure ($error)");	# TODO: this error prints a callstack as well
+			callstack_confess($error_raw, 0);	# Strip nothing
 			status($link, 0, "plugin failure");
 		} else {
 			my $status = $plugin->check();
@@ -416,7 +419,7 @@ sub thread_download {
 				$data{$id}{done} = shift;	# bytes downloaded
 				$data{$id}{total} = shift;	# filesize in bytes
 				$data{$id}{speed} = shift;	# speed in bytes per second
-				$data{$id}{eta} = shift;		# time remaining in seconds
+				$data{$id}{eta} = shift;	# time remaining in seconds
 				$s_data->up();
 			},
 			sub { # Captcha handler
