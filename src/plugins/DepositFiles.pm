@@ -123,7 +123,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Download button
 	if ($self->{MECH}->form_with_fields("gateway_result")) { # TODO mute "There is no form with the requested fields" error if not found

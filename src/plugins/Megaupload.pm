@@ -68,7 +68,6 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	
-	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
@@ -113,7 +112,7 @@ sub get_data {
 	my $read_captcha = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	my ($res, $captcha);
 	my $cont = $self->{MECH}->content();

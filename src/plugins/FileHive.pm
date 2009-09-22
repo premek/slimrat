@@ -117,7 +117,7 @@ sub get_data {
 	my $data_processor = shift;	
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 		
 	# Download URL
 	if ($self->{MECH}->content() =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/) {

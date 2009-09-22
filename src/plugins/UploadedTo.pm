@@ -110,7 +110,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Trafic exceeded
 	if($self->{MECH}->content() =~ m#Or wait (\d+) minutes!#) {

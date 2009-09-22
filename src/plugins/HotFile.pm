@@ -116,7 +116,7 @@ sub get_data {
 	my $read_captcha = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 
 	# Wait timer
 	if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)

@@ -5,6 +5,9 @@
    * common (download): global OCR setting with dependancy
      check.
 
+   * plugins: bugfix, was using built-in function rather than
+     Plugin::reload().
+
 
 2009-09-15 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 

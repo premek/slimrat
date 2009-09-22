@@ -112,7 +112,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Click the "Download" button
 	if ($self->{MECH}->form_id("downloadform")) {

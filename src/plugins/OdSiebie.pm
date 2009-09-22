@@ -111,7 +111,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Click to the secondary page
 	$self->{MECH}->follow_link( text => 'Pobierz plik' );
