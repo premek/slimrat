@@ -16,4 +16,9 @@
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
   - Megaupload: JDownloader supports resuming, slimrat doesn't?
-  - plugin::fetch -> dump hierarchy points to this, manually specify offset or hierarchy? or full callstack! re-use callstack_manual?
+  - Megaupload: JDownloader supports resuming, slimrat doesn't? RS precies ook
+  - when if filename only given at download response? e.g. megaupload with .part01
+  - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
+  - progress indication at slimrat wacko (sometimes 0:01 sec remaining, 1 file downloading, continuously)?
+  - show download speed in GUI
+

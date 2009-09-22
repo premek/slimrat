@@ -167,9 +167,9 @@ sub output : locked {
 # Debug message
 sub debug {
 	output(	colour => GREEN,
-			category => "debug",
-			messages => \@_,
-			verbosity => 4
+		category => "debug",
+		messages => \@_,
+		verbosity => 4
 	);
 	return 0;
 }
@@ -184,13 +184,15 @@ sub callstack_confess {
 		if (--$offset == -1) {
 			if ($1 =~ m/^.*(at .+)/) {
 				output(	colour => GREEN,
-						messages => ["Call stack leading to erroneous instruction $1:"],
-						verbosity => 5
+					category => "debug",
+					messages => ["call stack leading to instruction at $1:"],
+					verbosity => 5
 				);
 			} else {
 				output(	colour => GREEN,
-						messages => ["Call stack leading to erroneous instruction:"],
-						verbosity => 5
+					category => "debug",
+					messages => ["call stack leading to last instruction:"],
+					verbosity => 5
 				);
 			}
 			next;
@@ -199,16 +201,18 @@ sub callstack_confess {
 		}			
 		$traces++;
 		output(	colour => GREEN,
-				omit_timestamp => 1,
-				messages => ["\t", $1],
-				verbosity => 5
+			category => "debug",
+			omit_timestamp => 1,
+			messages => ["\t", $1],
+			verbosity => 5
 		);
 	}
 	
 	output(	colour => GREEN,
-			omit_timestamp => 0,
-			messages => ["\t", "(stack is empty)"],
-			verbosity => 5
+		category => "debug",
+		omit_timestamp => 0,
+		messages => ["\t", "(stack is empty)"],
+		verbosity => 5
 	) unless ($traces);
 }
 
@@ -218,7 +222,7 @@ sub callstack_manual {
 	my $traces = 0;
 	
 	output(	colour => GREEN,
-			messages => ["Call stack leading to (possible) erroneous instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"],
+			messages => ["manual call stack leading to instruction at package ", (caller(1))[0], " line ", (caller(1))[2], ":"],
 			verbosity => 5
 	);
 	
@@ -226,16 +230,18 @@ sub callstack_manual {
 		last unless (caller($i));
 		$traces++;
 		output(	colour => GREEN,
-				omit_timestamp => 1,
-				messages => ["\t", (caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]],
-				verbosity => 5
+			category => "debug",
+			omit_timestamp => 1,
+			messages => ["\t", (caller($i))[3], ", called from package ", (caller($i))[0], " line ", (caller($i))[2]],
+			verbosity => 5
 		);		
 	}
 	
 	output(	colour => GREEN,
-			omit_timestamp => 0,
-			messages => ["\t", "(stack is empty)"],
-			verbosity => 5
+		category => "debug",
+		omit_timestamp => 0,
+		messages => ["\t", "(stack is empty)"],
+		verbosity => 5
 	) unless ($traces);	
 }
 
@@ -326,7 +332,7 @@ sub fatal {
 			messages => \@_,
 			verbosity => 0
 	);
-	callstack(1);
+	callstack(1);	# Strip "sub fatal"
 	
 	# Quit
 	if (defined(&main::quit)) {
@@ -348,16 +354,16 @@ $SIG{__WARN__} = sub {
 	
 	# Multiline output
 	output(	colour => YELLOW,
-			category => "warning signal",
-			messages => [shift @args],
-			verbosity => 2
+		category => "warning signal",
+		messages => [shift @args],
+		verbosity => 2
 	);
 	while ($_ = shift @args) {
 		next unless $_;
 		output(	colour => YELLOW,
-				omit_timestamp => 1,
-				messages => [$_],
-				verbosity => 2
+			omit_timestamp => 1,
+			messages => [$_],
+			verbosity => 2
 		);
 	}
 	
@@ -510,8 +516,8 @@ sub dump_add {
 		$dump->{$key} = $information{$key};
 	}
 	$dump->{time} = time;
-	$dump->{hierarchy} = (caller(1))[3] . ", line " . (caller(0))[2];
-	debug("adding ", $dump->{type}, " dump ", (scalar(@dumps)+1), " from ", $dump->{hierarchy});
+	debug("adding ", $dump->{type}, " dump ", (scalar(@dumps)+1));
+	callstack(1);	# Strip "sub dump_add"
 	$s_dumps->down();
 	push @dumps, $dump;
 	$s_dumps->up();
@@ -537,7 +543,6 @@ sub dump_write() {
 	$s_dumps->down();
 	foreach my $dump (@dumps) {
 		print INFO $counter, ") ", $dump->{title}, "\n";
-		print INFO "\t- Called from: ", $dump->{hierarchy}, "\n";
 		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->{time}); $year+=1900;
 		print INFO "\t- Created at ", (sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$mon,$mday,$hour,$min,$sec), "\n";
 		my $filename = $counter . "." . $dump->{type};
