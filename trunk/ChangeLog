@@ -2,6 +2,9 @@
 
    * log (dump): showing callstack in log now.
 
+   * common (download): global OCR setting with dependancy
+     check.
+
 
 2009-09-15 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 

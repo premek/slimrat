@@ -84,6 +84,7 @@ $config->set_default("useragent", "slimrat/$VERSION");
 $config->set_default("redownload", "rename");
 $config->set_default("retry_count", 0);
 $config->set_default("retry_wait", 60);
+$config->set_default("ocr", 0);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -149,6 +150,14 @@ sub config_propagate {
 sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
+	
+	# Check OCR dependancies
+	if ($config->get("ocr")) {
+		unless (`which tesseract` && `which convert`) {
+			warning("disabling OCR functionality due to missing dependancies");
+			$config->set("ocr", 0);
+		}
+	}
 	
 	$config->path_abs("state_file");
 }
@@ -530,31 +539,28 @@ sub download {
 				close($fh);
 				
 				# OCR
-				if ($config->get("captcha_reader") && $ocrcounter++ < 5) {
+				if ($config->get("ocr") && $ocrcounter++ < 5) {
 					# Preprocess
 					if ($plugin->can("ocr_preprocess")) {
 						$plugin->ocr_preprocess($captcha_file);
 					}
 					
-					# Convert if needed
+					# Convert to tiff format
 					my $captcha_file_ocr = $captcha_file;
-					if ($config->get("captcha_format") && $captcha_type ne $config->get("captcha_format")) {
-						my $captcha_want = $config->get("captcha_format");
-						my (undef, $captcha_converted) = tempfile(SUFFIX => ".$captcha_want");
-						my $extra = $config->get("captcha_extra") || "";
-						debug("converting captcha from $captcha_type:$captcha_file to $captcha_want:$captcha_converted");
-						`convert $extra $captcha_type:$captcha_file $captcha_want:$captcha_converted`;
+					if ($captcha_type ne "tif") {	# FIXME: can't "tiff" get passed?
+						my (undef, $captcha_converted) = tempfile(SUFFIX => ".tif");
+						my $extra = "-alpha off -compress none";	# Tesseract is picky
+						debug("converting captcha from $captcha_type:$captcha_file to tif:$captcha_converted");
+						`convert $extra $captcha_type:$captcha_file tif:$captcha_converted`;
 						if ($?) {
-							error("could not convert captcha from given format $captcha_type to needed format $captcha_want, bailing out");
+							error("could not convert captcha from given format '$captcha_type' to needed format 'tif', bailing out");
 							goto USER;
 						}
 						$captcha_file_ocr = $captcha_converted;
 					}
 					
 					# Apply OCR
-					my $command = $config->get("captcha_reader");
-					$command =~ s/\$captcha/$captcha_file_ocr/g;
-					$captcha_value = `$command`;
+					$captcha_value = `tesseract $captcha_file_ocr /tmp/slimrat-captcha > /dev/null 2>&1; cat /tmp/slimrat-captcha.txt; rm /tmp/slimrat-captcha.txt`;
 					if ($?) {
 						error("OCR failed");
 						goto USER;
