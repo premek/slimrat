@@ -8,6 +8,8 @@
    * plugins: bugfix, was using built-in function rather than
      Plugin::reload().
 
+   * plugin (uploading): fix by tipingus.
+
 
 2009-09-15 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 

@@ -48,6 +48,7 @@ package Uploading;
 
 # Packages
 use WWW::Mechanize 1.52;
+use HTTP::Request;
 
 # Custom packages
 use Log;
@@ -87,7 +88,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<title>Download (.+?) for free on uploading.com</title>#);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#class="big_ico".*^\s+<h2>(.+?)</h2><br/>#sm);
 }
 
 # Filesize
@@ -120,18 +121,53 @@ sub get_data {
 		die("page 2 error, ", $res->status_line) unless ($res->is_success);
 		dump_add(data => $self->{MECH}->content());
 	}
-		
+
 	# Wait timer
 	if ($self->{MECH}->content() =~ m/setTimeout\('.+', (\d+)\)/) {
-		wait($1/10);
+	  	wait($1/10);
 	}
 	
-	# Download form
-	if (my $form = $self->{MECH}->form_name("downloadform")) {
+	# Ajax-based download form
+	if ($self->{MECH}->content() =~ m/get_link\(\);/) {
+
+		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{file_id:\s*(\d+),/) {
+			die("could not find request download id");
+		} 
+
+		my $file_id = $1;
+
+		my $loop = 3;
+		while ($loop >= 0) {
+			my $time_id = time()*1000;
+
+			my $req = HTTP::Request->new(POST => "http://uploading.com/files/get/?JsHttpRequest=${time_id}0-xml");
+			$req->content_type('application/octet-stream; charset=UTF-8');
+			$req->content("file_id=$file_id&action=get_link&pass=");
+			my $res = $self->{MECH}->request($req);
+			die("page 3 error, ", $res->status_line) unless ($res->is_success);
+
+			if ($self->{MECH}->content() =~ m/Please wait/) {
+			  wait(60);
+			} elsif ($self->{MECH}->content() =~ m/\"answer\".*\"link\".*http/) {
+			  last;
+			}
+			$loop--;
+		}
+
+		unless ($self->{MECH}->content() =~ m,(http:\\/\\/[^"]+),) {
+			die("could not find request download url");
+	        }
+		my $download = $1;
+		$download =~ s,\\/,/,g;
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	}
+
+	# Regular download form
+        if (my $form = $self->{MECH}->form_name("downloadform")) {
 		my $request = $form->make_request;
 		return $self->{MECH}->request($request, $data_processor);
 	}
-	
+
 	die("could not match any action");
 }
 
