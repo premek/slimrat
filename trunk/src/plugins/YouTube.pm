@@ -112,7 +112,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Download video
 	if ((my ($v) = $self->{MECH}->content() =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/)

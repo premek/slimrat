@@ -120,7 +120,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Click the "Free" button
 	$self->{MECH}->form_id("ff");

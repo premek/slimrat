@@ -111,7 +111,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";

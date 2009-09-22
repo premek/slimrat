@@ -112,7 +112,7 @@ sub get_data {
 	my $read_captcha = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 
 	#
 	# "PROFI" download

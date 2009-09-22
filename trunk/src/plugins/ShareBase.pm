@@ -114,7 +114,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Click the button to the secondary page
 	my ($asi) = $self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;	

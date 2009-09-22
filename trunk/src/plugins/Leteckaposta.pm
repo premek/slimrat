@@ -112,7 +112,7 @@ sub get_data {
 	my $data_processor = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 	
 	# Download URL
 	if ($self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {

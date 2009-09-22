@@ -110,7 +110,7 @@ sub get_data {
 	my $captcha_reader = shift;
 	
 	# Fetch primary page
-	$self->load();
+	$self->reload();
 
 	# Wait timer
 	if ($self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
