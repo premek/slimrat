@@ -5,10 +5,12 @@ DataHu.pm 1
 DepositFiles.pm 1
 DepositFilesFolder.pm 1
 Direct.pm 1
+EasyShare.pm 1
 FastLoad.pm 1
 FastShare.pm 1
 FileFactory.pm 1
 FileHive.pm 1
+FreakShare.pm 1
 HotFile.pm 1
 Leteckaposta.pm 1
 MediaFire.pm 1
