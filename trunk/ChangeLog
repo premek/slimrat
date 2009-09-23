@@ -1,3 +1,8 @@
+2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins: added a FreakShare plugin.
+
+
 2009-09-22 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * log (dump): showing callstack in log now.

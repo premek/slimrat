@@ -15,8 +15,7 @@
   - Test everything!
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
-  - Megaupload: JDownloader supports resuming, slimrat doesn't?
-  - Megaupload: JDownloader supports resuming, slimrat doesn't? RS precies ook
+  - Megaupload, Rapidshare, ...: JDownloader supports resuming, slimrat doesn't?
   - when if filename only given at download response? e.g. megaupload with .part01
   - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
   - progress indication at slimrat wacko (sometimes 0:01 sec remaining, 1 file downloading, continuously)?
