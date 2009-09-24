@@ -121,17 +121,20 @@ sub get_data {
 	my $res = $self->fetch("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
 	$_ = $res->decoded_content."\n";
 	
-	# Save all variables in a hashmap
+	# Process the javascript
 	if (m/var ([^= ]+)\s*=\s*'([^']*)';/) {
+		# Read all variables into hashmap
 		my %variables;
 		while (s/var ([^= ]+)\s*=\s*'([^']*)';//) {
 			$variables{$1} = $2;
 		}
 		
-		# Construct URL
-		my ($url_constr) = m/sServer \+'\/' \+(.+)\+ 'g\/'/;
+		# Read and construct the "secret" part of the URL
+		my ($url_constr) = m/mL\s*\+'\/'\s*\+(.+)\+\s*'g\/'/;
 		$url_constr =~ s/(\w+)\+*/$variables{$1}/g;
-		my $download = 'http://' . $variables{"sServer"} . '/' . $url_constr . 'g/' . $variables{"sQk"} . '/' . $variables{"sFile"};
+		
+		# Pass the final download url
+		my $download = 'http://' . $variables{"mL"} . '/' . $url_constr . 'g/' . $variables{"mH"} . '/' . $variables{"mY"};
 		
 		# Download the data
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
