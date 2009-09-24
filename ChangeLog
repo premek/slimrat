@@ -1,5 +1,10 @@
 2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
+   * plugins (mediafire): updated broken javascript parsing.
+
+
+2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
    * plugins: added a FreakShare plugin.
 
 
