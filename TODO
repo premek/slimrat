@@ -11,6 +11,14 @@
   - Statusbar: does not seem to be threadsafe.
     Testcase: check group of links, then check a single one.
     threads->create call blocks when statusbar enabled (really...)
+  - Merge all retry code of the download() call, at it's all the same
+    More generally: make that code clean, it's a mess...
+  - Improve resuming, JDownloader seems capable to resume all download
+    providers (Megaupload, Rapidshare, ...)
+  - Download speed indication in GUI (blocker: statusbar)
+  - Rework the filename fetching, as some download provides doesn't display
+    the actual filename in the statuspage, but only upon final request.
+    How to handle resuming then?
 
 # VERSION SPECIFIC #
 
@@ -18,9 +26,5 @@
   - Test everything!
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
-  - Megaupload, Rapidshare, ...: JDownloader supports resuming, slimrat doesn't?
-  - when if filename only given at download response? e.g. megaupload with .part01
   - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
   - progress indication at slimrat wacko (sometimes 0:01 sec remaining, 1 file downloading, continuously)?
-  - show download speed in GUI
-
