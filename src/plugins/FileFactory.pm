@@ -95,7 +95,7 @@ sub get_filename {
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<div id="info" class="metadata">\s*<span>(.+) file uploaded/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<span>(.*?) file uploaded/);
 }
 
 # Check if the link is alive
@@ -104,7 +104,7 @@ sub check {
 	
 	$_ = $self->{PRIMARY}->decoded_content;
 	return -1 if (m/File Not Found/);
-	return 1 if (m/Free Download/);
+	return 1 if (m/Download Now/);
 	return 0;
 }
 
@@ -117,14 +117,15 @@ sub get_data {
 	$self->reload();
 	
 	# Click the "Free Download" button
-	$self->{MECH}->form_number(3);
-	my $res = $self->{MECH}->submit_form();
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->content() =~ m/\"basicBtn\"/) {
+		my $res = $self->{MECH}->follow_link(url_regex => qr/\/dlf\//) || die("could not find primary link");
+		die("secondary page error, ", $res->status_line) unless ($res->is_success);
+		dump_add(data => $self->{MECH}->content());
+	}
 	
 	# Countdown
-	if ($self->{MECH}->content() =~ m/<p id="countdown">(\d+)<\/p>/) {
-		wait($1);
+	if ($self->{MECH}->content() =~ m/<span id="countdown".+?>(\d+)<\/span>/) {
+		wait($1, 0);
 	}
 	
 	# No free slots
@@ -133,8 +134,8 @@ sub get_data {
 	}
 	
 	# Download
-	if ($self->{MECH}->content() =~ m/begin your download/) {
-		my $link = $self->{MECH}->find_link(text => 'Click here to begin your download');
+	if ($self->{MECH}->content() =~ m/\"downloadLink\"/) {
+		my $link = $self->{MECH}->find_link(url_regex => qr/\/dl\//) || die("could not find download link");
 		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 	}
 	

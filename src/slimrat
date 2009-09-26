@@ -407,6 +407,13 @@ sub thread_download {
 			$link,
 			$config_cli->get("to"),
 			sub { # Progress indication
+				# No arguments = not downloading anymore
+				if (scalar(@_) == 0) {
+					$s_data->down();
+					delete($data{$id});
+					$s_data->up();
+					return;
+				}
 							
 				# Create data container
 				$s_data->down();
@@ -481,7 +488,7 @@ sub thread_download {
 		$queue->advance()
 	}
 	debug("thread couldn't get any work, exiting");
-	$s_data->down();
+	$s_data->down();	# FIXME: does this happen ever? should be handled by progress()
 	delete($data{$id});
 	$s_data->up();
 	lock($threads);

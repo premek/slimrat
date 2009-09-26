@@ -1,3 +1,11 @@
+2009-09-26 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins (filefactory): updated to match new site layout
+
+   * common (download): fixed progress indicator, which'd show
+     progress when a download actually failed.
+
+
 2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * plugins (mediafire): updated broken javascript parsing.

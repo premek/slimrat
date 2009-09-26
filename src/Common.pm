@@ -585,8 +585,11 @@ sub download {
 			},
 			\@headers
 		);
+		
+		# Decrease all counters etc.
 		$downloaders--;
 		delete($rate_surplus{thread_id()});
+		&$progress();
 		
 		# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
 		# Any errors get sent to the upper eval{} clause
@@ -596,14 +599,7 @@ sub download {
 			die($response->status_line);
 		} elsif ($response->header("X-Died")) {
 			die($response->header("X-Died"));
-		} else {
-			# Finish the progress bar
-			if ($size) {
-				&$progress($size, $size, 0, 1);
-			} else {
-				&$progress($size_downloaded, 0, 0, 1);
-			}
-			
+		} else {			
 			# Decode any content-encoding
 			if ($encoding) {
 				for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
