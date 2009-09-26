@@ -331,8 +331,6 @@ sub on_btnStart1_clicked {
 }
 
 # Check selected URLs
-# Statusbar makes it fail
-# Altering selection makes it fail
 sub on_btnCheck_clicked {
 	my $button = shift;
 	
@@ -442,9 +440,9 @@ sub thread_check {
 	my $mech = config_browser();
 	
 	# Status bar context ID
-	Gtk2::Gdk::Threads->enter;
+	#Gtk2::Gdk::Threads->enter;
 	#my $id = $gui->get_widget('statusbar')->get_context_id("check");
-	Gtk2::Gdk::Threads->leave;
+	#Gtk2::Gdk::Threads->leave;
 	
 	# Process all URLs
 	my @list = $slist->get_selected_indices;
@@ -455,7 +453,7 @@ sub thread_check {
 		
 		# Indicate progress
 		Gtk2::Gdk::Threads->enter;
-		#$gui->get_widget('statusbar')->push($id, "Checking $link");
+		#my $mid = $gui->get_widget('statusbar')->push($id, "Checking $link");
 		$row->[COL_STATUS] = $slist->render_icon ("gtk-execute", 'menu');
 		Gtk2::Gdk::Threads->leave;
 
@@ -493,12 +491,12 @@ sub thread_check {
 			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
 			Gtk2::Gdk::Threads->leave;
 		}
+		
+		# Remove statusbar message
+		#Gtk2::Gdk::Threads->enter;
+		#$gui->get_widget('statusbar')->remove($id, $mid);
+		#Gtk2::Gdk::Threads->leave;
 	}
-	
-	# All finished
-	Gtk2::Gdk::Threads->enter;
-	#$gui->get_widget('statusbar')->pop($id);
-	Gtk2::Gdk::Threads->leave;
 }
 
 # Download the current selection
@@ -514,9 +512,9 @@ sub thread_download {
 	my $proxy = new Proxy($mech);
 	
 	# Status bar context ID
-	Gtk2::Gdk::Threads->enter;
+	#Gtk2::Gdk::Threads->enter;
 	#my $id = $gui->get_widget('statusbar')->get_context_id("download");
-	Gtk2::Gdk::Threads->leave;
+	#Gtk2::Gdk::Threads->leave;
 	
 	# Folder to download to
 	Gtk2::Gdk::Threads->enter;
@@ -536,7 +534,7 @@ sub thread_download {
 		# Indicate progress
 		Gtk2::Gdk::Threads->enter;
 		$row->[COL_PROGR] = 0;
-		#$gui->get_widget('statusbar')->push($id, "Downloading $link");
+		#my $mid = $gui->get_widget('statusbar')->push($id, "Downloading $link");
 		$row->[COL_STATUS] = $slist->render_icon ("gtk-execute", 'menu');
 		Gtk2::Gdk::Threads->leave;
 		
@@ -608,12 +606,12 @@ sub thread_download {
 			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
 			Gtk2::Gdk::Threads->leave;
 		}
+		
+		# Remove statusbar message
+		#Gtk2::Gdk::Threads->enter;
+		#$gui->get_widget('statusbar')->remove($id, $mid);
+		#Gtk2::Gdk::Threads->leave;
 	}
-	
-	# All finished
-	Gtk2::Gdk::Threads->enter;
-	#$gui->get_widget('statusbar')->pop($id);
-	Gtk2::Gdk::Threads->leave;
 }
 
 

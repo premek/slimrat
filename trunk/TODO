@@ -8,6 +8,9 @@
     * web
     * ncurses
     * jabber
+  - Statusbar: does not seem to be threadsafe.
+    Testcase: check group of links, then check a single one.
+    threads->create call blocks when statusbar enabled (really...)
 
 # VERSION SPECIFIC #
 
