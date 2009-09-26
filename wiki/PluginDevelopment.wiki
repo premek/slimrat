@@ -21,7 +21,7 @@ In order to function correctly, every plugin needs to do some very essential stu
  * provide licensing information,
  * set the build number,
  * configure a unique package name,
- * extende the Plugin base class (which provides some essential functionality),
+ * extend the Plugin base class (which provides some essential functionality),
  * include slimrat-specific packages (at least: Log and Configuration),
  * include other needed packages (at least: WWW::Mechanize).
 
@@ -89,8 +89,8 @@ use warnings;
 When using exotic features of WWW::Mechanize, you could need to specify a minimum version (e.g. form_name requires at least WWW::Mechanize 1.52). You can find that information at the relevant CPAN pages and version history.
 
 Extending Plugin currently gives access to three extra methods:
- * "sub code", which returns the HTTP code of the last request (shouldn't be neccesary in plugin code)
- * "sub fetch", which automagically fetches a given URL, dies upon failure, and submits the page to the dump handler. If no URL specified, the internal variable URL is used.
+ * "sub code", which returns the HTTP code of the last request (shouldn't be necessary in plugin code)
+ * "sub fetch", which auto-magically fetches a given URL, dies upon failure, and submits the page to the dump handler. If no URL specified, the internal variable URL is used.
  * "sub reload", which reloads the current page and does all tasks mentioned in "sub fetch" above.
 
 == Register ==
@@ -132,9 +132,9 @@ As you see, the constructor is passed three arguments (actually four, but the fi
  * the URL to download, which has been positively matched with the regex from above,
  * and a WWW::Mechanize instance, which can be used to click through forms and process sites.
 
-You are advised to use the variable names mentioned in this example constructor (CONF, URL, MECH). Though not actually required for general use, you NEED to use this names when you want to use the methods provided by the Plugin baseclass (fetch and reload).
+You are advised to use the variable names mentioned in this example constructor (CONF, URL, MECH). Though not actually required for general use, you NEED to use this names when you want to use the methods provided by the Plugin base class (fetch and reload).
 
-A truely optional variable is the PRIMARY one, which (as mentioned somewhere before) can be re-used in the "filename" and "check" subroutines. Not in the "get_data" routine though, but that is explained later on.
+A truly optional variable is the PRIMARY one, which (as mentioned somewhere before) can be re-used in the "filename" and "check" subroutines. Not in the "get_data" routine though, but that is explained later on.
 
 When the plugin uses specific configuration values, a default value should be specified, or warnings will emitted. In order to do so, the relevant part of the constructor would look like:
 {{{
@@ -240,7 +240,7 @@ my $res = $self->{MECH}->submit_form();
 die("secondary page error, ", $res->status_line) unless ($res->is_success);
 dump_add(data => $self->{MECH}->content());
 }}}
-As the Plugin base class does not provide any functionality to click forms, you here need to check and provide the dump manually -- stuff which normally is done automagically by the fetch/reload functions provided by the Plugin base class. NOTE: this might change though.
+As the Plugin base class does not provide any functionality to click forms, you here need to check and provide the dump manually -- stuff which normally is done auto-magically by the fetch/reload functions provided by the Plugin base class. NOTE: this might change though.
 
 Another action might be respecting a wait timer:
 {{{
@@ -255,7 +255,7 @@ Other actions result in the final download request. I'll document some cases in 
 
 ==== Manual URL extraction ===
 
-This is the case when the download URL is provided by non-parsable code (e.g. Javascript).
+This is the case when the download URL is provided by not-executed code (e.g. Javascript).
 
 {{{
 if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
@@ -268,7 +268,7 @@ if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
 
 ==== URL as <a href> in HTML ====
 
-This is an easy one, just extract the URL based on some tags (which might be an regex matching the URL, or text within the <a> tags, ...). See WWW::Mechanize's documentation.
+This is an easy one, just extract the URL based on some tags (which might be an regular expression matching the URL, or text within the <a> tags, ...). See WWW::Mechanize's documentation.
 
 {{{
 if ($self->{MECH}->content() =~ m/\"downloadLink\"/) {
