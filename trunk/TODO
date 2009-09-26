@@ -27,4 +27,4 @@
   - Remove 'this is a development release' message ;)
   - Set update server correctly to 'tags'
   - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
-  - progress indication at slimrat wacko (sometimes 0:01 sec remaining, 1 file downloading, continuously)?
+  - GUI can't be closed when a thread is active

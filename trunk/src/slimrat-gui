@@ -544,6 +544,14 @@ sub thread_download {
 			$link,
 			$download_to,
 			sub { # progress
+				# No arguments = not downloading anymore
+				if (scalar(@_) == 0) {
+					Gtk2::Gdk::Threads->enter;
+					# TODO: do something here with the download indicator? Mark it grey or something?
+					Gtk2::Gdk::Threads->leave;
+					return;
+				}
+				
 				my ($done, $total, $speed, $eta) = @_;
 				Gtk2::Gdk::Threads->enter;
 				if ($total) {
