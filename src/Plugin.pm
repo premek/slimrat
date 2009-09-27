@@ -71,8 +71,7 @@ my $config_global = new Configuration;
 
 # Base configuration
 my $config = new Configuration;
-#$config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");	# FIXME: change version to Slimrat::$VERSION when slimrat contains core functionality
-$config->set_default("update_server", "http://slimrat.googlecode.com/svn/trunk/src/plugins");
+$config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");
 $config->set_default("update_cache", $ENV{HOME}."/.slimrat/updates");
 $config->section("all")->set_default("retry_count", 5);
 $config->section("all")->set_default("retry_timer", 60);
