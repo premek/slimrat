@@ -1,3 +1,52 @@
+Dependancies
+------------
+
+The installation instructions below only document the installation of
+slimrat itself, you might need to install optional dependancies.
+
+Those dependancies could be configured by the package manager, or
+you might need to install them yourself, especially when manually
+installing slimrat.
+
+You need to install the following dependancies using your package manager of choice:
+
+Main
+  - Perl (at least 5.8, 5.10 recommended)
+  - Getopt::Long
+  - LWP::UserAgent
+  - Term::ANSIColor
+  - WWW::Mechanize
+
+Automatic captcha solving:
+  - tesseract
+  - imagemagick
+
+Command-line captcha viewing
+  - aview/asciiview (or other, this is a configurable setting)
+
+GUI
+  - Gtk2::GladeXML
+  - Gtk2::SimpleList
+  - xclip (optional, handles GUI clipboard extensions)
+  - Spiffy (optional, handles GUI clipboard extensions)
+
+Some examples using package managers:
+
+a) On Debian/Ubuntu
+      aptitude install libwww-mechanize-perl
+      aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # For the GUI
+      aptitude install aview # For command-line captcha viewing
+      aptitude install imagemagick tesseract # For automatic captcha solving
+      
+b) On FreeBSD
+      portinstall -Pp devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+      
+c) Manually (through CPAN)
+      perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
+      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy';
+
+
+
 Arch Linux
 ----------
 
@@ -83,37 +132,6 @@ RPMs (though currently outdated) are available at:
 Manual installation
 -------------------
 
-1) Dependencies
-
-Main
-  - Perl
-  - wget
-  - xclip (optional, handles GUI clipboard extensions)
-Install these using your package manager of choice.
-
-Perl modules
-  - Getopt::Long
-  - LWP::UserAgent
-  - Term::ANSIColor
-  - WWW::Mechanize
-  - Gtk2::GladeXML (GUI)
-  - Gtk2::SimpleList (GUI)
-  - Spiffy (GUI)
-
-a) On Debian/Ubuntu
-      aptitude install libwww-mechanize-perl
-      aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # (GUI)
-      
-b) On FreeBSD
-      portinstall -Pp ftp/wget devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
-      
-c) Manually (through CPAN)
-      perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
-      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy'; # (GUI)
-
-
-2) Installation
-
 Unpack the tarball at a place you want to. Users wanting to run slimrat do not
 need to have write access to that folder.
    tar -xjvf slimrat-x.x.x.tar.bz2 -C /usr/local/bin/
@@ -130,29 +148,15 @@ Optional: create a system-wide configuration file at /etc/slimrat.conf, a sample
 Windows
 -------
 
-NOTE: the GUI is currently not available on Windows.
-
-1) Dependencies
-
-Main
-  - Perl
-    http://strawberryperl.com/
-
-Perl modules
-  - Getopt::Long
-  - LWP::UserAgent
-  - Term::ANSIColor
-  - WWW::Mechanize
-
-a) Through CPAN
-perl -MCPAN -e "install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize"
-
-b) Through PPM (when using ActiveState Perl)
-
-
-2) Installation
+NOTE: slimrat has not been tested for use at non-Unix based operation
+      system, so many features (including the GUI) might not work. If you
+      come across issues, we'd be happy to fix them so please fill apropriate
+      bug reports.
 
 Unpack the tarball at a place you want to, you can use Winrar to open the archive.
+You will need to install the dependancies usign CPAN, or if available using the
+package manager of the Perl distribution you are using (ie. "PPM" when using 
+ActiveState Perl).
 
 NOTE: configuration files are currently also unavailable on Windows, so you'll need to
       specify any options through the command-line.
