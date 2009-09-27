@@ -1,0 +1,8 @@
+# Sample queue file for slimrat
+#
+# This file contains URLs to be loaded by command line parameter using the
+# slimrat CLI client.
+
+# An entry consists out of a single part: the URL
+http://my-download.site.com/download/file_1.tar
+

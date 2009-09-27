@@ -1,0 +1,591 @@
+2009-09-26 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins (filefactory): updated to match new site layout.
+
+   * common (download): fixed progress indicator, which'd show
+     progress when a download actually failed.
+
+
+2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins (mediafire): updated broken javascript parsing.
+
+
+2009-09-23 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins: added a FreakShare plugin.
+
+
+2009-09-22 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * log (dump): showing callstack in log now.
+
+   * common (download): global OCR setting with dependancy
+     check.
+
+   * plugins: bugfix, was using built-in function rather than
+     Plugin::reload().
+
+   * plugin (uploading): fix by tipingus.
+
+
+2009-09-15 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * configuration (get): warn upon undefined keys.
+
+   * common (download): fix wait timer.
+
+   * log (callstack): reintroduced confess-based callstack
+     traces.
+
+   * common (download): added code which traces the callstack
+     withing the inner evaluation block.
+
+   * all: avoided Configuration::get() calls on potentially
+     undefined values.
+
+
+2009-09-13 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * log (quit): fix when progress indication was last message.
+
+   * log (output): extra omit_file flag to prevent progress
+     indications to stack up in the log file.
+
+   * INSTALL: updated Gentoo installation instructions.
+
+   * Common/Plugin/Slimrat: -cli threads now indicate the amount
+     of concurrent downloads.
+
+   * slimrat-cli: mark as error if image_viewer not installed.
+
+
+2009-09-07 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin (megaupload): fixed captcha substitution.
+
+    * config: relocated post_* config values.
+
+
+2009-09-04 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: went through all once again, removing {PRIMARY}
+      usage in get_data to make it reusable more than once.
+
+    * configuration: support for values which Perl evaluates
+      to FALSE.
+
+    * log: cleaned the documentation, and replaced argument passing
+      to output() routines with passing of a hash.
+
+    * plugins (hotfile): captcha pre- and postprocessing, thanks to
+      David Zaragoza.
+
+
+2009-09-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common (download): introduced some "retry" code, managing
+      failed download and optionally retrying them.
+
+    * log (output): automatic "closing" of the progress bar.
+
+    * configuration (merge): support for merging values.
+
+    * slimrat-cli: single progress-bar for all threads.
+
+
+2009-09-02 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: upon request, configurable option in case
+      of plugin failure (issue 69).
+
+    * plugins: removed all loop-based code, get_data now
+      just exists upon failure. It's up to the caller to
+      support some retry-on-failure stuff.
+
+    * common: adjusted some threading code, exporting a
+      flag when an old threads library has been found
+      ($THRCOMP).
+
+    * plugin: added some auxilary functions to avoid code
+      duplication within the plugins.
+
+
+2009-09-01 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: updated to make them work again.
+
+    * plugins: implemented some code allowing a retry
+      upon failure.
+
+    * slimrat-gui: fixed captcha dialog. Still crashes
+      sometimes though.
+
+    * configuration: implemented path_abs, to convert paths from
+      a relative to an absolute setting.
+
+
+2009-08-31 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: all plugin activity now happens in eval context,
+      which enables plugins to use die() instead of slimrat-
+      specific error functionality, removes some duplicate code,
+      and makes slimrat invulnerable for crashes within used
+      packages (at the expense of a bit performance though).
+
+    * plugin: replaced resource handling by non-busy blocking
+      call, removing the need of slimrat & slimrat-cli to
+      do anything about resource handling.
+
+
+2009-08-30  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added CZshare - first plugin with PREMIUM account support
+
+    * plugins: added FileHive (thanks to Mladen Pejaković)
+
+    * plugins: fixed YouTube (thanks to oleg.smirnov)
+
+    * plugins: fixed UploadedTo (wait when Free-Traffic exceeded)
+
+    * Configuration: support for empty values
+
+
+2009-08-29 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: bugfix in weighter rate calculation.
+
+    * gui: fixed threading code.
+
+    * slimrat-cli: workaround to prevend usage of
+      threads::running (to support threads < v1.34).
+
+
+2009-08-28 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: work-around for treads < 1.34 (e.g. Perl v5.8).
+
+    * common: fixed content-encoding handling.
+
+    * common: implemented download resuming.
+
+
+2009-08-27 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin: update system.
+
+
+2009-08-26  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: default http:// for links on cmdline without protocol
+
+
+2009-08-25 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration: support for multithreading, without altering
+      the model (contrary to proxy and queue, which now works
+      with a per-thread object).
+
+
+2009-08-24 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common (download): multithreaded rate control, with threads
+      sharing unused bandwidth.
+
+
+2009-08-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: read links list from stdin when --list is '-'
+
+
+2009-08-23 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * queue (skip_*): clean support for skipping URLs globally
+      or locally. Needed for parallel downloads.
+
+    * slimrat-cli: support for parallel downloads.
+
+    * log (output): display thread identification.
+
+
+2009-08-22 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: handling debug messages before any configuration
+      initialisation.
+
+    * slimrat-cli: support for loading custom configuration files.
+
+    * slimrat-gui: implemented select set of command-line options.
+
+    * log: capturing WARN and DIE signals in order to provide a
+      complete debug log.
+
+    * common (download): error detection without goto's.
+
+    * log (callstack): support for call trace upon errors and fatal
+      errors (though only in debug mode).
+
+    * common (download): weighted download speed calculation.
+
+    * common (download): rate control.
+
+
+2009-08-21 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * semaphore: introduced new package to support multithreaded
+      operations.
+
+    * all: added quit() methods to all packages, called upon exit
+      of the common functionality.
+
+    * log: altered the dump functionality to support multithreading
+      and switched to hashes as parameters.
+
+    * proxy: fixed some deadlocks.
+
+    * semaphore: added debug quit and reentrant mutexes.
+
+    * documentation: pod conformity.
+
+
+2009-08-14 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * proxy: multithreaded model.
+
+    * queue: multithreaded model.
+
+
+2009-08-13 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * common: enhanced proxy managing, with configurable options,
+      post- and preprocessing support, and some sample code in the
+      Megaupload plugin.
+
+
+2009-08-11  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: RomHustler added (thanks Kaleb Elwert <vahki.ttc gmail com>)
+
+
+2009-08-11 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * proxy: more work on the proxy manager.
+
+    * log: dump log (verbosity 5) now includes the actual slimrat log.
+
+
+2009-08-09  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: zSHARE added
+
+
+2009-08-07  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * captcha: OCR support
+
+    * plugins: downloading the primary page at constructor in all plugins
+
+    * plugins: registering without __PACKAGE__
+
+    * plugins: fixed: Depositfiles, HotFile (captcha), UploadedTo
+
+
+2009-08-03 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * Common: initial work on content encodings.
+
+    * Proxy: initial foundations for the proxy manager, plus some
+      changes to make it handle the global $mech object.
+
+
+2009-08-02 Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * Queue: support for serializing the queue, and loading it from a file
+      upon construction.
+
+    * GUI: make use of the new Queue features.
+
+    * Plugin: graceful dependency checking.
+
+
+2009-07-27  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * GUI: Statusbar
+
+    * CLI: Return codes (number of failed/dead links or 255 on unexpected end)
+
+
+2009-07-26  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: proposal of fetching the primary page only once at constructor
+
+
+2009-07-25  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: added FileFactory plugin.
+
+    * DepositFiles: fixed issue 43, forcing English language.
+
+
+2009-07-25  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * CLI: download speed and remaining time
+
+    * CLI: support for loading custom config files via command line options
+
+
+2009-07-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * GUI: independent of CLI. Spawning a terminal not needed anymore
+
+    * captcha: support in CLI & GUI
+
+
+2009-07-20  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: provides filesize in bytes
+
+
+2009-07-20  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * Log (dump_*): added "extra information" parameter, and
+      added default value "html" to "type" parameter.
+
+
+2009-07-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: Uploading.com plugin, fixed issue 39.
+
+    * slimrat: split into Common.cm code.
+
+
+2009-07-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration (save): suppot for saving values back into
+      a configuration file.
+
+    * log (dump_*): framework to generate and save dump files,
+      very handy to debug issues.
+
+    * log (dump_*): finetuned the dumping process, and added
+      some sample dumps in all plugins.
+
+    * log: several simplifications.
+
+
+2009-07-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * mediafire: fixed issue 44 - MediaFire plugin
+
+
+2009-07-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugin (new): abandoned eval structure, using dynamic
+      binding (fixes issue 32).
+
+    * Direct: should be manually enabled now.
+
+    * configuration (init): parent object gets appropriately altered
+      upon initialisation of a configuration entry in a
+      subsection.
+
+    * log: support for log and screen output, and some basic
+      possibilities to configure the verbosity and type of
+      output to both of them.
+
+    * configuration (file_read): substitute negatively connoted
+      values by a 0.
+
+    * plugins: cleaner plugin configuration, passed through
+      construction to make certain checks possible as early as
+      possible (e.g. if we can use the Direct plugin, issue 31).
+
+    * configuration: simplified it a bit, removing multiple values
+      per key and some other fancy stuff.
+
+
+2009-07-15  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration (file_read, section, merge): implemented
+      support for sections (indicated by "[\w+]"), extracting
+      them from the main configuration object, and merging them
+      back in an object with default values (see documentation).
+
+    * configuration: removed any dependancy to other custom
+      packages, making it usable all over the place.
+
+    * toolbox, plugins: moved dwait() to log, to remove the
+      dependancy.
+
+    * slimrat: removed wget references.
+
+    * slimrat (daemonize): stricter daemonization, disallowing
+      multiple instances and dying upon failure to write the state
+      file.
+
+    * slimrat: moved output configuration as high up as possible,
+      and altered sample configuration file.
+
+    * slimrat, plugins: support for per-plugin configuration section.
+
+
+2009-07-06  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * slimrat: fixed issue 36 - "download to" option
+
+
+2009-07-01  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: fixed issue 35, by creating a .slimrat folder
+      at runtime and moving inclusions of custom packages.
+
+    * slimrat: fixed a bug preventing slimrat to kill another
+      instance.
+
+
+2009-06-29  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: moved all colour dependant functions (check and
+      download summary) to the Log.pm module.
+
+    * slimrat: removed the wget dependancy, using a pure-Perl
+      solution now (LWP-based downloader). The plugin model has
+      also altered a lot, with the possibility to support
+      several protocols and enhanced requests.
+
+    * plugins: ported to the new plugin framework, implementing
+      additional get_filename and get_size methods where
+      possible.
+
+
+2009-06-27  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: initial switch to LWP, only porting the Direct
+      plugin for now.
+
+
+2009-06-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat-gui: refactored the code, and ported some parts
+      to the configuration handler.
+
+    * slimrat: added documentation, and used Pod::Usage to
+      generate a --help and --man dialog based on that
+      documentation.
+
+    * log (usage): added a new reporting function which
+      indicates invalid usage.
+
+
+2009-06-18  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * configuration: removed the revert() functionality, but
+      added support for a key with multiple values.
+
+
+2009-06-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: implemented the use of the brand new configuration
+      handler.
+
+    * configuration (file_read): implemented configuration
+      file parsing, with support for mutable as well as
+      immutable entries.
+
+    * configuration: fixed some bugs with the struct handling,
+      and made use of the configuration handler on some places
+      in the main slimrat executable.
+
+
+2009-06-16  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added UploadedTo.
+
+
+2009-06-16  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * Toolbox (dwait): fixed reference to ptime().
+
+    * slimrat: added function prototypes, and enhanced the command-
+      line options handline.
+
+    * slimrat: enhanced backgrounding support, through a state file
+      to save the PID of the daemon in, and a killswitch to kill a
+      single running instance.
+
+    * Config: added the initial functions for a class which will ease
+      the handling of configurations, originating from different sources
+      across the system.
+
+
+2009-06-09  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: use a hash in combinaton with GetOptions instead
+      of several global variables.
+
+    * queue: added POD documentation.
+
+    * log: added POD documentation, and replaced some more raw prints
+      with routines from log package.
+
+
+2009-06-04  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: added controllable verbosity level, through --verbose
+      and --quiet parameters.
+
+    * queue: converted the datastructure so it properly
+      supports a get() call to get the current URL, and
+      an advance() call to proceed to the next URL (which
+      possibly reads from a file, skipping commented out or
+      already processed links). Fixes issue 30.
+      This makes a $status=0 (from the check() function each
+      plugin should implement) value relevant: it indicates
+      a temporary failure, so the link doesn't get commented
+      out but ignored so it can get retried upon a new session.
+
+    * ChangeLog: added a requested changelog with most prominent
+    changes. To be kept up to date from now on.
+
+
+2009-05-20  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * log: introduced a helper library to ease logging. It
+      provides several functions (debug, info, warning, error,
+      fatal) to differentiate the message. The message is
+      coloured depending to the message level, but verbosity
+      settings have yet to be implemented.
+
+    * plugins: added OdSiebie and HotFile plugins.
+
+    * all: relicensed to MIT-license.
+
+
+2009-05-19  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * plugins: added EasyShare plugin.
+
+
+2009-05-18  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added FastShare, ShareBase and DepositFiles plugins.
+
+
+2009-05-17  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: added Data.hu plugin.
+
+    * slimrat: added custom commands to execute pre-download, and
+      upon failure or completion.
+
+
+2009-05-17  Tim Besard  <tim-dot-besard-at-gmail-dot-com>
+
+    * slimrat: added backgrounding capabilities.
+
+    * plugins/Rapidshare: added interval-check.
+
+    * slimrat: support for comments in the link file.
+
+    * slimrat: downloaded links get comments out upon completion.
+

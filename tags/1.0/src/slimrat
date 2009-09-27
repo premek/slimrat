@@ -1,0 +1,604 @@
+#!/usr/bin/env perl
+#
+# slimrat - main CLI script
+#
+# Copyright (c) 2008-2009 Přemek Vyhnal
+# Copyright (c) 2009 Tim Besard
+#
+# This file is part of slimrat, an open-source Perl scripted
+# command line and GUI utility for downloading files from
+# several download providers.
+# 
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# Authors:
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#
+
+#################
+# CONFIGURATION #
+#################
+
+#
+# Dependancies
+#
+
+# Packages
+use threads;
+use threads::shared;
+use Getopt::Long;
+use Pod::Usage;
+
+# Find root for custom packages
+use FindBin qw($RealBin);
+use lib $RealBin;
+
+# Custom packages
+use Common;
+use Plugin;
+use Toolbox;
+use Queue;
+use Log;
+use Configuration;
+use Semaphore;
+
+# Function prototypes
+sub quit($);
+
+# Write nicely
+use strict;
+use warnings;
+
+
+#
+# Essential stuff
+#
+
+# Filthy debug flag prescan
+foreach (@ARGV) {
+	Log::set_debug() if (m/^--debug$/);
+}
+
+# Register signals
+$SIG{'INT'} = 'quit';
+
+# Global variables
+my @failedlinks:shared;
+my @oklinks:shared;
+
+# Shared data
+my %data:shared; my $s_data = new Semaphore;
+
+
+#
+# Initialise configuration
+#
+
+# Process command-line options
+Getopt::Long::Configure("pass_through");
+Getopt::Long::Configure("bundling");
+
+my %options;
+GetOptions (
+		\%options,
+		"help|h|?",
+		"man",
+		"check|c",
+		"list|l=s",
+		"to|t=s",
+		"address=s",
+		"daemon|d",
+		"kill|k",
+		"debug",
+		"quiet|q",
+		"config=s",
+		"update"
+);
+
+# Initialise global configuration
+my $config = config_init($options{"config"});
+
+# Initialise own configuration
+my $config_cli = new Configuration;
+$config_cli->set_default("mode", "download");
+$config_cli->set_default("to", ".");
+$config_cli->set_default("threads", 1);
+$config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
+$config_cli->set_default("daemon", 0);
+$config_cli->merge($config->section("cli"));
+
+# Give the usage or manual
+if ($options{"man"}) {
+	pod2usage(-verbose => 2);
+	quit(0);
+} elsif ($options{"help"}) {
+	pod2usage(-verbose => 1);
+	quit(0);
+}
+
+# Kill an instance if requested
+if ($options{"kill"}) {
+	if (my $pid = pid_read()) {
+		if (kill 0, $pid) {
+			info("killing an active instance at PID $pid");
+			kill 2, $pid;
+			quit(0);
+		} else {
+			warning("no running instance found");
+			quit(1); # ?
+		}
+	} else {
+		fatal("could not read state file");
+		quit(255);
+	}
+}
+
+# Mode (e.g. what slimrat should do)
+usage("cannot combine --check with --update option") if ($options{"check"} && $options{"update"});
+$config_cli->set("mode", "check") if ($options{"check"});
+$config_cli->set("mode", "update") if ($options{"update"});
+
+# Options we might use later on
+$config_cli->set("list", $options{"list"}) if ($options{"list"});
+$config_cli->set("daemon", 1) if ($options{"daemon"});
+$config_cli->set("address", $options{"address"}) if ($options{"address"});
+$config_cli->set("to", $options{"to"}) if ($options{"to"});
+usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
+$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("verbosity", 5) if ($options{"debug"});
+$config->section("queue")->set("file", $options{"list"}) if ($options{"list"} && $options{"list"} ne "-");
+
+# Global variable with amount of threads
+my $threads : shared = 0;
+
+# Propagate the configuration to all packages
+# NOTE: this step includes conversion from relative to absolute paths,
+#       if paths get added after this step, convert them using Toolbox::rel2abs
+config_propagate($config);
+
+
+#
+# Apply configuration
+#
+
+# Display thread identification at output if requested
+$config->section("log")->set("show_thread", 1) if ($config_cli->get("threads") > 1);
+
+# Check if we got input files
+if ($config_cli->get("mode") eq "check" || $config_cli->get("mode") eq "download") {
+	if (!scalar @ARGV && !$config_cli->get("list")) {
+		usage("no input URLs");
+	}
+}
+
+# Initialise a link queue
+while ($_ = shift) { # clear @ARGV to be able to read input from user with <> later (captcha)
+	if (/^-/) {
+		usage("unrecognised option '$_'");
+	}
+	s{^(?!\w+://)}{http://};
+	Queue::add($_);
+}
+if ($config_cli->contains("list") && $config_cli->get("list") eq "-") {
+	chomp and Queue::add($_) while (<>);
+}
+
+# Set socket local address if needed
+if($config_cli->contains("address")) {
+	use LWP::Protocol::http;
+	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $config_cli->get("address"));
+}
+
+# Fork in background
+if ($config_cli->get("daemon")) {
+	info("forking in background");
+	daemonize();
+	print "\n\n";
+}
+
+
+
+########
+# MAIN #
+########
+
+info("slimrat started (noninteractive command-line interface)");
+
+#
+# Update
+#
+
+if ($config_cli->get("mode") eq "update") {
+	info("updating plugins");
+	quit(Plugin::update());
+}
+
+
+#
+# Check
+#
+
+elsif ($config_cli->get("mode") eq "check") {
+	info("checking URLs");
+	my $dead_links = 0;
+	
+ 	# Instantiate per-thread objects
+	my $mech = config_browser();
+	my $queue = new Queue();
+	
+	# Get and loop all URLs
+	$queue->advance();
+ 	while (my $link = $queue->get()) {
+		my $alive = 0;
+		debug("checking '$link'");
+		
+		# Load plugin
+		my $plugin;
+		eval { $plugin = Plugin->new($link, $mech) };
+		if ($@) {
+			my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+			my ($error) = $@ =~ m/^(.+)\sat/; 
+			error("plugin failure ($error)");	# TODO: this error prints a callstack as well
+			callstack_confess($error_raw, 0);	# Strip nothing
+			status($link, 0, "plugin failure");
+		} else {
+			my $status = $plugin->check();
+			if ($status < 0) {
+				status($link, $status, "file is dead");
+			} elsif ($status == 0) {
+				status($link, $status, "plugin failure (could not distinguish whether file is up or down)");
+			} elsif ($status > 0) {
+				my $size = $plugin->get_filesize();
+				my $extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
+				status($link, $status, $extra);
+				$alive++
+			}
+		}
+		$dead_links++ unless ($alive);
+		
+		# Advance to the next URL
+		$queue->skip_locally();
+		$queue->advance();
+	}
+	
+	quit($dead_links);
+}
+
+
+#
+# Download
+#
+
+elsif ($config_cli->get("mode") eq "download") {
+	# Spawn progress indicator
+	debug("spawning progress indicator");
+	threads->create(\&thread_progress);
+	
+	# Spawn downloaders
+	$threads = $config_cli->get("threads");
+	debug("spawning $threads download threads");
+	foreach (1 .. $threads) {
+		my $thread = threads->create(\&thread_download);
+	}
+	
+	# Wait till all threads finish (alternative method to support threads < 1.34)
+	if ($THRCOMP) {
+		#{ lock($threads); cond_wait($threads) until $threads == 0; }
+		# TODO: cond_wait blocks SIG_INT
+		sleep(1) while $threads;
+	} else {
+		no strict "subs";
+		sleep(1) while (scalar(threads->list(threads::running)) > 1);
+	}	
+	
+	# Check if there is work left (e.g. if the last thread -- or the only thread -- eliminated
+	# some work by skipping_locally, that work has to be retried at least)
+	thread_download();
+
+	# Command after all downloads
+	if ($config_cli->contains("post_all")) {
+		system($config_cli->get("post_all"));
+	}
+	
+	# Quit
+	quit(scalar @failedlinks);
+}
+
+
+#
+# Other
+#
+
+else {
+	usage("unrecognised mode");
+	quit(255);
+}
+
+
+
+###########
+# THREADS #
+###########
+
+# Progress indicator
+sub thread_progress {
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("progress indicator exiting");
+		threads->exit();
+	};
+	
+	while (1) {
+		$s_data->down();
+		my @threads = keys %data;
+		if (scalar(@threads)) {
+			my $string = "Downloading " . scalar(@threads) . " file";
+			$string .= "s" if scalar(@threads) > 1;
+			
+			my $speed = 0;
+			my $eta_min = 0;
+			my $eta = 0;
+			foreach my $thread (@threads) {
+				$speed += $data{$thread}{speed};
+				$eta += $data{$thread}{eta};
+				$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+			}
+			
+			$string .= " at " . bytes_readable($speed) . "/s";
+			$string .= ", " . seconds_readable($eta) . " remaining";
+			$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
+			
+			progress($string); 
+		}
+		$s_data->up();
+		sleep(1);
+	}
+}
+
+# Downloader
+sub thread_download {	
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("downloader exiting prematurely");
+		threads->exit();
+		# No need to adjust $threads here, as this handler is only used when Common::quit()
+		# wants to forcedly quit the thread. Broadcasting $thread would cause main::quit()
+		# to get unblocked which'd call Common::quit() _again_
+	};
+	
+	# Thread ID
+	my $id = thread_id();
+	
+ 	# Instantiate per-thread objects
+	my $mech = config_browser();
+	my $proxy = new Proxy($mech);
+	my $queue = new Queue();
+	
+	# Load the first URL
+	$queue->advance();
+ 	while (my $link = $queue->get()) {	
+ 		# Load a proxy
+ 		$proxy->advance($link);
+ 		
+ 		# Download the URL with custom progress indication
+ 		my $failure = 0;
+		my $result = download(
+			$mech,
+			$link,
+			$config_cli->get("to"),
+			sub { # Progress indication
+				# No arguments = not downloading anymore
+				if (scalar(@_) == 0) {
+					$s_data->down();
+					delete($data{$id});
+					$s_data->up();
+					return;
+				}
+							
+				# Create data container
+				$s_data->down();
+				if (!defined($data{$id})) {
+					share($data{$id});
+					$data{$id} = &share({});
+				}
+				
+				# Save data
+				$data{$id}{done} = shift;	# bytes downloaded
+				$data{$id}{total} = shift;	# filesize in bytes
+				$data{$id}{speed} = shift;	# speed in bytes per second
+				$data{$id}{eta} = shift;	# time remaining in seconds
+				$s_data->up();
+			},
+			sub { # Captcha handler
+				my $captchafile = shift;
+				
+				# Check if the image viewer is installed (TODO: more generic)
+				if ($config_cli->get("image_viewer") =~ m/^(\w+)/) {
+					if (! `which $1`) {
+						die("$1 not found, could not query user for captcha");
+					}
+				}
+				
+				# view
+				system(sprintf $config_cli->get("image_viewer"), $captchafile);
+				
+				# Ask the user
+				print "Captcha? ";
+				my $captcha = <STDIN>; # FIXME: doesn't suit the 'noninteractive' client; fix when an interactive client is available (ncurses)
+				chomp $captcha;
+				return $captcha;
+			},
+			1	# Do not lock automatically if resources are unsuficcient, but return -3 so we can manage threads manually
+		);
+		
+		# download() result
+		if ($result > 0) {
+			push @oklinks, $link;
+			$queue->skip_globally("DONE");
+
+			# Command after successful download
+			if ($config_cli->contains("post_download")) {
+				system($config_cli->get("post_download"));
+			}
+		}
+		elsif ($result == -3) { # Insufficient resources
+			$queue->skip_locally();
+		} elsif ($result == -2) {	# Plugin failure
+			$failure = 1;
+			$queue->skip_globally();
+		} elsif ($result == -1) {	# URL dead
+			$failure = 1;
+			$queue->skip_globally("DEAD");
+		} elsif ($result == 0) {	# URL unknown
+			$failure = 1;
+			$queue->skip_globally();
+		}
+		
+		# Failure?
+		if ($failure) {
+			push @failedlinks, $link;
+
+			# Command after failed download
+			if ($config_cli->contains("post_failure")) {
+				system($config_cli->get("post_failure"));
+			}
+		}
+		
+		# Advance to the next URL
+		$queue->advance()
+	}
+	debug("thread couldn't get any work, exiting");
+	$s_data->down();	# FIXME: does this happen ever? should be handled by progress()
+	delete($data{$id});
+	$s_data->up();
+	lock($threads);
+	$threads--;
+	cond_broadcast($threads);
+}
+
+
+
+############
+# ROUTINES #
+############
+
+# Finish
+sub quit($) {
+	# Print a download summary
+	summary(\@oklinks, \@failedlinks);
+	
+	# Quit all packages
+	Common::quit(@_);
+}
+
+
+
+#################
+# DOCUMENTATION #
+#################
+
+=head1 NAME
+
+slimrat-cli
+
+=head1 VERSION
+
+1.0-rc
+
+=head1 DESCRIPTION
+
+  Command-line download manager, capable of downloading files from
+  several free download providers.
+
+=head1 SYNOPSIS
+
+  slimrat [OPTION...] [LINK]...
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+  Prints a summary how to use the client.
+
+=item B<--man>
+
+  Prints a manual how to use the client.
+
+=item B<--daemon>
+
+  Makes slimrat work in the background, by properly forking and redirecting
+  the output to a specified logfile. Only one file can be backgrounded at a
+  time, to support multiple instances you'll need to specify differend
+  state files to save the instances PID in.
+
+=item B<--kill>
+
+  Kills a single active client, by looking up the PID in a predefined state file.
+
+=item B<--list>
+
+  Uses the given file as a queue-file containing URLs.
+
+=item B<--check>
+
+  Do not download the loaded URLs, just check them.
+
+=item B<--to>
+
+  Specifies the target directory for the downloaded files.
+
+=item B<--address>
+
+  Makes the download client bind to a specific address.
+
+=item B<--config>
+
+  Load custom configuration file.
+
+=item B<--debug>
+
+  Enables maximal verbosity, which includes a lot of text on the screen and the generation
+  of an additional dump archive.
+  WARNING: do not use this option by default, as it keeps a whole lot of extra information
+           in memory (including _all_ downloaded items).
+
+=item B<--quiet>
+
+  Makes slimrat less verbose, only displaying errors and warnings.
+
+=back
+
+=head1 EXAMPLES
+
+  slimrat http://rapidshare.com/files/012345678/somefile.xxx
+  slimrat -l urls.dat -d
+
+=head1 AUTHOR
+
+Přemek Vyhnal <premysl.vyhnal gmail com>
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
+

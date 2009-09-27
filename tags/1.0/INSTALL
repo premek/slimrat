@@ -1,0 +1,163 @@
+Dependancies
+------------
+
+The installation instructions below only document the installation of
+slimrat itself, you might need to install optional dependancies.
+
+Those dependancies could be configured by the package manager, or
+you might need to install them yourself, especially when manually
+installing slimrat.
+
+You need to install the following dependancies using your package manager of choice:
+
+Main
+  - Perl (at least 5.8, 5.10 recommended)
+  - Getopt::Long
+  - LWP::UserAgent
+  - Term::ANSIColor
+  - WWW::Mechanize
+
+Automatic captcha solving:
+  - tesseract
+  - imagemagick
+
+Command-line captcha viewing
+  - aview/asciiview (or other, this is a configurable setting)
+
+GUI
+  - Gtk2::GladeXML
+  - Gtk2::SimpleList
+  - xclip (optional, handles GUI clipboard extensions)
+  - Spiffy (optional, handles GUI clipboard extensions)
+
+Some examples using package managers:
+
+a) On Debian/Ubuntu
+      aptitude install libwww-mechanize-perl
+      aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # For the GUI
+      aptitude install aview # For command-line captcha viewing
+      aptitude install imagemagick tesseract # For automatic captcha solving
+      
+b) On FreeBSD
+      portinstall -Pp devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
+      
+c) Manually (through CPAN)
+      perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
+      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy';
+
+
+
+Arch Linux
+----------
+
+You can install Slimrat from AUR:
+  - stable version: http://aur.archlinux.org/packages.php?ID=20499
+  - SVN version: http://aur.archlinux.org/packages.php?ID=29697
+
+
+
+Gentoo
+------
+
+1) Install layman and autounmask
+
+Run the following commands if you haven't installed them already:
+   emerge layman autounmask
+
+
+2) Add the "kde-testing" overlay
+
+Run the following command to add the "kde-testing" overlay, in which
+slimrat resides:
+   layman -a kde-testing
+
+NOTE: for more information about overlays, have a look at the Gentoo
+      documentation (http://www.gentoo.org/proj/en/overlays/userguide.xml)
+
+
+3) Install slimrat
+
+a) Stable version:
+   autounmask net-misc/slimrat-0.9.55
+   emerge slimrat
+
+b) SVN version:
+   autounmast net-misc/slimrat-9999
+   emerge slimrat
+
+
+
+PLD linux
+---------
+
+Currently no prebuilt RPM package is available, but the projects
+CVS repository contains a SPEC file to generate one.
+
+1) Initialise the folder structure
+
+Do this by issuing the command
+   builder --init-rpm-dir
+
+After that, enter the "rpm" directory at your home folder.
+
+
+2) Download the spec file from the CVS repository into "~/rpm/SPECS"
+
+You can find the spec file at the following url:
+    http://cvs.pld-linux.org/cgi-bin/cvsweb/packages/slimrat/
+
+Currently the spec file does not require any other files from the
+CVS repository, but this could change with time. You might need to
+check out more files from that location.
+
+
+3) Build the RMP
+
+Execute the next command to build a binary RPM:
+   ./builder -bb -bc -R foo
+
+
+4) Install the resulting RPM
+
+
+
+Other RPM-based distro's
+------------------
+
+RPMs (though currently outdated) are available at:
+   http://rpm.pbone.net/index.php3?stat=3&search=slimrat&srodzaj=3
+
+
+
+Manual installation
+-------------------
+
+Unpack the tarball at a place you want to. Users wanting to run slimrat do not
+need to have write access to that folder.
+   tar -xjvf slimrat-x.x.x.tar.bz2 -C /usr/local/bin/
+
+Create symlinks to the main slimrat executables.
+   ln -s /Path/to/SlimRat/slimrat /usr/local/bin/slimrat
+   ln -s /Path/to/SlimRat/slimrat-gui /usr/local/bin/slimrat-gui
+
+Optional: create a system-wide configuration file at /etc/slimrat.conf, a sample
+          configuration file documenting all options is provided under the name "slimrat.conf"
+
+
+
+Windows
+-------
+
+NOTE: slimrat has not been tested for use at non-Unix based operation
+      system, so many features (including the GUI) might not work. If you
+      come across issues, we'd be happy to fix them so please fill apropriate
+      bug reports.
+
+Unpack the tarball at a place you want to, you can use Winrar to open the archive.
+You will need to install the dependancies usign CPAN, or if available using the
+package manager of the Perl distribution you are using (ie. "PPM" when using 
+ActiveState Perl).
+
+NOTE: configuration files are currently also unavailable on Windows, so you'll need to
+      specify any options through the command-line.
+

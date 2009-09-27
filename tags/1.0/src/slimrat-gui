@@ -1,0 +1,687 @@
+#!/usr/bin/env perl
+#
+# slimrat - main GUI script
+#
+# Copyright (c) 2008-2009 Přemek Vyhnal
+# Copyright (c) 2009 Tim Besard
+#
+# This file is part of slimrat, an open-source Perl scripted
+# command line and GUI utility for downloading files from
+# several download providers.
+# 
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# Authors:
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
+#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#
+
+#################
+# CONFIGURATION #
+#################
+
+#
+# Dependancies
+#
+
+# Packages
+use threads;
+use threads::shared;
+use Getopt::Long;
+use Pod::Usage;
+use Gtk2 -init;
+use Gtk2::GladeXML;
+use Glib qw(TRUE FALSE);
+use Gtk2 qw/-init -threads-init/;
+use Gtk2::SimpleList;
+use File::Basename;
+
+# Find root for custom packages
+use FindBin qw($RealBin);
+use lib $RealBin;
+
+# Custom packages
+use Common;
+use Clipboard;
+use Plugin;
+use Toolbox;
+use Log; 
+use Configuration;
+use Queue;
+
+# Write nicely
+use warnings;
+use strict;
+
+
+#
+# Essential stuff
+#
+
+# Filthy debug flag prescan
+foreach (@ARGV) {
+	Log::set_debug() if (m/^--debug$/);
+}
+
+# Global variables
+my $ctrl;
+my $die : shared = 0;
+
+# Register signals
+$SIG{'INT'} = 'quit';
+
+
+#
+# Initialise configuration
+#
+
+# Process command-line options
+Getopt::Long::Configure("pass_through");
+Getopt::Long::Configure("bundling");
+
+my %options;
+GetOptions (
+		\%options,
+		"help|h|?",
+		"man",
+		"debug",
+		"quiet|q",
+		"config=s",
+);
+
+# Initialise global configuration
+my $config = config_init($options{"config"});
+
+# Initialise own configuration
+my $config_gui = new Configuration;
+$config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade');
+$config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
+$config_gui->merge($config->section("gui"));
+
+# Give the usage or manual
+if ($options{"man"}) {
+	pod2usage(-verbose => 2);
+	quit(0);
+} elsif ($options{"help"}) {
+	pod2usage(-verbose => 1);
+	quit(0);
+}
+
+# Options we might use later on
+usage("cannot combine --debug with --quiet option") if ($options{"quiet"} && $options{"debug"});
+$config->section("log")->set("verbosity", 2) if ($options{"quiet"});
+$config->section("log")->set("verbosity", 5) if ($options{"debug"});
+
+# Propagate the configuration to all packages
+# NOTE: this step includes conversion from relative to absolute paths,
+#       if paths get added after this step, convert them using Toolbox::rel2abs
+config_propagate($config);
+
+
+
+#######
+# GUI #
+#######
+
+info("slimrat started (graphical user interface)");
+
+# Enable threads
+Glib::Object->set_threadsafe(TRUE) || error("could not guarantee thread safetyness, kittens might die");
+
+# Keypresses
+use constant KEY_CTRL	=> 65507;
+use constant KEY_v	=> 118;
+use constant KEY_V	=> 86;
+use constant KEY_DELETE	=> 65535;
+use constant KEY_INSERT	=> 65379;
+use constant KEY_ENTER	=> 65293;
+
+# Construct the GUI
+my $gui = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'mainWindow');
+$gui->signal_autoconnect_from_package('main');
+
+# Treeview
+use constant { # same order as in 'Configure the listview'
+	COL_PROGR	=> 0,
+	COL_STATUS	=> 1,
+	COL_TYPE	=> 2,
+	COL_LINK	=> 3,
+	COL_FNAME	=> 4,
+	COL_FSIZE	=> 5,
+};
+
+Gtk2::SimpleList->add_column_type(
+		'progress', 
+		type     => 'Glib::Int',
+		renderer => 'Gtk2::CellRendererProgress',
+		attr     => sub {
+			my ($treecol, $cell, $model, $iter, $col_num) = @_;
+			my $info = $model->get ($iter, $col_num);
+			if ($info==-2) {$cell->set (text => "", value=>0);}
+			elsif ($info==-1){$cell->set (text => "?", value=>0);}
+			else          {$cell->set (text => "$info %", value=>$info);}
+		}
+);
+
+# Configure the listview
+my $slist = Gtk2::SimpleList->new(
+	'Progress'	=> 'progress',
+	'S'			=> 'pixbuf',
+	'Type'		=> 'text',
+	'Link'		=> 'text',
+	'Filename'	=> 'text',
+	'Size'		=> 'text',
+);
+
+$slist->get_selection->set_mode ('multiple');
+$slist->get_column($_)->set_resizable(1) foreach (COL_PROGR, COL_STATUS, COL_TYPE, COL_LINK, COL_FNAME, COL_FSIZE);
+$slist->get_column($_)->set_reorderable(1) foreach (COL_PROGR, COL_STATUS, COL_TYPE, COL_LINK, COL_FNAME, COL_FSIZE);
+$slist->set_column_editable ($_, TRUE) foreach (COL_LINK);
+$slist->set_search_column(COL_LINK);
+$slist->set_search_equal_func(sub { # search (as-you-type) links in the list not only at the beginning of the string but also in the middle of the string
+	my($store,$col,$pat,$iter)=@_;
+	return $store->get($iter,$col) !~ m/\Q$pat\E/i;
+});
+
+# set "Download to" default from config
+$gui->get_widget('downto')->set_filename($config_gui->get("to")) if ($config_gui->get("to"));
+
+$gui->get_widget('mainwin')->add_with_viewport($slist);
+$gui->get_widget('mainwin')->show_all;
+
+
+# Load queue'd URLs
+Queue::restore($config_gui->get("queue_file"));
+my $urls = Queue::dump();
+foreach (@$urls) {
+	my @newRow;
+	$newRow[COL_PROGR] = -2;
+	$newRow[COL_STATUS] = $slist->render_icon ("gtk-new", 'menu');
+	$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
+	$newRow[COL_LINK] = $_;
+	push @{$slist->{data}},[@newRow];
+}
+
+
+# Activate the GUI
+my $statusbar_main = $gui->get_widget('statusbar')->get_context_id("main messages");
+$gui->get_widget('statusbar')->push($statusbar_main, "Slimrat is ready");
+Gtk2->main;
+
+
+
+############
+# ROUTINES #
+############
+
+#
+# Essential stuff
+#
+
+# Window got destroyed 
+sub on_mainWindow_destroy { &quit; }
+
+# Quit the application
+sub quit {
+	# Save the queue
+	Queue::reset();
+	Queue::add(@{$_}[COL_LINK]) foreach @{$slist->{data}};
+	Queue::save($config_gui->get("queue_file"));
+	
+	# Quit the GUI
+	Gtk2->main_quit;
+	
+	# Quit all packages
+	Common::quit(@_);
+}
+
+# Parse links from text input or clipboard and add them
+sub links_parse_add {
+	my $links = shift;
+	foreach (split (/\n+/, $links)) {
+		# remove spaces from beginning and end
+		s/^\s+//;
+		s/\s+$//;
+		my @newRow;
+		$newRow[COL_PROGR] = -2;
+		$newRow[COL_STATUS] = $slist->render_icon ("gtk-new", 'menu');
+		$newRow[COL_TYPE] = Plugin::get_package($_)->get_name();
+		$newRow[COL_LINK] = $_;
+		push @{$slist->{data}},[@newRow];
+	}
+
+}
+
+# Moving treeview items
+sub move_item {
+	my($from,$to) = @_;
+	return if($to<0 || $to >= scalar @{$slist->{data}});
+	splice @{$slist->{data}}, $to, 0, splice @{$slist->{data}}, $from, 1; 
+	$slist->unselect($from);
+	$slist->select($to);
+}
+
+# Select all
+sub select_all {
+	$slist->select($_) foreach (0 .. (scalar @{$slist->{data}})-1);
+}
+
+
+#
+# Key handling
+#
+
+# Keypress handler
+sub key_press {
+	my ($cmdbox, $event)=@_;
+	if($event->keyval==KEY_CTRL){$ctrl = 1;}
+	elsif($ctrl && ($event->keyval==KEY_v || $event->keyval==KEY_V)){&on_btnAddClip_clicked;}
+	elsif($event->keyval==KEY_DELETE){&on_btnRemove1_clicked;}
+	elsif($event->keyval==KEY_INSERT){&on_btnAdd1_clicked;}
+}
+
+# Keyrelease handler
+sub key_release {
+	my ($cmdbox, $event)=@_;
+	if($event->keyval==KEY_CTRL) {$ctrl = 0;}
+}
+
+# Keypress handler within a dialog
+sub on_addDialog_key_press_event {
+	my ($cmdbox, $event)=@_;
+	if($event->keyval==KEY_CTRL){$ctrl = 1;}
+	&on_addOkBtn_clicked if($ctrl && $event->keyval==KEY_ENTER);
+}
+
+# Keyrelease handler within a dialog
+sub on_addDialog_key_release_event {goto &key_release;}
+
+
+#
+# Toolbar
+#
+
+# Start download
+sub on_btnStart1_clicked {
+	my $button = shift;
+	
+	# Select all if none selected
+	select_all() if(scalar $slist->get_selected_indices == 0);
+	
+	threads->create(\&thread_download);
+}
+
+# Check selected URLs
+sub on_btnCheck_clicked {
+	my $button = shift;
+	
+	# Select all if none selected
+	select_all() if(scalar $slist->get_selected_indices == 0);
+	
+	threads->create(\&thread_check);
+}
+
+# Add from clipboard
+sub on_btnAddClip_clicked {
+	links_parse_add(Clipboard->paste);
+}
+
+
+#
+# Add dialog
+#
+
+# Add
+my ($addDialog, $addDialogBuff);
+sub on_btnAdd1_clicked {
+	my $gui_add = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'addDialog');
+	$gui_add->signal_autoconnect_from_package('main');
+	$addDialog = $gui_add->get_widget('addDialog');
+	$addDialogBuff = $gui_add->get_widget('addLinks')->get_buffer();
+}
+
+# Add dialog cancel button
+sub on_addCancelBtn_clicked {
+	$addDialog->destroy();	
+}
+
+# Add dialog OK button
+sub on_addOkBtn_clicked {
+	links_parse_add($addDialogBuff->get_text($addDialogBuff->get_start_iter, $addDialogBuff->get_end_iter, FALSE));
+	$addDialog->destroy();	
+}
+
+# Remove
+sub on_btnRemove1_clicked {
+	my $dialog = Gtk2::MessageDialog->new (
+			$gui->get_widget('mainWindow'),
+			'destroy-with-parent',
+			'question', # message type
+			'yes-no', # which set of buttons?
+			"Do you really want to delete selected items from the list?");
+	$dialog->set_default_response ('yes');
+
+	my $response = $dialog->run;
+	if ($response eq 'yes') {
+		my $i=0;
+		splice (@{$slist->{data}}, $_- $i++, 1) foreach ($slist->get_selected_indices);
+	}
+	$dialog->destroy;
+}
+
+# Remove all
+sub on_btnRemoveAll_clicked{
+	select_all();
+	&on_btnRemove1_clicked;
+}
+
+# Move to top
+sub on_btnBeg1_clicked{
+	my $i=0;
+	move_item($_,$i++) foreach ($slist->get_selected_indices);
+}
+
+# Move up
+sub on_btnUp1_clicked{
+	return if (grep($_-1<0,$slist->get_selected_indices));
+	move_item($_, $_-1) foreach ($slist->get_selected_indices);
+}
+
+# Move down
+sub on_btnDown1_clicked{
+	return if (grep($_+1>=scalar @{$slist->{data}},$slist->get_selected_indices));
+	move_item($_,$_+1) foreach (reverse $slist->get_selected_indices);
+}
+
+# Move to bottom
+sub on_btnEnd1_clicked{
+	my $i=scalar @{$slist->{data}}-1;
+	move_item($_,$i--) foreach (reverse $slist->get_selected_indices);
+}
+
+# Quit
+sub gtk_main_quit {
+	&quit;
+}
+
+
+#
+# Threads
+#
+
+# Check the current selection
+sub thread_check {
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("thread exiting prematurely");
+		threads->exit();
+	};
+	
+	# Configure browser and proxy manager
+	my $mech = config_browser();
+	
+	# Status bar context ID
+	#Gtk2::Gdk::Threads->enter;
+	#my $id = $gui->get_widget('statusbar')->get_context_id("check");
+	#Gtk2::Gdk::Threads->leave;
+	
+	# Process all URLs
+	my @list = $slist->get_selected_indices;
+	MAIN: foreach my $rownum (@list) {
+		# Set up GUI				
+		my $row = @{$slist->{data}}[$rownum];
+		my $link = @{$row}[COL_LINK];
+		
+		# Indicate progress
+		Gtk2::Gdk::Threads->enter;
+		#my $mid = $gui->get_widget('statusbar')->push($id, "Checking $link");
+		$row->[COL_STATUS] = $slist->render_icon ("gtk-execute", 'menu');
+		Gtk2::Gdk::Threads->leave;
+
+		# Load plugin
+		my $plugin;
+		eval { $plugin = Plugin->new($link, $mech) };
+		if ($@) {
+			error("plugin failure ($@)");
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
+			Gtk2::Gdk::Threads->leave;
+			next MAIN;				
+		}
+		
+		# Check link
+		my $check = $plugin->check();
+		if ($check > 0) {
+			my $filename = $plugin->get_filename() || "";
+			my $filesize = $plugin->get_filesize();
+			$filesize = ($filesize ? bytes_readable($filesize) : "?");
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-yes", 'menu');
+			$row->[COL_FNAME] = $filename;
+			$row->[COL_FSIZE] = $filesize;
+			Gtk2::Gdk::Threads->leave;
+
+		}
+		elsif ($check < 0) {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-no", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		else {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		
+		# Remove statusbar message
+		#Gtk2::Gdk::Threads->enter;
+		#$gui->get_widget('statusbar')->remove($id, $mid);
+		#Gtk2::Gdk::Threads->leave;
+	}
+}
+
+# Download the current selection
+sub thread_download {
+	# Signal handler
+	$SIG{INT} = sub {
+		debug("thread exiting prematurely");
+		threads->exit();
+	};
+	
+	# Configure browser and proxy manager
+	my $mech = config_browser();
+	my $proxy = new Proxy($mech);
+	
+	# Status bar context ID
+	#Gtk2::Gdk::Threads->enter;
+	#my $id = $gui->get_widget('statusbar')->get_context_id("download");
+	#Gtk2::Gdk::Threads->leave;
+	
+	# Folder to download to
+	Gtk2::Gdk::Threads->enter;
+	my $download_to = $gui->get_widget('downto')->get_filename();
+	Gtk2::Gdk::Threads->leave;
+	
+	# Process all URLs
+	my @list = $slist->get_selected_indices;
+	foreach my $rownum (@list) {
+		# Set up GUI					
+		my $row = @{$slist->{data}}[$rownum];
+		my $link = @{$row}[COL_LINK];
+		
+		# Load proxy
+		$proxy->advance($link);
+		
+		# Indicate progress
+		Gtk2::Gdk::Threads->enter;
+		$row->[COL_PROGR] = 0;
+		#my $mid = $gui->get_widget('statusbar')->push($id, "Downloading $link");
+		$row->[COL_STATUS] = $slist->render_icon ("gtk-execute", 'menu');
+		Gtk2::Gdk::Threads->leave;
+		
+		# Download
+		my $result = download(
+			$mech,
+			$link,
+			$download_to,
+			sub { # progress
+				# No arguments = not downloading anymore
+				if (scalar(@_) == 0) {
+					Gtk2::Gdk::Threads->enter;
+					# TODO: do something here with the download indicator? Mark it grey or something?
+					Gtk2::Gdk::Threads->leave;
+					return;
+				}
+				
+				my ($done, $total, $speed, $eta) = @_;
+				Gtk2::Gdk::Threads->enter;
+				if ($total) {
+					$row->[COL_FSIZE] = bytes_readable($total) if (!$row->[COL_FSIZE]);
+					my $perc = int(($done / $total)*10000)/100;
+					$row->[COL_PROGR] = $perc;
+				} else {
+					$row->[COL_PROGR] = -1;
+				}
+				Gtk2::Gdk::Threads->leave;
+			},
+			sub { # captcha
+				my $captchafile = shift;
+				my $captcha;
+				
+				Gtk2::Gdk::Threads->enter;
+				my $gui_captcha = Gtk2::GladeXML->new($config_gui->get("glade_file"), 'captchaDialog');
+				$gui_captcha->signal_autoconnect_from_package('main');
+				my $captcha_dialog = $gui_captcha->get_widget('captchaDialog');
+				Gtk2::Gdk::Threads->leave;
+					my $cptsub =  sub {
+					$captcha = shift;
+					$captcha_dialog->destroy();
+					1;
+				};
+				
+				Gtk2::Gdk::Threads->enter;
+				$captcha_dialog->signal_connect ( delete_event => sub { &$cptsub(0); } ); 
+				$gui_captcha->get_widget('captchaBtnCancel')->signal_connect ( clicked => sub { &$cptsub(0); } ); 
+				$gui_captcha->get_widget('captchaBtnOk')->signal_connect ( clicked => sub { &$cptsub($gui_captcha->get_widget('captchaTxt')->get_text); } ); 
+				$gui_captcha->get_widget('captchaTxt')->signal_connect ( activate => sub { &$cptsub($gui_captcha->get_widget('captchaTxt')->get_text); } ); 
+				$gui_captcha->get_widget('captchaImage')->set_from_file($captchafile);
+				Gtk2::Gdk::Threads->leave;
+					while(! defined $captcha){
+					sleep 1; # hmm...
+				}
+				
+				return $captcha;
+			}
+		);
+		
+		# Check return value
+		if ($result > 0) {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-yes", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		elsif ($result == 0) {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-question", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		elsif ($result == -1) {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-no", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		elsif ($result == -2) {
+			Gtk2::Gdk::Threads->enter;
+			$row->[COL_STATUS] = $slist->render_icon ("gtk-dialog-warning", 'menu');
+			Gtk2::Gdk::Threads->leave;
+		}
+		
+		# Remove statusbar message
+		#Gtk2::Gdk::Threads->enter;
+		#$gui->get_widget('statusbar')->remove($id, $mid);
+		#Gtk2::Gdk::Threads->leave;
+	}
+}
+
+
+#################
+# DOCUMENTATION #
+#################
+
+=head1 NAME
+
+slimrat-gui
+
+=head1 VERSION
+
+1.0-rc
+
+=head1 DESCRIPTION
+
+  Graphical download manager, capable of downloading files from
+  several free download providers.
+
+=head1 SYNOPSIS
+
+  slimrat-gui [OPTION...]
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+  Prints a summary how to use the client.
+
+=item B<--man>
+
+  Prints a manual how to use the client.
+
+=item B<--config>
+
+  Load custom configuration file.
+
+=item B<--debug>
+
+  Enables maximal verbosity, which includes a lot of text on the screen and the generation
+  of an additional dump archive.
+  WARNING: do not use this option by default, as it keeps a whole lot of extra information
+           in memory (including _all_ downloaded items).
+
+=item B<--quiet>
+
+  Makes slimrat less verbose, only displaying errors and warnings.
+
+=back
+
+=head1 EXAMPLES
+
+  slimrat-gui
+  slimrat-gui --debug --config /tmp/slimrat.config
+
+=head1 AUTHOR
+
+Přemek Vyhnal <premysl.vyhnal gmail com>
+Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+=cut
+
