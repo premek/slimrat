@@ -547,7 +547,7 @@ sub thread_download {
 				# No arguments = not downloading anymore
 				if (scalar(@_) == 0) {
 					Gtk2::Gdk::Threads->enter;
-					# TODO: do something here with the download indicator? Mark it grey or something?
+					$row->[COL_PROGR] = 100;
 					Gtk2::Gdk::Threads->leave;
 					return;
 				}
