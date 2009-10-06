@@ -2,6 +2,11 @@
 
    * hotfile (get_data): fixed captcha provider.
 
+   * plugins (storageto): added StorageTo plugin.
+
+   * plugins (update): enabled downloading new plugins, and increased verbosity
+     a bit.
+
 
 2009-10-01 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
