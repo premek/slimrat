@@ -132,7 +132,15 @@ sub get_data {
 	
 	# Captcha
 	if ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
-		$self->{MECH}->submit_form(with_fields => {"captcha", &$read_captcha("http://hotfile.com/$1")});
+		# Download captcha
+		my $captcha_url = "http://hotfile.com/$1";
+		debug("captcha url is ", $captcha_url);
+		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
+		my $captcha_value = &$read_captcha($captcha_data, "jpeg");
+		$self->{MECH}->back();
+		
+		# Submit captcha form
+		$self->{MECH}->submit_form(with_fields => {"captcha", $captcha_value});
 		dump_add(data => $self->{MECH}->content());
 	}
 	
