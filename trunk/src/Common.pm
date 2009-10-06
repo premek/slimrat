@@ -441,7 +441,7 @@ sub download {
 						if ($res->code() == 206) {
 							debug("Range request correctly aknowledged")	
 						}
-						elsif ($res->code() == 200) {
+						elsif ($res->code() == 200) {	 # TODO: code 406, or if 200 and content-range?
 							warning("server does not support resuming, restarting download");
 							unlink $filepath;
 							$size_downloaded = 0;

@@ -1,3 +1,8 @@
+2009-10-06 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * hotfile (get_data): fixed captcha provider.
+
+
 2009-10-01 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * slimrat-gui (progress): fixed the final progress indication.
