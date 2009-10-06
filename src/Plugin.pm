@@ -213,15 +213,17 @@ sub update {
 		$builds{$1} = $2 while ($builds =~ /^\s*([^#].*?)\s+(\d+)/gm);
 				
 		# Compare builds
+		my $updates = 0;
 		foreach my $plugin (keys %details) {
 			if (!defined $builds{$plugin}) {
 				warning("update server does not provide resources for plugin '$plugin'");
 				next;
 			}
-			if ($builds{$plugin} > $details{$plugin}{BUILD}) {
-				debug("found new version of $plugin");
+			if (!defined($details{$plugin}) || $builds{$plugin} > $details{$plugin}{BUILD}) {
+				$updates++;
+				info("downloading update for $plugin");
 				
-				# Download and istall update
+				# Download and install update
 				my $update = get($config->get("update_server") . "/$plugin");
 				if (! $update) {
 					error("could not update plugin '$plugin' (error fetching update)");
@@ -250,6 +252,8 @@ sub update {
 				}
 			}
 		}
+		
+		info("everything up to date already") if (!$updates);
 	} else {
 		return error("could not update plugins (error fetching builds list)");
 	}	

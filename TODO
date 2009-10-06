@@ -19,6 +19,8 @@
   - Rework the filename fetching, as some download provides doesn't display
     the actual filename in the statuspage, but only upon final request.
     How to handle resuming then?
+  - LottaNZB style progress indication
+    http://www.lottanzb.org/wordless/wp-content/uploads/2009/02/04_main_window.png
 
 # VERSION SPECIFIC #
 
