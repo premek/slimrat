@@ -519,6 +519,7 @@ sub thread_download {
 	# Folder to download to
 	Gtk2::Gdk::Threads->enter;
 	my $download_to = $gui->get_widget('downto')->get_filename();
+	utf8::encode($download_to);
 	Gtk2::Gdk::Threads->leave;
 	
 	# Process all URLs
