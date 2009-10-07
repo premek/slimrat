@@ -97,12 +97,14 @@ sub new {
 		{
 			lock(%resources);
 			fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
-			if ($resources{$plugin} == 0) {
-				debug("insufficient resources available");
-				if ($no_lock) {
-					return -1;
-				} else {
-					cond_wait(%resources) until $resources{$plugin} >= 1;
+			if ($resources{$plugin} >= 0) {
+				if ($resources{$plugin} == 0) {
+					debug("insufficient resources available");
+					if ($no_lock) {
+						return -1;
+					} else {
+						cond_wait(%resources) until $resources{$plugin} > 0;
+					}
 				}
 				$resources{$plugin}--;
 				debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
@@ -127,8 +129,10 @@ sub DESTROY {
 	# Resource handling
 	my $plugin = ref($self);
 	lock(%resources);
-	$resources{$plugin}++;
-	debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
+	if ($resources{$plugin} >= 0) {
+		$resources{$plugin}++;
+		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
+	}
 }
 
 # Return code

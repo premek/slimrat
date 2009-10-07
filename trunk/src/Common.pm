@@ -85,6 +85,7 @@ $config->set_default("redownload", "rename");
 $config->set_default("retry_count", 0);
 $config->set_default("retry_wait", 60);
 $config->set_default("ocr", 0);
+$config->set_default("escape_filenames", 0);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -353,10 +354,11 @@ sub download {
 		
 		# Get destination filename
 		$filename = $plugin->get_filename();
+		utf8::encode($filename);
 		if (!$filename) {
 			warning("could not deduce filename, falling back to default string");
 			$filename = "SLIMRAT_DOWNLOADED_FILE";
-		} else {
+		} elsif ($config->get("escape_filenames")) {
 			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
 		}
 		$filepath = "$to/$filename";
@@ -456,7 +458,6 @@ sub download {
 						debug("content-encoding is $encoding");
 						my @encodings = $mech->default_header('Accept-Encoding');
 						for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-							use Data::Dumper;
 							if (indexof($ce, \@encodings) == -1) {
 								die("cannot handle content-encoding '$encoding'");
 							}
