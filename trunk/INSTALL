@@ -27,14 +27,12 @@ Command-line captcha viewing
 GUI
   - Gtk2::GladeXML
   - Gtk2::SimpleList
-  - xclip (optional, handles GUI clipboard extensions)
-  - Spiffy (optional, handles GUI clipboard extensions)
 
 Some examples using package managers:
 
 a) On Debian/Ubuntu
       aptitude install libwww-mechanize-perl
-      aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # For the GUI
+      aptitude install libgtk2-gladexml-perl # For the GUI
       aptitude install aview # For command-line captcha viewing
       aptitude install imagemagick tesseract # For automatic captcha solving
       
@@ -43,7 +41,7 @@ b) On FreeBSD
       
 c) Manually (through CPAN)
       perl -MCPAN -e 'install Getopt::Long, LWP::UserAgent, Term::ANSIColor, WWW::Mechanize';
-      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList, Spiffy';
+      perl -MCPAN -e 'install Gtk2::GladeXML, Gtk2::SimpleList';
 
 
 

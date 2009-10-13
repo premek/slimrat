@@ -137,8 +137,8 @@ sub DESTROY {
 
 # Return code
 sub code {
-		my ($self) = @_;
-		return $self->{MECH}->status();
+	my ($self) = @_;
+	return $self->{MECH}->status();
 }
 
 # Reload the page

@@ -1,55 +1,101 @@
+# slimrat - multi-platform GTK2-based clipboard manager
+#
+# Copyright (c) 2009 Torsten Schoenfeld
+#
+# This file is part of slimrat, an open-source Perl scripted
+# command line and GUI utility for downloading files from
+# several download providers.
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# The Standard Version specified to be licensed under the same
+# conditions of Perl, which at the time of writing (2009/10/13)
+# is the Artistic License version 1.0. In order to comply with
+# this license (section 3, item a) all modifications are made
+# freely available to the Copyright Holder.
+#
+# Authors:
+#	Torsten Schoenfeld <kaffeetisch gmx de>
+#
+
+#
+# Configuration
+#
+
+# Package name
 package Clipboard;
-use Spiffy -Base;
-our $VERSION = '0.09';
-our $driver;
 
-sub copy { $driver->copy(@_); }
-sub cut { goto &copy }
-sub paste { $driver->paste(@_); }
+# Write nicely
+use strict;
+use warnings;
 
-sub bind_os() { my $driver = shift; map { $_ => $driver } @_; }
-sub find_driver {
-    my $os = shift;
-    my %drivers = (
-        # list stolen from Module::Build, with some modifications (for
-        # example, cygwin doesn't count as Unix here, because it will
-        # use the Win32 clipboard.)
-        bind_os(Xclip => qw(linux bsd$ aix bsdos darwin dec_osf dgux
-            dynixptx hpux irix linux machten next os2 sco_sv solaris sunos
-            svr4 svr5 unicos unicosmk)),
-        bind_os(Pb => qw(macos darwin)),
-        bind_os(Win32 => qw(mswin ^win cygwin)),
-    );
-    $os =~ /$_/i && return $drivers{$_} for keys %drivers;
-    die "The $os system is not yet supported by Clipboard.pm.  Please email rking\@sharpsaw.org and tell him about this.\n";
-}
-sub import {
-    my $drv = Clipboard->find_driver($^O);
-    require "Clipboard/$drv.pm";
-    $driver = "Clipboard::$drv";
+# Static clipboard reference
+#   According to
+#   <http://standards.freedesktop.org/clipboards-spec/clipboards-latest.txt>,
+#   explicit cut/copy/paste commands should always use CLIPBOARD.
+my $clipboard = Gtk2::Clipboard->get(Gtk2::Gdk::Atom->new('CLIPBOARD'));
+
+
+#
+# Static functionality
+#
+
+# Copy given text to the clipboard
+sub copy {
+	my ($self, $input) = @_;
+	$clipboard->set_text($input);
 }
 
+# Cut given text to the clipboard, which in here equals to copying.
+sub cut {
+	goto &copy
+}
+
+# Paste (return) text from the clipboard.
+sub paste {
+	my ($self) = @_;
+	return $clipboard->wait_for_text();
+}
+
+# Return
 1;
 
-=head1 NAME 
+
+#
+# Documentation
+#
+
+=head1 NAME
 
 Clipboard - Copy and paste with any OS
 
 =head1 SYNOPSIS
 
-use Clipboard;
-print Clipboard->paste;
-Clipboard->copy('foo');
+	use Clipboard;
+	print Clipboard->paste;
+	Clipboard->copy('foo');
 
-# Clipboard->cut() is an alias for copy().  copy() is the preferred
-# method, because we're not really "cutting" anything.
-
-Also see the scripts:
-    clipaccumulate
-    clipbrowse
-    clipedit
-    clipfilter
-    clipjoin
+	# Clipboard->cut() is an alias for copy().  copy() is the preferred
+	# method, because we're not really "cutting" anything.
 
 =head1 DESCRIPTION
 
@@ -62,23 +108,16 @@ cross-platformly, from your Perl code.
 
 =head1 STATUS
 
-Seems to be working well for Linux, OSX, *BSD, and Windows.  I use it
-every day on Linux, so I think I've got most of the details hammered out
-(X selections are kind of weird).  Please let me know if you encounter
-any problems in your setup.
+Seems to be working well for Linux.  Should also be working on OSX, *BSD, and
+Windows.
 
 =head1 AUTHOR
 
-Ryan King <rking@sharpsaw.org>
+Torsten Schoenfeld <kaffeetisch gmx de>
 
-=head1 COPYRIGHT
+=head1 LICENSE
 
-Copyright (c) 2005. Ryan King. All rights reserved.
-
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-See http://www.perl.com/perl/misc/Artistic.html
+Licensing details are prepended to the sourcefile.
 
 =cut
 

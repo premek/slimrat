@@ -39,7 +39,7 @@
 # All those features are fully documented in the appended POD.
 #
 # The Standard Version specified to be licensed under the same
-# conditions of Perl, which at the time of writing (2008/08/23)
+# conditions of Perl, which at the time of writing (2009/08/23)
 # is the Artistic License version 1.0. In order to comply with
 # this license (section 3, item a) all modifications described
 # above are made freely available to the Copyright Holder for
@@ -295,7 +295,6 @@ Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
 =head1 LICENSE
 
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+Licensing details are prepended to the sourcefile.
 
 =cut
