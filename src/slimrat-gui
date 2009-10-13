@@ -258,7 +258,7 @@ sub quit {
 sub links_parse_add {
 	my $links = shift;
 	foreach (split (/\n+/, $links)) {
-		# remove spaces from beginning and end
+		# Remove trailing and ending spaces
 		s/^\s+//;
 		s/\s+$//;
 		my @newRow;
