@@ -1,6 +1,17 @@
+2009-10-07 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * common (download): filenames are now escaped optionally.
+
+   * plugin (resources): fixed critical issue, where resource handling would get
+     corrupted when a plugin provided infinite resources.
+
+
 2009-10-06 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * hotfile (get_data): fixed captcha provider.
+ 
+   * plugins (update): enabled downloading new plugins, and increased verbosity
+     a bit.
 
 
 2009-10-01 Tim Besard <tim-dot-besard-at-gmail-dot-com>
