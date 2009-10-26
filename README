@@ -1,28 +1,38 @@
 Release notes
 -------------
 
-1) Home directory
+1) Downloading to Unicode folders
 
-Slimrat now (by default) uses "~/.slimrat" as a home directory,
-and creates that file automatically when absent. Older versions
-however used the file "~/.slimrat" to save certain settings to. When
-creating the home directory, slimrat shall check whether there is
-such a file, and will in that case get renamed to ".slimrat_old".
+When using the GUI to download files, slimrat _will_ have difficulties doing so
+when your destination folder contains non-ASCII characters. Your filesystem
+might support them, but decoding the UTF8 string returned by the FileChooser
+widget isn't done properly yet. This will be fixed in the first bugfix release.
 
 
-2) Queue file
+2) Download resuming
 
-The queue file, by default "~/.slimrat/queue", has a similar problem:
-as its file format has changed over the releases, slimrat might once
-complain about it not being readable. You might want to backup that
-file (which on older releases contains readable URLs), because slimrat
-shall overwrite it each time when closing down with the new Queue contents
+Though implemented and tested basically, users have reported resuming to be
+non-functional in combination with most plugins.
+
+
+3) Threading issues
+
+Slimrat now makes extensive use of threads, which seems to be error-prone,
+especially on older Perl releases and when closing slimrat down. If you happen
+to find reproducible cases though, please report them to our bug tracker!
+
+
+4) Proxy failure
+
+Failing proxies are _not_ detected, so when a proxy is down all URLs will
+consequently get marked as DEAD. This will get fixed (or worked around) as soon
+as a proper way to check whether the proxy is still alive is found.
 
 
 
 Installation
 ------------
 
-See the INSTALL file for a detailled guide on how to install
+See the INSTALL file for a detailed guide on how to install
 slimrat.
 
