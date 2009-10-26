@@ -41,7 +41,7 @@
 package Common;
 
 # Version information
-our $VERSION = '1.0-rc';
+our $VERSION = '1.0';
 
 # Export functionality
 use Exporter;
@@ -83,6 +83,7 @@ $config->set_default("redownload", "rename");
 $config->set_default("retry_count", 0);
 $config->set_default("retry_wait", 60);
 $config->set_default("ocr", 0);
+$config->set_default("escape_filenames", 0);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -95,9 +96,6 @@ if ($@) {
 	warning("your Perl version is outdated, thread might behave fishy");
 	$THRCOMP = 1;
 }
-
-# Emit warning when using development version
-warning("this is a development release (version $VERSION), if you encounter any issues, please re-run slimrat with the '--debug' flag enabled, and submit the resulting dump file to the bug tracker");
 
 
 ############
@@ -354,7 +352,7 @@ sub download {
 		if (!$filename) {
 			warning("could not deduce filename, falling back to default string");
 			$filename = "SLIMRAT_DOWNLOADED_FILE";
-		} else {
+		} elsif ($config->get("escape_filenames")) {
 			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
 		}
 		$filepath = "$to/$filename";
@@ -454,7 +452,6 @@ sub download {
 						debug("content-encoding is $encoding");
 						my @encodings = $mech->default_header('Accept-Encoding');
 						for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-							use Data::Dumper;
 							if (indexof($ce, \@encodings) == -1) {
 								die("cannot handle content-encoding '$encoding'");
 							}

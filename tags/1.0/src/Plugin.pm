@@ -96,12 +96,14 @@ sub new {
 		{
 			lock(%resources);
 			fatal("plugin $plugin did not set resources correctly") if (!defined($resources{$plugin}));
-			if ($resources{$plugin} == 0) {
-				debug("insufficient resources available");
-				if ($no_lock) {
-					return -1;
-				} else {
-					cond_wait(%resources) until $resources{$plugin} >= 1;
+			if ($resources{$plugin} >= 0) {
+				if ($resources{$plugin} == 0) {
+					debug("insufficient resources available");
+					if ($no_lock) {
+						return -1;
+					} else {
+						cond_wait(%resources) until $resources{$plugin} > 0;
+					}
 				}
 				$resources{$plugin}--;
 				debug("lowering available resources for plugin $plugin to ", $resources{$plugin});
@@ -126,8 +128,10 @@ sub DESTROY {
 	# Resource handling
 	my $plugin = ref($self);
 	lock(%resources);
-	$resources{$plugin}++;
-	debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
+	if ($resources{$plugin} >= 0) {
+		$resources{$plugin}++;
+		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
+	}
 }
 
 # Return code
@@ -212,15 +216,17 @@ sub update {
 		$builds{$1} = $2 while ($builds =~ /^\s*([^#].*?)\s+(\d+)/gm);
 				
 		# Compare builds
+		my $updates = 0;
 		foreach my $plugin (keys %details) {
 			if (!defined $builds{$plugin}) {
 				warning("update server does not provide resources for plugin '$plugin'");
 				next;
 			}
-			if ($builds{$plugin} > $details{$plugin}{BUILD}) {
-				debug("found new version of $plugin");
+			if (!defined($details{$plugin}) || $builds{$plugin} > $details{$plugin}{BUILD}) {
+				$updates++;
+				info("downloading update for $plugin");
 				
-				# Download and istall update
+				# Download and install update
 				my $update = get($config->get("update_server") . "/$plugin");
 				if (! $update) {
 					error("could not update plugin '$plugin' (error fetching update)");
@@ -249,6 +255,7 @@ sub update {
 				}
 			}
 		}
+		info("everything up to date already") if (!$updates);
 	} else {
 		return error("could not update plugins (error fetching builds list)");
 	}	
