@@ -44,6 +44,9 @@
 # Package name
 package Clipboard;
 
+# Packages
+use Gtk2;
+
 # Write nicely
 use strict;
 use warnings;
