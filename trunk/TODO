@@ -13,21 +13,22 @@
     threads->create call blocks when statusbar enabled (really...)
   - Merge all retry code of the download() call, at it's all the same
     More generally: make that code clean, it's a mess...
-  - Improve resuming, JDownloader seems capable to resume all download
-    providers (Megaupload, Rapidshare, ...)
   - Download speed indication in GUI (blocker: statusbar)
   - Rework the filename fetching, as some download provides doesn't display
     the actual filename in the statuspage, but only upon final request.
     How to handle resuming then?
-  - LottaNZB style progress indication
-    http://www.lottanzb.org/wordless/wp-content/uploads/2009/02/04_main_window.png
   - UTF-8 compatibility
 
 # VERSION SPECIFIC #
-
-* 1.0
-  - Test everything!
-  - Remove 'this is a development release' message ;)
-  - Set update server correctly to 'tags'
+  
+* 1.1
+  - Unicode character fix
+  - Download speed enhancments
   - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
   - GUI can't be closed when a thread is active
+  - LottaNZB style progress indication
+    http://www.lottanzb.org/wordless/wp-content/uploads/2009/02/04_main_window.png
+  - Proxy removal upon error?
+  - Improve resuming, JDownloader seems capable to resume all download
+    providers (Megaupload, Rapidshare, ...)
+
