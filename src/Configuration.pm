@@ -278,7 +278,7 @@ sub merge($$) {
 	# Process all keys and update the complement
 	foreach my $key (keys %{$self->{items}}) {
 		# We must manually init, or "undef" default values won't merge properly
-		$complement->init($key);		
+		$complement->init($key) unless ($complement->defines($key));		
 		
 		if (defined(my $default = $self->get_default($key))) {
 			warn("merge overwrites default value of key $key") if (defined($complement->get_default($key)));
