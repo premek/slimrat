@@ -115,6 +115,7 @@ my $config = config_init($options{"config"});
 my $config_gui = new Configuration;
 $config_gui->set_default("glade_file",  $RealBin.'/slimrat.glade');
 $config_gui->set_default("queue_file",  $ENV{HOME}.'/.slimrat/queue');
+$config_gui->set_default("to",  $ENV{HOME}.'/Downloads');	# TODO: fetch XDG directory
 $config_gui->merge($config->section("gui"));
 
 # Give the usage or manual

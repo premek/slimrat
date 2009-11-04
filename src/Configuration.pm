@@ -65,7 +65,7 @@ sub quit() {
 sub init($$) {
 	my ($self, $key) = @_;
 	
-	if ($self->contains($key)) {
+	if ($self->defines($key)) {
 		warn("attempt to overwrite existing key through initialisation");
 		return 0;
 	}
@@ -105,8 +105,8 @@ sub new {
 	return bless($self, 'Configuration');
 }
 
-# Check if the configuration contains a specific key
-sub contains($$) {
+# Check if the configuration contains a specific key definition
+sub defines($$) {
 	my ($self, $key) = @_;
 	die("no key specified") unless $key;
 	if (exists $self->{items}->{$key}) {
@@ -121,7 +121,7 @@ sub set_default($$$) {
 	my ($self, $key, $value) = @_;
 	
 	# Check if key already exists
-	unless ($self->contains($key)) {
+	unless ($self->defines($key)) {
 		$self->init($key);
 	}
 	
@@ -133,31 +133,30 @@ sub set_default($$$) {
 sub get_default($$) {
 	my ($self, $key) = @_;
 	
-	if ($self->contains($key) && defined $self->{items}->{$key}->{default}) {
+	if ($self->defines($key)) {
 		return $self->{items}->{$key}->{default};
 	}
-	return;
+	return undef;
 }
 
 # Get the actual value (ie. do not return default if not defined)
 sub get_value($$) {
 	my ($self, $key) = @_;
 	
-	if ($self->contains($key) && defined $self->{items}->{$key}->{value}) {
+	if ($self->defines($key)) {
 		return $self->{items}->{$key}->{value};
 	}
-	return;
+	return undef;
 }
 
 # Get a value
-# TODO: can we return undef, do we warn? E.G., do we allow get("not_defined_key") and return undef, or do we oblige a contains() check?
 sub get($$) {
 	my ($self, $key) = @_;
 	
 	# Check if it contains the key (not present returns false)
-	if (! $self->contains($key)) {
-		warn("request for undefined key '$key', consider configuring a default value");
-		return;
+	if (! $self->defines($key)) {
+		warn("access to undefined key '$key'");
+		return undef;
 	}
 	
 	# Return value or default
@@ -166,8 +165,7 @@ sub get($$) {
 	} elsif (defined(my $default = $self->get_default($key))) {
 		return $default;
 	}
-	warn("key $key exists without actual contents");
-	return;
+	return undef;
 }
 
 # Set a value
@@ -175,7 +173,7 @@ sub set($$$) {
 	my ($self, $key, $value) = @_;
 	
 	# Check if contains
-	if (!$self->contains($key)) {
+	if (!$self->defines($key)) {
 		$self->init($key);
 	}
 	
@@ -193,10 +191,11 @@ sub set($$$) {
 # Protect an item
 sub protect($$) {
 	my ($self, $key) = @_;
-	if ($self->contains($key)) {
+	if ($self->defines($key)) {
 		$self->{items}->{$key}->{mutable} = 0;
 		return 1;
 	}
+	warn("attempt to protect undefined key '$key'");
 	return 0;
 }
 
@@ -278,10 +277,13 @@ sub merge($$) {
 	
 	# Process all keys and update the complement
 	foreach my $key (keys %{$self->{items}}) {
+		# We must manually init, or "undef" default values won't merge properly
+		$complement->init($key);		
+		
 		if (defined(my $default = $self->get_default($key))) {
 			warn("merge overwrites default value of key $key") if (defined($complement->get_default($key)));
 			$complement->set_default($key, $default);
-		}
+		}		
 		if (defined(my $value = $self->get_value($key))) {
 			warn("merge overwrites value of key $key") if (defined($complement->get_value($key)));
 			$complement->set($key, $value);
@@ -295,7 +297,7 @@ sub merge($$) {
 # Save a value to a configuration file
 sub save($$) {
 	my ($self, $key, $current) = @_;
-	return error("cannot save undefined key '$key'") if (!$self->contains($key));
+	return error("cannot save undefined key '$key'") unless ($self->defines($key));
 	my $temp = $current.".temp";
 	
 	# Case 1: configuration file does not exist, create new one
@@ -440,10 +442,10 @@ Returns the default value, or undef if not specified.
 Returns the value of the key, or undef if not specified. Does not return the default
 value.
 
-=head2 $config->contains($key)
+=head2 $config->defines($key)
 
 Check whether a specific key has been entered in the configuration (albeit by default
-or customized value).
+or customized value). This does not look at the value itself, which can e.g. be 'undef'.
 
 =head2 $config->protect($key)
 
@@ -497,12 +499,6 @@ needed check the usage in Log.pm or other packages.
   # The package receives the configuration entries it is interested in, and merges them
   # with the existing default values
   $config_package->merge($config_main->section("package"));
-
-Previously the merge() call did only transfer default values from the pre-existent object
-to the new object, but this has recently changed to support more advanced actions (ie. Plugin.pm,
-where per-plugin configuration objects get merged with the plugin-global "Plugin" section). A
-warning will however be omitted when the merge calls overwrites a previously set (default or non-
-default) value.
 
 =head2 $config->save($key, $file)
 

@@ -120,6 +120,10 @@ my $config = config_init($options{"config"});
 
 # Initialise own configuration
 my $config_cli = new Configuration;
+$config_cli->set_default("address", undef);
+$config_cli->set_default("post_all", undef);
+$config_cli->set_default("post_download", undef);
+$config_cli->set_default("post_failure", undef);
 $config_cli->set_default("mode", "download");
 $config_cli->set_default("to", ".");
 $config_cli->set_default("threads", 1);
@@ -159,7 +163,7 @@ $config_cli->set("mode", "check") if ($options{"check"});
 $config_cli->set("mode", "update") if ($options{"update"});
 
 # Options we might use later on
-$config_cli->set("list", $options{"list"}) if ($options{"list"});
+$config_cli->set("list", $options{"list"});
 $config_cli->set("daemon", 1) if ($options{"daemon"});
 $config_cli->set("address", $options{"address"}) if ($options{"address"});
 $config_cli->set("to", $options{"to"}) if ($options{"to"});
@@ -199,14 +203,14 @@ while ($_ = shift) { # clear @ARGV to be able to read input from user with <> la
 	s{^(?!\w+://)}{http://};
 	Queue::add($_);
 }
-if ($config_cli->contains("list") && $config_cli->get("list") eq "-") {
+if (defined($config_cli->get("list")) && $config_cli->get("list") eq "-") {
 	chomp and Queue::add($_) while (<>);
 }
 
 # Set socket local address if needed
-if($config_cli->contains("address")) {
+if (defined(my $address = $config_cli->get("address"))) {
 	use LWP::Protocol::http;
-	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $config_cli->get("address"));
+	push(@LWP::Protocol::http::EXTRA_SOCK_OPTS, LocalAddr => $address);
 }
 
 # Fork in background
@@ -316,8 +320,8 @@ elsif ($config_cli->get("mode") eq "download") {
 	thread_download();
 
 	# Command after all downloads
-	if ($config_cli->contains("post_all")) {
-		system($config_cli->get("post_all"));
+	if (defined(my $command = $config_cli->get("post_all"))) {
+		system($command);
 	}
 	
 	# Quit
@@ -457,8 +461,8 @@ sub thread_download {
 			$queue->skip_globally("DONE");
 
 			# Command after successful download
-			if ($config_cli->contains("post_download")) {
-				system($config_cli->get("post_download"));
+			if (defined (my $command = $config_cli->get("post_download"))) {
+				system($command);
 			}
 		}
 		elsif ($result == -3) { # Insufficient resources
@@ -479,8 +483,8 @@ sub thread_download {
 			push @failedlinks, $link;
 
 			# Command after failed download
-			if ($config_cli->contains("post_failure")) {
-				system($config_cli->get("post_failure"));
+			if (defined(my $command = $config_cli->get("post_failure"))) {
+				system($command);
 			}
 		}
 		
