@@ -148,10 +148,10 @@ sub get_data {
 	}
 	
 	# Slot availability
-	if ($self->{MECH}->content() =~ m/no available slots for free users\. Unfortunately you will have to wait (\d+) minutes/) {
+	if ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
 		my $minutes = $1;
 		warning("no available slots for free users");
-		wait($minutes*60);
+		wait(5*60);
 		$self->reload();
 	}
 	
