@@ -55,6 +55,7 @@ use warnings;
 
 # Base configuration
 my $config = new Configuration;
+$config->set_default("file", undef);
 
 # Shared data
 my $s_file:shared = new Semaphore;	# Semaphore here manages file access
@@ -87,12 +88,13 @@ sub add {
 
 # Add an URL from the file to the queue
 sub file_read {
-	return 0 unless ($config->contains("file") && -r $config->get("file"));
-	debug("reading queue file '", $config->get("file") ,"'");
+	my $file = $config->get("file");
+	return 0 unless (defined($file) && -r $file);
+	debug("reading queue file '", $file ,"'");
 	my $added = 0;
 	
 	$s_file->down();
-	open(FILE, $config->get("file")) || fatal("could not read queue file");
+	open(FILE, $file) || fatal("could not read queue file");
 	while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
@@ -171,7 +173,7 @@ sub save($) {
 		queued		=>	[@queued],
 		processed	=>	[@processed]
 	);
-	$container{file} = $config->get("file") if $config->contains("file");
+	$container{file} = $config->get("file");
 	store(\%container, $filename) || error("could not serialize queue to '$filename'");
 	$s_queued->up();
 	$s_processed->up();
@@ -307,9 +309,10 @@ sub skip_globally {
 		# Only update if we got a file
 		my $url = $self->{item};
 		$s_file->down();
-		if ($config->contains("file") && -r $config->get("file")) {
-			open (FILE, $config->get("file"));
-			open (FILE2, ">".$config->get("file").".temp");
+		my $file = $config->get("file");
+		if (defined($file) && -r $file) {
+			open (FILE, $file);
+			open (FILE2, ">".$file.".temp");
 			while(<FILE>) {
 				if (!/^#/ && m/\Q$url\E/) { # Quote (de-meta) metacharacters between \Q and \E
 					print FILE2 "# ".$self->{status}.": ";
@@ -318,8 +321,8 @@ sub skip_globally {
 			}
 			close FILE;
 			close FILE2;
-			unlink $config->get("file");
-			rename $config->get("file").".temp", $config->get("file");
+			unlink $file;
+			rename $file.".temp", $file;
 		}
 		$s_file->up();
 	}

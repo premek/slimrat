@@ -349,7 +349,7 @@ sub download {
 			confess($1);
 		};
 		
-		# Check if we can write to "to" directory
+		# Check if we can write to the given directory
 		return error("directory '$to' not writable") unless (-d $to && -w $to);
 		
 		# Get destination filename
@@ -493,9 +493,9 @@ sub download {
 				my $dtime_chunk = gettimeofday() - $time_chunk;
 				
 				# Rate control
-				if ($config->contains("rate")) {
+				if (defined(my $rate = $config->get("rate"))) {
 					my $speed_cur = $size_chunk / $dtime_chunk;
-					my $speed_aim = $config->get("rate") * 1024 / $downloaders;
+					my $speed_aim = $rate * 1024 / $downloaders;
 					$s_rate_surplus->down();
 					delete($rate_surplus{thread_id()});
 					$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);

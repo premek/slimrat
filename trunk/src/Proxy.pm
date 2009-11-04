@@ -54,6 +54,7 @@ use warnings;
 
 # Base configuration
 my $config = new Configuration;
+$config->set_default("file", undef);
 $config->set_default("limit_downloads", 5);
 # TODO $config->set_default("limit_seconds", 0);
 # TODO $config->set_default("limit_bytes", 0);
@@ -73,17 +74,18 @@ sub configure($) {
 	my $complement = shift;
 	$config->merge($complement);
 	
-	$config->path_abs("list");
+	$config->path_abs("file");
 	
 	file_read();
 }
 
 # Read proxy file
 sub file_read() {
-	return 0 unless ($config->contains("file") && -r $config->get("file"));
-	debug("reading proxy file '", $config->get("list"), "'");
+	my $file = $config->get("file");
+	return 0 unless (defined($file) && -r $file);
+	debug("reading proxy file '", $file, "'");
 
-	open(FILE, $config->get("list")) || fatal("could not read proxy file");
+	open(FILE, $config->get("file")) || fatal("could not read proxy file");
 	while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
