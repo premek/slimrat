@@ -115,12 +115,13 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Click the "Free" button
 	$self->{MECH}->form_id("ff");
@@ -130,44 +131,48 @@ sub get_data {
 	
 	# Download limit
 	if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
-		warning("reached the download limit for free-users");
+		&$message_processor("reached the download limit for free-users");
 		if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
 			wait($1*60);			
 		} else {
-			die("could not extract wait timer");
+			&$message_processor("could not extract wait timer");
+			wait(60);
 		}
 		$self->reload();
+		return 1;
 	}
 	
 	# Free user limit
-	if ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+	elsif ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
 		my $minutes = $1; 
-		warning("currently a lot of users are downloading files");
+		&$message_processor("currently a lot of users are downloading files");
 		wait($minutes*60);
 		$self->reload();
+		return 1;
 	}
 	
 	# Slot availability
-	if ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
+	elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
 		my $minutes = $1;
-		warning("no available slots for free users");
+		&$message_processor("no available slots for free users");
 		wait(5*60);
 		$self->reload();
+		return 1;
 	}
 	
 	# Already downloading
-	if ($self->{MECH}->content() =~ m/already downloading a file/) {
+	elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
 		die("already downloading a file");
 	}
 	
 	# Download
-	if ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+	elsif ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
 		my ($download, $wait) = ($1, $2);
 		wait($wait);
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

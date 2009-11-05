@@ -160,6 +160,48 @@ sub fetch($) {
 	return $res;
 }
 
+# Get data
+sub get_data {
+	# Input data (the stuff we need)
+	my $self = shift;
+	
+	# Fetch primary page
+	$self->reload();
+	
+	# Main loop
+	while (1) {
+		# Iterate
+		my $rv = $self->get_data_loop(@_);
+		
+		# Check if the plugin actually did something
+		if (!defined($rv)) {
+			die("plugin could not match action");
+		}
+		
+		# Check if HTTP::Response
+		elsif (ref($rv) eq "HTTP::Response") {
+			return $rv;
+		}
+		
+		# Normal loop exit, please retry
+		elsif ($rv == 1) {
+			next;
+		}
+		
+		# Error, quit it
+		elsif ($rv == 0) {
+			# In common, use try/catch or RV checking?
+			die("todo");
+		}
+		
+		# Unknown RV
+		else {
+			warning("plugin returned unknown value of type ", ref($rv));
+			die("todo");
+		}
+	}	
+}
+
 
 #
 # Static functionality

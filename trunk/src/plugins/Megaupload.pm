@@ -106,13 +106,13 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $read_captcha = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	my ($res, $captcha);
 	my $cont = $self->{MECH}->content();
@@ -124,7 +124,7 @@ sub get_data {
 		# Download captcha
 		debug("captcha url is ", $captcha_url);
 		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-		$captcha = &$read_captcha($captcha_data, "gif");
+		$captcha = &$captcha_processor($captcha_data, "gif");
 		$self->{MECH}->back();
 
 		# Submit captcha form
@@ -145,7 +145,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action")
+	return;
 }
 
 # Postprocess captcha value

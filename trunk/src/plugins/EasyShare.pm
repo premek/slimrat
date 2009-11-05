@@ -104,13 +104,13 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $captcha_reader = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 
 	# Wait timer
 	if ($self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
@@ -119,15 +119,16 @@ sub get_data {
 		# Normally the form gets filled in by some Javascript, but upon reload
 		# EasyShare detects the user have been waiting and sends the form along.
 		# Not ideally, but the only option as we don't support Javascript.
+		return 1;
 	}
 	
 	# Get captcha
-	if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
+	elsif (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
 		my $captcha_data = $self->{MECH}->get($captcha->url_abs())->content();
 		$self->{MECH}->back();
 		
 		# Process captcha
-		my $captcha_code = &$captcha_reader($captcha_data, "jpeg");
+		my $captcha_code = &$captcha_processor($captcha_data, "jpeg");
 		
 		# Submit captcha form (TODO: a way to check if the captcha is correct, an is_html on the response?)
 		$self->{MECH}->form_with_fields("captcha");
@@ -136,7 +137,7 @@ sub get_data {
 		return $self->{MECH}->request($request, $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

@@ -108,18 +108,20 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Click the "Download" button
 	if ($self->{MECH}->form_id("downloadform")) {
 		my $res = $self->{MECH}->submit_form();
 		die("page 2 error, ", $res->status_line) unless ($res->is_success);
 		dump_add(data => $self->{MECH}->content());
+		return 1;
 	}
 
 	# Wait timer
@@ -128,6 +130,7 @@ sub get_data {
 	}
 	
 	# Ajax-based download form
+	# FIXME: remove internal looping, and do as "return 1" to loop forever
 	if ($self->{MECH}->content() =~ m/get_link\(\);/) {
 
 		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{file_id:\s*(\d+),/) {
@@ -168,7 +171,7 @@ sub get_data {
 		return $self->{MECH}->request($request, $data_processor);
 	}
 
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

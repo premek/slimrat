@@ -433,6 +433,7 @@ sub download {
 		
 		# Get the data
 		$response = $plugin->get_data(
+			# Data processor
 			sub {
 				# Fetch server response
 				my $res = $_[1];
@@ -529,7 +530,10 @@ sub download {
 					$size_chunk = 0;
 					$time_chunk = gettimeofday();
 				}
-			}, sub { # autoread captcha if configured, else let user read it
+			},
+			
+			# Captcha processor
+			sub {
 				my $captcha_data = shift;
 				my $captcha_type = shift;
 				my $captcha_value;		
@@ -585,6 +589,14 @@ sub download {
 				debug("final captcha value: $captcha_value");
 				return $captcha_value;
 			},
+			
+			# Message processor
+			sub {
+				# TODO: save per-thread/per-download messages internally
+				info("Plugin message: ", @_);
+			},
+			
+			# Custom headers
 			\@headers
 		);
 		

@@ -116,12 +116,14 @@ sub check {
 
 # Download data
 sub get_data {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $read_captcha = shift;
-	my $headers = shift || [];
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
-	$self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}, $headers), $data_processor);
+	return $self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}, $headers), $data_processor);
 }
 
 # Amount of resources

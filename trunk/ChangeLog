@@ -1,3 +1,10 @@
+2009-11-05 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins: altered retry framework, known loops (e.g. no slots available)
+     are now processed internally and forever, but controlled by shared
+     functionality (Plugin.pm:get_data)
+
+
 2009-11-04 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * configuration + others: correct usage of contains/defines, which now allows

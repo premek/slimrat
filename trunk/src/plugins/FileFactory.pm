@@ -109,18 +109,20 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Click the "Free Download" button
 	if ($self->{MECH}->content() =~ m/\"basicBtn\"/) {
 		my $res = $self->{MECH}->follow_link(url_regex => qr/\/dlf\//) || die("could not find primary link");
 		die("secondary page error, ", $res->status_line) unless ($res->is_success);
 		dump_add(data => $self->{MECH}->content());
+		return 1;
 	}
 	
 	# Countdown
@@ -130,7 +132,9 @@ sub get_data {
 	
 	# No free slots
 	if ($self->{MECH}->content() =~ m/currently no free download slots/) {
-		die("no free download slots");
+		&$message_processor("no free download slots");
+		wait(60);
+		return 1;
 	}
 	
 	# Download
@@ -139,7 +143,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

@@ -112,12 +112,13 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
-	my $data_processor = shift;	
-	
-	# Fetch primary page
-	$self->reload();
+	my $data_processor = shift;
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 		
 	# Download URL
 	if ($self->{MECH}->content() =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/) {
@@ -125,7 +126,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 

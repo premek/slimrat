@@ -109,33 +109,38 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Click the button to the secondary page
-	my ($asi) = $self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;	
-	my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s) {
+		my $asi = $1;
+		my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
+		die("secondary page error, ", $res->status_line) unless ($res->is_success);
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
 	
 	# Wait timer
-	if( $self->{MECH}->content() =~ m/Du musst noch <strong>([0-9]+)min/ ) {
+	elsif( $self->{MECH}->content() =~ m/Du musst noch <strong>([0-9]+)min/ ) {
 	    info("reached the download limit for free-users (300 MB)");
 	    wait(($1+1)*60);
 	    $self->reload();
+	    return 1;
 	}
 	
 	# Download URL
-	if( $self->{MECH}->uri() !~ $self->{URL} ) {
+	elsif( $self->{MECH}->uri() !~ $self->{URL} ) {
 	    my $download = $self->{MECH}->uri();
 	    return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 
