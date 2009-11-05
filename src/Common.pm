@@ -86,6 +86,7 @@ $config->set_default("retry_count", 0);
 $config->set_default("retry_wait", 60);
 $config->set_default("ocr", 0);
 $config->set_default("escape_filenames", 0);
+$config->set_default("rate", undef);
 
 # Shared data
 my $downloaders:shared = 0;
