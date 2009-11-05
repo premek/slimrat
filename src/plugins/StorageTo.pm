@@ -122,13 +122,16 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $read_captcha = shift;
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Fetch primary page
-	$self->load($self-> {URL_AUX});
+	$self->load($self-> {URL_AUX});	# TODO: fix
 	
 	# Construct hashmap
 	my $jsHashMap  = getHashMap($self->{MECH}->content());
@@ -156,7 +159,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action")
+	return;
 }
 
 # Postprocess captcha value

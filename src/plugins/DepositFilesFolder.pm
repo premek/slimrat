@@ -100,19 +100,20 @@ sub check { return 1; # not implemented
 }
 
 # Download data
-sub get_data {
+sub get_data_loop {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	$_ = $self->{MECH}->content();
-
-
 	while(m#<a href="(http://depositfiles\.com/files/.+?)" title=".+?" target="_blank">.+?</a>#g){
 		print "--> $1\n";
 	}
+	
+	return;
 }
 
 

@@ -108,12 +108,13 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Download URL
 	if ($self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
@@ -121,7 +122,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => "http://www.fast-load.net$download"), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 

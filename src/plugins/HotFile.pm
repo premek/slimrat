@@ -110,47 +110,49 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $read_captcha = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 
 	# Wait timer
 	if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)
-		&& (my ($wait2) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#)) {
-			wait(($wait1 + $wait2)/1000);
+	    && (my ($wait2) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltxt\'\)#)) {
+		wait(($wait1 + $wait2)/1000);
 	}
 	
 	# Click the button
 	if ($self->{MECH}->form_name("f")) {
 		$self->{MECH}->submit_form();
 		dump_add(data => $self->{MECH}->content());
+		return 1;
 	}
 	
 	# Captcha
-	if ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
+	elsif ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
 		# Download captcha
 		my $captcha_url = "http://hotfile.com/$1";
 		debug("captcha url is ", $captcha_url);
 		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-		my $captcha_value = &$read_captcha($captcha_data, "jpeg");
+		my $captcha_value = &$captcha_processor($captcha_data, "jpeg");
 		$self->{MECH}->back();
 		
 		# Submit captcha form
 		$self->{MECH}->submit_form(with_fields => {"captcha", $captcha_value});
 		dump_add(data => $self->{MECH}->content());
+		return 1;
 	}
 	
 	# Extract the download URL
-	if (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
+	elsif (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
 		$download = $download->url();
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Preprocess captcha image

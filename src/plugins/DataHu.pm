@@ -106,18 +106,19 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop {
+	# Input data
 	my $self = shift;
-	my $data_processor = shift;	
-	
-	# Fetch primary page
-	$self->reload();
+	my $data_processor = shift;
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Wait timer
 	if ($self->{MECH}->content() =~ m#kell:#) {
 		my ($wait) = m#<div id="counter" class="countdown">(\d+)</div>#sm;
-		die("primary page error, could not extract wait time") unless $wait;
-		wait($1);
+		&$message_processor("waiting $wait seconds");
+		wait($wait);
 	}
 	
 	# Download URL
@@ -127,7 +128,7 @@ sub get_data {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 

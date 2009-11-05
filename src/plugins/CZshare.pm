@@ -68,7 +68,10 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-	$self->{MECH} = $_[3];
+	$self->{MECH} = $_[3];	
+	
+	$self->{CONF}->set_default("login", undef);
+	$self->{CONF}->set_default("pass", undef);
 
 	bless($self);
 	
@@ -106,19 +109,19 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $read_captcha = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 
 	#
 	# "PROFI" download
 	#
 	
-	if($self->{CONF}->get("login") and $self->{CONF}->get("pass")) {
+	if(defined($self->{CONF}->get("login")) and defined($self->{CONF}->get("pass"))) {
 		# Download URL
 		if ((my ($id) = $self->{MECH}->content() =~ m#<input type="hidden" name="id" value="(.+?)" />#)
 			&& (my ($file) = $self->{MECH}->content() =~ m#<input type="hidden" name="file" value="(.+?)" />#)) {
@@ -148,7 +151,9 @@ sub get_data {
 	else { 
 		# Slot availability
 		if ($self->{MECH}->content() =~ m#vyčerpána maximální kapacita FREE downloadů#) {
-			die("no free slots available");
+			&$message_processor("no free slots available");
+			wait(60);
+			return 1;
 		}
 		
 		# Free form
@@ -168,7 +173,7 @@ sub get_data {
 	
 				# Download captcha
 				my $captcha_data = $self->{MECH}->get($captcha_url)->content();
-				$captcha = &$read_captcha($captcha_data, "png");
+				$captcha = &$captcha_processor($captcha_data, "png");
 				$self->{MECH}->back();
 	
 				# Submit captcha form
@@ -187,7 +192,7 @@ sub get_data {
 		}
 	}
 		
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

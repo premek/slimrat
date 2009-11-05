@@ -105,21 +105,23 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Trafic exceeded
 	if($self->{MECH}->content() =~ m#Or wait (\d+) minutes!#) {
 		wait($1*60);
 		$self->reload();
+		return 1;
 	}
 	
 	# Download URL
-	if ($self->{MECH}->content() =~ m#<form name="download_form" method="post" action="(.+?)">#) {
+	elsif ($self->{MECH}->content() =~ m#<form name="download_form" method="post" action="(.+?)">#) {
 		my $download = $1;
 		my $req = HTTP::Request->new(POST => $download);
 		$req->content_type('application/x-www-form-urlencoded');
@@ -127,7 +129,7 @@ sub get_data {
 		return $self->{MECH}->request($req, $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 

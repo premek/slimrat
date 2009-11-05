@@ -108,18 +108,21 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	
-	# Fetch primary page
-	$self->reload();
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
 	# Click the "Download Now" button
-	$self->{MECH}->form_name("form1") or die("could not click the 'Download Now' button");
-	my $res = $self->{MECH}->submit_form();
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->form_name("form1")) {
+		my $res = $self->{MECH}->submit_form();
+		die("secondary page error, ", $res->status_line) unless ($res->is_success);
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
 	
 	# We will not wait before download because javascript is encoded 
 	# so we dont know how many seconds we have to wait (and because we dont like waiting)
@@ -127,13 +130,13 @@ sub get_data {
 	#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
 	
 	# Download URL
-	if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
+	elsif ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
 		my $download = $1;
 		$download = join("", split("','", $download));		
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources

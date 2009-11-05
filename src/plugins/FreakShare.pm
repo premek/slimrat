@@ -110,12 +110,15 @@ sub check {
 }
 
 # Download data
-sub get_data {
+sub get_data_loop  {
+	# Input data
 	my $self = shift;
 	my $data_processor = shift;
-	my $captcha_reader = shift;
+	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 	
-	# Fetch primary page
+	# Fetch primary page (FIXME)
 	my $res = $self->reload();
 	$self->{MECH}->update_html($res->decoded_content(charset => "utf8"));	# WORKAROUND
 
@@ -130,15 +133,16 @@ sub get_data {
 		die("secondary page error, ", $res->status_line) unless ($res->is_success);
 		$self->{MECH}->update_html($res->decoded_content(charset => "utf8"));	# WORKAROUND
 		dump_add(data => $self->{MECH}->content());
+		return 1;
 	}
 	
 	# Click the final Download button
-	if ($self->{MECH}->content() =~ m/value=\"Download\"/ && $self->{MECH}->form_with_fields("section", "did")) {
+	elsif ($self->{MECH}->content() =~ m/value=\"Download\"/ && $self->{MECH}->form_with_fields("section", "did")) {
 		my $request = $self->{MECH}->{form}->make_request;
 		return $self->{MECH}->request($request, $data_processor);
 	}
 	
-	die("could not match any action");
+	return;
 }
 
 # Amount of resources
