@@ -119,7 +119,6 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-
 	bless($self);
 	
 	$self->{PRIMARY} = $self->fetch();
@@ -142,12 +141,15 @@ When the plugin uses specific configuration values, a default value should be sp
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
+	bless($self);
 	$self->{CONF}->set_default("foo", "bar");
 }}}
 If you want to use configuration values later on, you do as following:
 {{{
 	$self->{CONF}->get("foo")
 }}}
+
+Mind the location of the "bless" call though: it has to be called *before* any possibly erroneous instruction (e.g. a "die(...) if" instruction). If you do not respect this, the resource handling will get messed up as a failure to construct will not result in the destructor getting called (which, as you guessed, restores the allocated resources).
 
 == Plugin name ==
 
