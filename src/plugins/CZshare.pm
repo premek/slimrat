@@ -69,11 +69,11 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];	
+	bless($self);
 	
 	$self->{CONF}->set_default("login", undef);
 	$self->{CONF}->set_default("pass", undef);
 
-	bless($self);
 	
 	$self->{PRIMARY} = $self->fetch();
 	

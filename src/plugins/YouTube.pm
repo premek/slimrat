@@ -72,7 +72,6 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
-
 	bless($self);
 	
 	$self->{PRIMARY} = $self->fetch();

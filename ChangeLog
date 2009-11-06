@@ -3,6 +3,10 @@
    * common (download): altered the exception handling framework to a more
      advanced alternative, based on Try::Tiny.
 
+   * plugins: moved the reference blessings to an earlier place, before any
+     possibly die(), as that could prohibit the destructor from getting
+     called and mess up resource handling.
+
 
 2009-11-05 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
