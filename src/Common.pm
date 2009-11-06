@@ -265,18 +265,7 @@ sub download {
 			confess($1);
 		};
 		
-		# Load plugin
-		$plugin = Plugin->new($link, $mech, $no_lock);
-		
-		# Return -3 if the caller requested to manage insufficient resources hisself	
-		if ($no_lock && $plugin == -1) {
-			return -3;
-		}
-		
-		# Get plugin name
-		my $pluginname = $plugin->get_name();
-	
-		debug("instantiated a $pluginname downloader");
+		$plugin = download_init($link, $mech, $no_lock);
 	};
 	
 	if ($@) {
@@ -335,12 +324,11 @@ sub download {
 
 	warning("check failed (unknown reason)") if ($status == 0);	
 	error("check failed (dead link)") if ($status < 0);
-	return $status if ($status < 0);
+	#return $status if ($status < 0);
 	
 
 	# PREPARATION #
 	PREPARATION:
-	my $filename;
 	my $filepath;
 	
 	eval {
@@ -350,19 +338,7 @@ sub download {
 			confess($1);
 		};
 		
-		# Check if we can write to the given directory
-		return error("directory '$to' not writable") unless (-d $to && -w $to);
-		
-		# Get destination filename
-		$filename = $plugin->get_filename();
-		utf8::encode($filename);
-		if (!$filename) {
-			warning("could not deduce filename, falling back to default string");
-			$filename = "SLIMRAT_DOWNLOADED_FILE";
-		} elsif ($config->get("escape_filenames")) {
-			$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
-		}
-		$filepath = "$to/$filename";
+		$filepath = download_prepare($plugin, $to);
 	};
 	
 	if ($@) {
@@ -384,6 +360,81 @@ sub download {
 	
 	# DOWNLOAD #
 	DOWNLOAD:
+	
+	eval {
+		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
+		download_data($mech, $plugin, $filepath, $progress, $captcha_user_read);
+	};
+	
+	if ($@) {
+		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
+		my ($error) = $@ =~ m/^(.+)\sat/; 
+		my $fatal = $error =~ s/^fatal: //i;
+		error("download failed ($error)");	# TODO: this error prints a callstack as well
+		callstack_confess($error_raw, 1);	# Strip the signal handler
+		if (!$fatal && $counter-- > 0) {
+			info("retrying $counter more times");
+			wait($config->get("retry_wait"));
+			goto DOWNLOAD;
+		} elsif ($fatal) {
+			info("error to severe to attempt another try, bailing out");
+		}
+		return -2;
+	}
+	
+	# Close file
+	close(FILE);	
+}
+
+sub download_init {
+	# Input data
+	my ($link, $mech, $no_lock) = @_;
+	
+	# Load plugin
+	my $plugin = Plugin->new($link, $mech, $no_lock);
+	
+	# Return -3 if the caller requested to manage insufficient resources hisself	
+	if ($no_lock && $plugin == -1) {
+		return -3;
+	}
+	
+	# Get plugin name
+	my $pluginname = $plugin->get_name();
+	debug("instantiated a $pluginname downloader");
+	
+	return $plugin;
+}
+
+sub download_prepare {
+	# Input data
+	my ($plugin, $to) = @_;
+	
+	# Check if we can write to the given directory
+	die("directory '$to' not writable") unless (-d $to && -w $to);
+	
+	# Get destination filename
+	my $filename = $plugin->get_filename();
+	utf8::encode($filename);
+	if (!$filename) {
+		warning("could not deduce filename, falling back to default string");
+		$filename = "SLIMRAT_DOWNLOADED_FILE";
+	} elsif ($config->get("escape_filenames")) {
+		$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
+	}
+	my $filepath = "$to/$filename";
+	
+	return $filepath;
+}
+
+sub download_data {
+	# Input data
+	my ($mech, $plugin, $filepath, $progress, $captcha_user_read);
+	
 	my $size;
 	my $time_start = time;
 	my $time_chunk = time;
@@ -424,232 +475,281 @@ sub download {
 	$|++; # unbuffered output
 	$downloaders++;
 	my $response;
-	eval {
-		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
-		local $SIG{__DIE__} = sub {
-			$_[0] =~ m/^(.+)\sat\s/;
-			confess($1);
-		};
-		
-		# Get the data
-		$response = $plugin->get_data(
-			# Data processor
-			sub {
-				# Fetch server response
-				my $res = $_[1];
-		
-				# Do one-time stuff
-				unless ($flag) {
-					# Check if server respected Range header
-					if ($config->get("redownload") eq "resume" && $size_downloaded) {
-						if ($res->code() == 206) {
-							debug("Range request correctly aknowledged")	
-						}
-						elsif ($res->code() == 200) {	 # TODO: code 406, or if 200 and content-range?
-							warning("server does not support resuming, restarting download");
-							unlink $filepath;
-							$size_downloaded = 0;
-						}
+	
+	# Get the data
+	$response = $plugin->get_data(
+		# Data processor
+		sub {
+			# Fetch server response
+			my $res = $_[1];
+	
+			# Do one-time stuff
+			unless ($flag) {
+				# Check if server respected Range header
+				if ($config->get("redownload") eq "resume" && $size_downloaded) {
+					if ($res->code() == 206) {
+						debug("Range request correctly aknowledged")	
 					}
-					
-					# Get content encoding
-					$encoding = $res->header("Content-Encoding");
-					if ($encoding) {
-					    $encoding =~ s/^\s+//;
-					    $encoding =~ s/\s+$//;
-						debug("content-encoding is $encoding");
-						my @encodings = $mech->default_header('Accept-Encoding');
-						for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-							if (indexof($ce, \@encodings) == -1) {
-								die("cannot handle content-encoding '$encoding'");
-							}
-						}
+					elsif ($res->code() == 200) {	 # TODO: code 406, or if 200 and content-range?
+						warning("server does not support resuming, restarting download");
+						unlink $filepath;
+						$size_downloaded = 0;
 					}
-					
-					# Save length and print
-					$size = $res->content_length;
-					if ($size)
-					{
-						$size += $size_downloaded;
-						info("filesize: ", bytes_readable($size));
-					} else {
-						info("filesize unknown");
-					}
-		
-					# Open file
-					open(FILE, ">>$filepath");
-					if (! -w FILE) {
-						die("could not open file to write");
-					}
-					binmode FILE;
-					
-					$flag = 1;
 				}
 				
-				# Write the data
-				print FILE $_[0];
-				
-				# Counters		
-				$size_chunk += length($_[0]);
-				$size_downloaded += length($_[0]);
-				my $dtime_chunk = gettimeofday() - $time_chunk;
-				
-				# Rate control
-				if (defined(my $rate = $config->get("rate"))) {
-					my $speed_cur = $size_chunk / $dtime_chunk;
-					my $speed_aim = $rate * 1024 / $downloaders;
-					$s_rate_surplus->down();
-					delete($rate_surplus{thread_id()});
-					$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
-					$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
-					$s_rate_surplus->up();
-					if ($speed_cur > $speed_aim) {
-						sleep($size_chunk / $speed_aim - $dtime_chunk);
+				# Get content encoding
+				$encoding = $res->header("Content-Encoding");
+				if ($encoding) {
+				    $encoding =~ s/^\s+//;
+				    $encoding =~ s/\s+$//;
+					debug("content-encoding is $encoding");
+					my @encodings = $mech->default_header('Accept-Encoding');
+					for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+						if (indexof($ce, \@encodings) == -1) {
+							die("cannot handle content-encoding '$encoding'");
+						}
 					}
-					$dtime_chunk = gettimeofday()-$time_chunk;
 				}
 				
-				# Download indication
-				if ($time_chunk+1 < time) {	# don't update too often
-					# Weighted speed calculation
-					if ($speed) {
-						$speed /= 2;
-						$speed += ($size_chunk / $dtime_chunk) / 2;
-					} else {
-						$speed = $size_chunk / $dtime_chunk;
-					}
-					
-					# Calculate ETA
-					my $eta = -1;
-					$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
-					
-					# Update progress
-					&$progress($size_downloaded, $size, $speed, $eta);
-					
-					# Reset counters for next chunk
-					$size_chunk = 0;
-					$time_chunk = gettimeofday();
+				# Save length and print
+				$size = $res->content_length;
+				if ($size)
+				{
+					$size += $size_downloaded;
+					info("filesize: ", bytes_readable($size));
+				} else {
+					info("filesize unknown");
 				}
-			},
+	
+				# Open file
+				open(FILE, ">>$filepath");
+				if (! -w FILE) {
+					die("could not open file to write");
+				}
+				binmode FILE;
+				
+				$flag = 1;
+			}
 			
-			# Captcha processor
-			sub {
-				my $captcha_data = shift;
-				my $captcha_type = shift;
-				my $captcha_value;		
-				dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
+			# Write the data
+			print FILE $_[0];
+			
+			# Counters		
+			$size_chunk += length($_[0]);
+			$size_downloaded += length($_[0]);
+			my $dtime_chunk = gettimeofday() - $time_chunk;
+			
+			# Rate control
+			if (defined(my $rate = $config->get("rate"))) {
+				my $speed_cur = $size_chunk / $dtime_chunk;
+				my $speed_aim = $rate * 1024 / $downloaders;
+				$s_rate_surplus->down();
+				delete($rate_surplus{thread_id()});
+				$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
+				$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
+				$s_rate_surplus->up();
+				if ($speed_cur > $speed_aim) {
+					sleep($size_chunk / $speed_aim - $dtime_chunk);
+				}
+				$dtime_chunk = gettimeofday()-$time_chunk;
+			}
+			
+			# Download indication
+			if ($time_chunk+1 < time) {	# don't update too often
+				# Weighted speed calculation
+				if ($speed) {
+					$speed /= 2;
+					$speed += ($size_chunk / $dtime_chunk) / 2;
+				} else {
+					$speed = $size_chunk / $dtime_chunk;
+				}
 				
-				# Dump data in temporary file
-				my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
-				print $fh $captcha_data;
-				close($fh);
+				# Calculate ETA
+				my $eta = -1;
+				$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
 				
-				# OCR
-				if ($config->get("ocr") && $ocrcounter++ < 5) {
-					# Preprocess
-					if ($plugin->can("ocr_preprocess")) {
-						$plugin->ocr_preprocess($captcha_file);
-					}
-					
-					# Convert to tiff format
-					my $captcha_file_ocr = $captcha_file;
-					if ($captcha_type ne "tif") {	# FIXME: can't "tiff" get passed?
-						my (undef, $captcha_converted) = tempfile(SUFFIX => ".tif");
-						my $extra = "-alpha off -compress none";	# Tesseract is picky
-						debug("converting captcha from $captcha_type:$captcha_file to tif:$captcha_converted");
-						`convert $extra $captcha_type:$captcha_file tif:$captcha_converted`;
-						if ($?) {
-							error("could not convert captcha from given format '$captcha_type' to needed format 'tif', bailing out");
-							goto USER;
-						}
-						$captcha_file_ocr = $captcha_converted;
-					}
-					
-					# Apply OCR
-					$captcha_value = `tesseract $captcha_file_ocr /tmp/slimrat-captcha > /dev/null 2>&1; cat /tmp/slimrat-captcha.txt; rm /tmp/slimrat-captcha.txt`;
+				# Update progress
+				&$progress($size_downloaded, $size, $speed, $eta);
+				
+				# Reset counters for next chunk
+				$size_chunk = 0;
+				$time_chunk = gettimeofday();
+			}
+		},
+		
+		# Captcha processor
+		sub {
+			my $captcha_data = shift;
+			my $captcha_type = shift;
+			my $captcha_value;		
+			dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
+			
+			# Dump data in temporary file
+			my ($fh, $captcha_file) = tempfile(SUFFIX => ".$captcha_type");
+			print $fh $captcha_data;
+			close($fh);
+			
+			# OCR
+			if ($config->get("ocr") && $ocrcounter++ < 5) {
+				# Preprocess
+				if ($plugin->can("ocr_preprocess")) {
+					$plugin->ocr_preprocess($captcha_file);
+				}
+				
+				# Convert to tiff format
+				my $captcha_file_ocr = $captcha_file;
+				if ($captcha_type ne "tif") {	# FIXME: can't "tiff" get passed?
+					my (undef, $captcha_converted) = tempfile(SUFFIX => ".tif");
+					my $extra = "-alpha off -compress none";	# Tesseract is picky
+					debug("converting captcha from $captcha_type:$captcha_file to tif:$captcha_converted");
+					`convert $extra $captcha_type:$captcha_file tif:$captcha_converted`;
 					if ($?) {
-						error("OCR failed");
+						error("could not convert captcha from given format '$captcha_type' to needed format 'tif', bailing out");
 						goto USER;
 					}
-					$captcha_value =~ s/\s+//g;
-					debug("captcha read by OCR: '$captcha_value'");
-					
-					# Postprocess
-					if ($plugin->can("ocr_postprocess")) {
-						$captcha_value = $plugin->ocr_postprocess($captcha_value);
-						debug("captcha after post-processing: '$captcha_value'");
-					}
+					$captcha_file_ocr = $captcha_converted;
 				}
 				
-				# User
-				USER:
-				$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
+				# Apply OCR
+				$captcha_value = `tesseract $captcha_file_ocr /tmp/slimrat-captcha > /dev/null 2>&1; cat /tmp/slimrat-captcha.txt; rm /tmp/slimrat-captcha.txt`;
+				if ($?) {
+					error("OCR failed");
+					goto USER;
+				}
+				$captcha_value =~ s/\s+//g;
+				debug("captcha read by OCR: '$captcha_value'");
 				
-				die("no captcha entered") unless $captcha_value;
-				debug("final captcha value: $captcha_value");
-				return $captcha_value;
-			},
+				# Postprocess
+				if ($plugin->can("ocr_postprocess")) {
+					$captcha_value = $plugin->ocr_postprocess($captcha_value);
+					debug("captcha after post-processing: '$captcha_value'");
+				}
+			}
 			
-			# Message processor
-			sub {
-				# TODO: save per-thread/per-download messages internally
-				info("Plugin message: ", @_);
-			},
+			# User
+			USER:
+			$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
 			
-			# Custom headers
-			\@headers
-		);
+			die("no captcha entered") unless $captcha_value;
+			debug("final captcha value: $captcha_value");
+			return $captcha_value;
+		},
 		
-		# Decrease all counters etc.
-		$downloaders--;
-		delete($rate_surplus{thread_id()});
-		&$progress();
+		# Message processor
+		sub {
+			# TODO: save per-thread/per-download messages internally
+			info("Plugin message: ", @_);
+		},
 		
-		# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
-		# Any errors get sent to the upper eval{} clause
-		if (! $response) {
-			die("plugin did not return HTTP::Response object");
-		} elsif (! $response->is_success) {
-			die($response->status_line);
-		} elsif ($response->header("X-Died")) {
-			die($response->header("X-Died"));
-		} else {			
-			# Decode any content-encoding
-			if ($encoding) {
-				for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
-					next unless $ce;
-					next if $ce eq "identity";
-					if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
-						debug("uncompressing standard encodings");
-						anyuncompress $filepath => "$filepath.temp", AutoClose => 1, BinModeOut => 1
-							or die("could not decompress $ce, $AnyUncompressError");
-						rename("$filepath.temp", $filepath);
-					}
+		# Custom headers
+		\@headers
+	);
+	
+	# Decrease all counters etc.
+	$downloaders--;
+	delete($rate_surplus{thread_id()});
+	&$progress();
+	
+	# Check result ($response is a response object, should be successfull and not contain the custom X-Died header)
+	# Any errors get sent to the upper eval{} clause
+	if (! $response) {
+		die("plugin did not return HTTP::Response object");
+	} elsif (! $response->is_success) {
+		die($response->status_line);
+	} elsif ($response->header("X-Died")) {
+		die($response->header("X-Died"));
+	} else {			
+		# Decode any content-encoding
+		if ($encoding) {
+			for my $ce (reverse split(/\s*,\s*/, lc($encoding))) {
+				next unless $ce;
+				next if $ce eq "identity";
+				if ($ce =~ m/^(gzip|x-gzip|bzip2|deflate)/) {
+					debug("uncompressing standard encodings");
+					anyuncompress $filepath => "$filepath.temp", AutoClose => 1, BinModeOut => 1
+						or die("could not decompress $ce, $AnyUncompressError");
+					rename("$filepath.temp", $filepath);
 				}
 			}
 		}
-	};
-	
-	if ($@) {
-		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
-		my ($error) = $@ =~ m/^(.+)\sat/; 
-		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed ($error)");	# TODO: this error prints a callstack as well
-		callstack_confess($error_raw, 1);	# Strip the signal handler
-		if (!$fatal && $counter-- > 0) {
-			info("retrying $counter more times");
-			wait($config->get("retry_wait"));
-			goto DOWNLOAD;
-		} elsif ($fatal) {
-			info("error to severe to attempt another try, bailing out");
-		}
-		return -2;
 	}
-	
-	# Close file
-	close(FILE);	
-
 }
+
+
+#
+# Exception handling (based on Try::Tiny)
+#
+
+sub try (&;$) {
+	my ( $try, $catch ) = @_;
+
+	# we need to save this here, the eval block will be in scalar context due
+	# to $failed
+	my $wantarray = wantarray;
+
+	my ( @ret, $error, $failed );
+
+	# FIXME consider using local $SIG{__DIE__} to accumilate all errors. It's
+	# not perfect, but we could provide a list of additional errors for
+	# $catch->();
+
+	{
+		# localize $@ to prevent clobbering of previous value by a successful
+		# eval.
+		local $@;
+
+		# failed will be true if the eval dies, because 1 will not be returned
+		# from the eval body
+		$failed = not eval {
+
+			# evaluate the try block in the correct context
+			if ( $wantarray ) {
+				@ret = $try->();
+			} elsif ( defined $wantarray ) {
+				$ret[0] = $try->();
+			} else {
+				$try->();
+			};
+
+			return 1; # properly set $fail to false
+		};
+
+		# copy $@ to $error, when we leave this scope local $@ will revert $@
+		# back to its previous value
+		$error = $@;
+	}
+
+	# at this point $failed contains a true value if the eval died even if some
+	# destructor overwrite $@ as the eval was unwinding.
+	if ( $failed ) {
+		# if we got an error, invoke the catch block.
+		if ( $catch ) {
+			# This works like given($error), but is backwards compatible and
+			# sets $_ in the dynamic scope for the body of C<$catch>
+			for ($error) {
+				return $catch->($error);
+			}
+
+			# in case when() was used without an explicit return, the C<for>
+			# loop will be aborted and there's no useful return value
+		}
+
+		return;
+	} else {
+		# no failure, $@ is back to what it was, everything is fine
+		return $wantarray ? @ret : $ret[0];
+	}
+}
+
+sub catch (&) {
+	return $_[0];
+}
+
+
+
+#
+# Other
+#
 
 # Quit all packages
 sub quit {
