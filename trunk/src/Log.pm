@@ -296,12 +296,24 @@ sub warning {
 
 # Non-fatal error
 sub error {
+	# Check for custom-passed callstack
+	my ($confess, $strip);
+	if (ref($_[0]) eq "ARRAY") {
+		my @array = @{shift @_};
+		($confess, $strip) = @array;
+	}
+	
 	output(	colour => RED,
 			category => "error",
 			messages => \@_,
 			verbosity => 1
 	);
-	callstack(1);	# Strip "sub error"
+	
+	if (defined($confess)) {
+		callstack_confess($confess, $strip);
+	} else {
+		callstack(1);	# Strip "sub error"
+	}
 	return 0;
 }
 

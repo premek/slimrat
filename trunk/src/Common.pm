@@ -236,6 +236,88 @@ sub pid_read() {
 
 
 #
+# Exception handling
+#
+
+# This code is based on Try::Tiny 0.02, by Yuval Kogman (nothingmuch@woobling.org),
+# which is conveniently also MIT-licensed.
+
+# Try a given block of code
+sub try (&;$) {
+	my ($try, $catch) = @_;
+
+	# We need to save this here, the eval block will be in scalar context due
+	# to $failed
+	my $wantarray = wantarray;
+
+	my (@ret, $error, $callstack, $failed);
+
+	{
+		# Configure DIE handler to provide stack traces in $@ instead of only
+		# the fatal error
+		local $SIG{__DIE__} = sub {
+			$_[0] =~ m/^(.+)\sat\s/;
+			confess($1);
+		};
+		
+		# Localize $@ to prevent clobbering of previous value by a successful
+		# eval.
+		local $@;
+
+		# $failed will be true if the eval dies, because 1 will not be returned
+		# from the eval body
+		$failed = not eval {
+
+			# evaluate the try block in the correct context
+			if ( $wantarray ) {
+				@ret = $try->();
+			} elsif ( defined $wantarray ) {
+				$ret[0] = $try->();
+			} else {
+				$try->();
+			};
+
+			return 1; # properly set $fail to false
+		};
+
+		# Copy $@ to $callstack, when we leave this scope local $@ will revert $@
+		# back to its previous value
+		$callstack = $@;
+		
+		# Parse the effective error out of the callstack
+		($error) = $callstack =~ m/^(.+)\sat/; 
+		
+	}
+
+	# At this point $failed contains a true value if the eval died even if some
+	# destructor overwrite $@ as the eval was unwinding.
+	if ( $failed ) {
+		# If we got an error, invoke the catch block.
+		if ( $catch ) {
+			# This works like given($error), but is backwards compatible and
+			# sets $_ in the dynamic scope for the body of $catch
+			for ($error) {
+				return $catch->($error, $callstack);
+			}
+
+			# In case when() was used without an explicit return, the for
+			# loop will be aborted and there's no useful return value
+		}
+
+		return;
+	} else {
+		# No failure, $@ is back to what it was, everything is fine
+		return $wantarray ? @ret : $ret[0];
+	}
+}
+
+# Configure a block of code to be runned in case of errors
+sub catch (&) {
+	return $_[0];
+}
+
+
+#
 # Downloading
 #
 
@@ -246,43 +328,40 @@ sub pid_read() {
 #   -1 = download failed because URL is dead
 #   -2 = plugin error
 sub download {
-	my ($mech, $link, $to, $progress, $captcha_user_read, $no_lock) = @_;
+	my ($mech, $link, $to, $progress, $captcha_userreader, $no_lock) = @_;
 	$no_lock = 0 unless defined($no_lock);
 	info("downloading '$link'");
 	
+	# Shared values
+	my $counter = $config->get("retry_count");
+	my $result;
+	
 	
 	# CONSTRUCTION #
+	# TODO: ditch the GOTO's, and make it loop-based using $counter and $result
+	# TODO: maybe restrict retry handling to getdata?
 	CONSTRUCTION:
 	my $plugin;
 	
-	# Load the retry counter
-	my $counter = $config->get("retry_count");
-	
-	eval {
-		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
-		local $SIG{__DIE__} = sub {
-			$_[0] =~ m/^(.+)\sat\s/;
-			confess($1);
-		};
-		
+	$result = try {
 		$plugin = download_init($link, $mech, $no_lock);
-	};
-	
-	if ($@) {
-		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
-		my ($error) = $@ =~ m/^(.+)\sat/; 
-		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while constructing ($error)");	# TODO: this error prints a callstack as well
-		callstack_confess($error_raw, 1);	# Strip the signal handler
-		if (!$fatal && $counter-- > 0) {
+		
+		return 1;
+	}
+	catch {
+		my ($error, $callstack) = @_;
+		error([$callstack, 1], "download failed while constructing ($error)");
+		
+		# Retry
+		if ($counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
 			goto CONSTRUCTION;
-		} elsif ($fatal) {
-			info("error to severe to attempt another try, bailing out");
 		}
-		return -2;
-	}
+		
+		return;
+	};
+	return -2 unless defined($result);
 		
 	# Return -3 if the caller requested to manage insufficient resources hisself
 	# FIXME: yeah this sucks, I know
@@ -295,97 +374,79 @@ sub download {
 	CHECK:
 	my $status;
 	
-	eval {
-		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
-		local $SIG{__DIE__} = sub {
-			$_[0] =~ m/^(.+)\sat\s/;
-			confess($1);
-		};
-		
+	$result = try {		
 		# Check the URL
 		$status = $plugin->check();
-	};
-	
-	if ($@) {
-		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
-		my ($error) = $@ =~ m/^(.+)\sat/; 
-		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while checking ($error)");	# TODO: this error prints a callstack as well
-		callstack_confess($error_raw, 1);	# Strip the signal handler
-		if (!$fatal && $counter-- > 0) {
+		
+		return 1;
+	}
+	catch {
+		my ($error, $callstack) = @_;
+		error([$callstack, 1], "download failed while checking ($error)");
+		
+		# Retry
+		if ($counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
 			goto CHECK;
-		} elsif ($fatal) {
-			info("error to severe to attempt another try, bailing out");
 		}
-		return -2;
-	}	
+		
+		return;
+	};
+	return -2 unless defined($result);
 
 	warning("check failed (unknown reason)") if ($status == 0);	
 	error("check failed (dead link)") if ($status < 0);
-	#return $status if ($status < 0);
+	return $status if ($status < 0);
 	
 
 	# PREPARATION #
 	PREPARATION:
 	my $filepath;
 	
-	eval {
-		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
-		local $SIG{__DIE__} = sub {
-			$_[0] =~ m/^(.+)\sat\s/;
-			confess($1);
-		};
-		
+	$result = try {		
 		$filepath = download_prepare($plugin, $to);
-	};
-	
-	if ($@) {
-		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
-		my ($error) = $@ =~ m/^(.+)\sat/; 
-		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed while preparing ($error)");	# TODO: this error prints a callstack as well
-		callstack_confess($error_raw, 1);	# Strip the signal handler
-		if (!$fatal && $counter-- > 0) {
+		
+		return 1;
+	}	
+	catch {
+		my ($error, $callstack) = @_;
+		error([$callstack, 1], "download failed while preparing ($error)");
+		
+		# Retry
+		if ($counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
 			goto PREPARATION;
-		} elsif ($fatal) {
-			info("error to severe to attempt another try, bailing out");
 		}
-		return -2;
-	}
-	
-	
-	# DOWNLOAD #
-	DOWNLOAD:
-	
-	eval {
-		# Configure DIE handler to provide stack traces (TODO: ditch eval and avoid code duplication)
-		local $SIG{__DIE__} = sub {
-			$_[0] =~ m/^(.+)\sat\s/;
-			confess($1);
-		};
 		
-		download_data($mech, $plugin, $filepath, $progress, $captcha_user_read);
+		return;
 	};
+	return -2 unless defined($result);
 	
-	if ($@) {
-		my $error_raw = $@;	# Because $@ gets overwritten after confess in error()
-		my ($error) = $@ =~ m/^(.+)\sat/; 
-		my $fatal = $error =~ s/^fatal: //i;
-		error("download failed ($error)");	# TODO: this error prints a callstack as well
-		callstack_confess($error_raw, 1);	# Strip the signal handler
-		if (!$fatal && $counter-- > 0) {
+	
+	# GET DATA #
+	GETDATA:
+	
+	$result = try {
+		download_getdata($mech, $plugin, $filepath, $progress, $captcha_userreader);
+		
+		return 1;
+	}	
+	catch {
+		my ($error, $callstack) = @_;
+		error([$callstack, 1], "download failed while getting getting data ($error)");
+		
+		# Retry
+		if ($counter-- > 0) {
 			info("retrying $counter more times");
 			wait($config->get("retry_wait"));
-			goto DOWNLOAD;
-		} elsif ($fatal) {
-			info("error to severe to attempt another try, bailing out");
+			goto GETDATA;
 		}
-		return -2;
-	}
+		
+		return;
+	};
+	return -2 unless defined($result);
 	
 	# Close file
 	close(FILE);	
@@ -431,9 +492,9 @@ sub download_prepare {
 	return $filepath;
 }
 
-sub download_data {
+sub download_getdata {
 	# Input data
-	my ($mech, $plugin, $filepath, $progress, $captcha_user_read);
+	my ($mech, $plugin, $filepath, $progress, $captcha_userreader) = @_;
 	
 	my $size;
 	my $time_start = time;
@@ -628,7 +689,7 @@ sub download_data {
 			
 			# User
 			USER:
-			$captcha_value = &$captcha_user_read($captcha_file) unless $captcha_value;
+			$captcha_value = &$captcha_userreader($captcha_file) unless $captcha_value;
 			
 			die("no captcha entered") unless $captcha_value;
 			debug("final captcha value: $captcha_value");
@@ -636,6 +697,7 @@ sub download_data {
 		},
 		
 		# Message processor
+		# TODO: global message processor, also available in download_init|check|prepare?
 		sub {
 			# TODO: save per-thread/per-download messages internally
 			info("Plugin message: ", @_);
@@ -673,76 +735,6 @@ sub download_data {
 			}
 		}
 	}
-}
-
-
-#
-# Exception handling (based on Try::Tiny)
-#
-
-sub try (&;$) {
-	my ( $try, $catch ) = @_;
-
-	# we need to save this here, the eval block will be in scalar context due
-	# to $failed
-	my $wantarray = wantarray;
-
-	my ( @ret, $error, $failed );
-
-	# FIXME consider using local $SIG{__DIE__} to accumilate all errors. It's
-	# not perfect, but we could provide a list of additional errors for
-	# $catch->();
-
-	{
-		# localize $@ to prevent clobbering of previous value by a successful
-		# eval.
-		local $@;
-
-		# failed will be true if the eval dies, because 1 will not be returned
-		# from the eval body
-		$failed = not eval {
-
-			# evaluate the try block in the correct context
-			if ( $wantarray ) {
-				@ret = $try->();
-			} elsif ( defined $wantarray ) {
-				$ret[0] = $try->();
-			} else {
-				$try->();
-			};
-
-			return 1; # properly set $fail to false
-		};
-
-		# copy $@ to $error, when we leave this scope local $@ will revert $@
-		# back to its previous value
-		$error = $@;
-	}
-
-	# at this point $failed contains a true value if the eval died even if some
-	# destructor overwrite $@ as the eval was unwinding.
-	if ( $failed ) {
-		# if we got an error, invoke the catch block.
-		if ( $catch ) {
-			# This works like given($error), but is backwards compatible and
-			# sets $_ in the dynamic scope for the body of C<$catch>
-			for ($error) {
-				return $catch->($error);
-			}
-
-			# in case when() was used without an explicit return, the C<for>
-			# loop will be aborted and there's no useful return value
-		}
-
-		return;
-	} else {
-		# no failure, $@ is back to what it was, everything is fine
-		return $wantarray ? @ret : $ret[0];
-	}
-}
-
-sub catch (&) {
-	return $_[0];
 }
 
 
