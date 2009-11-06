@@ -7,6 +7,8 @@
      possibly die(), as that could prohibit the destructor from getting
      called and mess up resource handling.
 
+   * common (download): speed calculation using a moving-average algorithm.
+
 
 2009-11-05 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
