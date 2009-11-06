@@ -70,7 +70,6 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];	
 	$self->{URL} =~ s#/video/#/download/#;
-
 	bless($self);
 	
 	$self->{PRIMARY} = $self->fetch();

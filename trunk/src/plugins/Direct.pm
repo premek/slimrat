@@ -68,6 +68,7 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
+	bless($self);
 	
 	$self->{CONF}->set_default("enabled", 0);
 	if ($self->{CONF}->get("enabled")) {
@@ -79,7 +80,6 @@ sub new {
 	eval($self->{HEAD} = $self->{MECH}->head($self->{URL}));
 	die("URL not usable") if ($!);
 
-	bless($self);
 	return $self;
 }
 

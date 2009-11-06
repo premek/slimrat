@@ -70,12 +70,12 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];	
+	bless($self);
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
 	dump_add(data => $self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
 
-	bless($self);
 	return $self;
 }
 

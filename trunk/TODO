@@ -11,8 +11,6 @@
   - Statusbar: does not seem to be threadsafe.
     Testcase: check group of links, then check a single one.
     threads->create call blocks when statusbar enabled (really...)
-  - Merge all retry code of the download() call, at it's all the same
-    More generally: make that code clean, it's a mess...
   - Download speed indication in GUI (blocker: statusbar)
   - Rework the filename fetching, as some download provides doesn't display
     the actual filename in the statuspage, but only upon final request.

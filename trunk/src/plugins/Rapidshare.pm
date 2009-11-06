@@ -70,6 +70,8 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
+	bless($self);
+	
 	$self->{CONF}->set_default("interval", 0);
 	
 	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
@@ -82,7 +84,6 @@ sub new {
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
-	bless($self);
 	return $self;
 }
 

@@ -70,7 +70,8 @@ sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
-	$self->{MECH} = $_[3];   
+	$self->{MECH} = $_[3];
+	bless($self);
 	
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
@@ -83,7 +84,6 @@ sub new {
 	die("primary page error, ", $self->{AUX}->status_line) unless ($self->{AUX}->is_success);
 	dump_add(data => $self->{MECH}->content());
 
-	bless($self);
 	return $self;
 }
 
