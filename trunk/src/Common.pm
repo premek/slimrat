@@ -87,6 +87,7 @@ $config->set_default("retry_wait", 60);
 $config->set_default("ocr", 0);
 $config->set_default("escape_filenames", 0);
 $config->set_default("rate", undef);
+$config->set_default("speed_window", 30);
 
 # Shared data
 my $downloaders:shared = 0;
@@ -536,6 +537,7 @@ sub download_getdata {
 	$|++; # unbuffered output
 	$downloaders++;
 	my $response;
+	my %speed_chunks;
 	
 	# Get the data
 	$response = $plugin->get_data(
@@ -617,20 +619,24 @@ sub download_getdata {
 			
 			# Download indication
 			if ($time_chunk+1 < time) {	# don't update too often
-				# Weighted speed calculation
-				if ($speed) {
-					$speed /= 2;
-					$speed += ($size_chunk / $dtime_chunk) / 2;
-				} else {
-					$speed = $size_chunk / $dtime_chunk;
+				# Window handling
+				$speed_chunks{thread_id()} = [] if (!defined($speed_chunks{thread_id()}));
+				shift(@{$speed_chunks{thread_id()}}) while (scalar(@{$speed_chunks{thread_id()}}) > 0 and gettimeofday() - $speed_chunks{thread_id()}[0][0] > 30);
+				push(@{$speed_chunks{thread_id()}}, [scalar(gettimeofday()), $size_chunk]);
+				
+				# Speed calculation
+				if (scalar(@{$speed_chunks{thread_id()}}) > 1) {
+					my $speed = 0;
+					$speed += $_->[1] foreach (@{$speed_chunks{thread_id()}});
+					$speed /= gettimeofday() - $speed_chunks{thread_id()}[0][0];
+					
+					# Calculate ETA
+					my $eta = -1;
+					$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
+					
+					# Update progress
+					&$progress($size_downloaded, $size, $speed, $eta);
 				}
-				
-				# Calculate ETA
-				my $eta = -1;
-				$eta = ($size - $size_downloaded) / $speed if ($speed && $size);
-				
-				# Update progress
-				&$progress($size_downloaded, $size, $speed, $eta);
 				
 				# Reset counters for next chunk
 				$size_chunk = 0;
