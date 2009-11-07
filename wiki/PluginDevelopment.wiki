@@ -86,7 +86,7 @@ use strict;
 use warnings;
 }}}
 
-When using exotic features of WWW::Mechanize, you could need to specify a minimum version (e.g. form_name requires at least WWW::Mechanize 1.52). You can find that information at the relevant CPAN pages and version history.
+When using exotic features of WWW::Mechanize, you might need to specify a minimum version (e.g. form_name requires at least WWW::Mechanize 1.52). You can find that information at the relevant CPAN pages and version history.
 
 Extending Plugin currently gives access to three extra methods:
  * "sub code", which returns the HTTP code of the last request (shouldn't be necessary in plugin code)
@@ -207,48 +207,75 @@ sub check {
 == Get data ==
 
 This is the main method of any plugin, and should download the data and reroute it to the first parameter of the get_data method: a data processor routine.
-The download routines is passed another method, which can be used to process and eventual captcha's.
+The download routine is passed some other function references too, which can be used to process captcha's, or pass status messages. Finally, an object containing custom headers is passed too, which you should use in your final download request.
 
 Generally, plugins process pages in a sequential way. This means the get_data loads the initial page, after which the current page is matched against several actions (e.g. look for a captcha form, detect a wait timer, extract the final download url). If an action requires a reload or new fetch, this will update the current page, providing the newest information to following action checks.
-This might sound complicated, but have a look at a clean plugin (e.g. the HotFile one), and you'll understand the flow. Just avoid looping in your plugin. If it fails somewhere, just die, the caller will take care of retry handling.
+An example:
+# Load the initial page
+# Have a look for the "Free" button
+# Wait some seconds if a wait timer is present
+# Generate the final download request
+
+However, in most cases the order of actions can break out of that sequentiality. Have look at the previous example, and imagine the download site returns an "No free slots available" error. This error could occur after step 2 as well as step 3. When processing the page purely sequential using 'get_data', this would mean adding a check for that error twice, or even more.
+The solution to this, not astonishingly, is to wrap all the checks in a 'while 1' loop. In order to avoid code duplication in doing so, slimrat does the job for you. If you decide not to implement 'get_data', but 'get_data_loop', the 'get_data' function from the Plugin parent class is used. That function does some things for you:
+* Reload the initial page
+* Call the 'get_data_loop' routine
+* Analyse the return value:
+** If it's a HTTP::Response, return it to the upper class
+** If it's 'true', just call the 'get_data_loop' once more
+Practically, this will mean you'll implement the 'get_data_loop' method, and fill it with checks and appropriate actions.
+* If you detect an error, just die(...).
+* If you detect a situation after which all checks needs to be revisited, reload the page and return 1.
+* If sequentiality is ensured, just undertake an action and do not return (but continue the flow of checks).
+* If the final download request is generated, just return it.
+
+This might sound complicated, but have a look at a clean plugin (e.g. the HotFile one), and you'll understand the flow. Just avoid looping in your plugin, if you need to loop use the existing framework of 'get_data' & 'get_data_loop'. If it fails somewhere, just die, the caller will take care of retry handling.
 
 === Method signature ===
 
-This is the method description, accepting the extra parameter
+This is the method description for 'get_data' as well as 'get_data_loop':
 {{{
-sub get_data {
+sub get_data_loop {
 	my $self = shift;
 	my $data_processor = shift;
 	my $captcha_processor = shift;
+	my $message_processor = shift;
+	my $headers = shift;
 }}}
 
 === Initial page ===
 
-Most of the times this will fetch the initial page. Two notes:
- * you should NOT use the PRIMARY variable, as get_data gets called multiple times upon error, and this error recovery would fail if the PRIMARY page already contained some error (e.g. "temporary error, check again in 1 minute");
- * due to the error recovery mentioned above, get_data SHOULD NOT make any assumptions which could turn out to be invalid after calling get_data once more. This involves re-fetching the primary page at the very beginning of the get_data function:
+If you implement the 'get_data_loop' method, the initial page will get reloaded automatically. If you implement 'get_data' yourself, you'll most likely need to reload the initial page. This because the 'get_data' method *must* support getting called multiple times (in case of some error), if you don't reload the page it might be stuck at an error page from the previous 'get_data' call.
+
+E.g., this should be at the top of 'get_data' if you implement it yourself:
 {{{
 # Fetch primary page
 $self->reload();
 }}}
+This'll reload $self->{URL} and put the contents in the current page of $self->{MECH}
 
 === Actions ===
 
 After the initial page is loaded, you will need to detect and respond to certain actions. An example of such an action might be to click a specific button (e.g. Rapidshare's FREE button):
 {{{
 # Click the "Free" button
-$self->{MECH}->form_id("ff");
-my $res = $self->{MECH}->submit_form();
-die("secondary page error, ", $res->status_line) unless ($res->is_success);
-dump_add(data => $self->{MECH}->content());
+if ($self->{MECH}->form_id("ff")) {
+	my $res = $self->{MECH}->submit_form();
+	die("secondary page error, ", $res->status_line) unless ($res->is_success);
+	dump_add(data => $self->{MECH}->content());
+	return 1;
+}
 }}}
 As the Plugin base class does not provide any functionality to click forms, you here need to check and provide the dump manually -- stuff which normally is done auto-magically by the fetch/reload functions provided by the Plugin base class. NOTE: this might change though.
+After we clicked to the next page, we return 1 to restart the loop. As this is the first action in the method, the return 1 may have been omitted, but we do it for the sake of consistency.
 
 Another action might be respecting a wait timer:
 {{{
 # Wait timer
 if ($self->{MECH}->content() =~ m/time = (\d+);/i) {
 	wait($1, 1);
+	$self->reload();
+	return 1;	
 }
 }}}
 The second argument to the wait call specifies if the wait is optional or not (a global configuration value then can be used to skip all optional waits).
@@ -264,7 +291,7 @@ if ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
 	my $download = $1;
 	$download = join("", split("','", $download));
 	
-	return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 }
 }}}
 
@@ -275,7 +302,7 @@ This is an easy one, just extract the URL based on some tags (which might be an 
 {{{
 if ($self->{MECH}->content() =~ m/\"downloadLink\"/) {
 	my $link = $self->{MECH}->find_link(url_regex => qr/\/dl\//) || die("could not find download link");
-	return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
+	return $self->{MECH}->request(HTTP::Request->new(GET => $link->url, $headers), $data_processor);
 }
 }}}
 
@@ -295,6 +322,7 @@ if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
 	$self->{MECH}->form_with_fields("captcha");
 	$self->{MECH}->set_fields("captcha" => $captcha_code);
 	my $request = $self->{MECH}->{form}->make_request;
+	$request->header($headers);
 	return $self->{MECH}->request($request, $data_processor);
 }
 }}}
@@ -308,6 +336,7 @@ In other cases, submitting a form will provide you with the download data.
 {{{
 if (my $form = $self->{MECH}->form_name("downloadform")) {
 	my $request = $form->make_request;
+	$request->header($headers);
 	return $self->{MECH}->request($request, $data_processor);
 }
 }}}
