@@ -166,7 +166,7 @@ sub configure($) {
 }
 
 sub config_browser {
-	my $mech = WWW::Mechanize->new(autocheck => 0);
+	my $mech = WWW::Mechanize->new(autocheck => 0, quiet => 1);
 	$mech->default_header('Accept-Encoding' => ["identity", "gzip", "x-gzip", "x-bzip2", "deflate"]);
 	$mech->default_header('Accept-Language' => "en");
 	$mech->agent($config->get("useragent"));
