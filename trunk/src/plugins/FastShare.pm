@@ -121,7 +121,7 @@ sub get_data_loop {
 	# Download URL
 	if ($self->{MECH}->content =~ m/<br>Link: <a href=([^>]+)><b>/s) {
 		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;	

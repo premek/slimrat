@@ -156,7 +156,7 @@ sub get_data_loop  {
 	# Get download URL
 	if ($jsHashMap->{state} eq "ok") {
 		my $download = $jsHashMap->{link};
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

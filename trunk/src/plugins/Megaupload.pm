@@ -142,7 +142,7 @@ sub get_data_loop  {
 	# Get download url
 	if ($res->decoded_content =~ m#downloadlink"><a href="(.*?)"#) {
 		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

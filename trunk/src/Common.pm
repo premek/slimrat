@@ -403,10 +403,10 @@ sub download {
 
 	# PREPARATION #
 	PREPARATION:
-	my $filepath;
+	my ($filepath, $size_downloaded);
 	
 	$result = try {		
-		$filepath = download_prepare($plugin, $to);
+		($filepath, $size_downloaded) = download_prepare($plugin, $to);
 		
 		return 1;
 	}	
@@ -430,13 +430,21 @@ sub download {
 	GETDATA:
 	
 	$result = try {
-		download_getdata($mech, $plugin, $filepath, $progress, $captcha_userreader);
+		download_getdata($mech, $plugin, $filepath, $size_downloaded, $progress, $captcha_userreader);
 		
 		return 1;
 	}	
 	catch {
 		my ($error, $callstack) = @_;
 		error([$callstack, 1], "download failed while getting getting data ($error)");
+		
+		# Retry without resume: some servers (rapidshare...) go nuts when requesting a
+		#   range. Don't ask me why they still advertise the RANGE capability...
+		if ($size_downloaded != 0) {
+			info("failure upon attempt to resume, retrying without attempting to resume");
+			$size_downloaded = 0;
+			goto GETDATA;
+		}
 		
 		# Retry
 		if ($counter-- > 0) {
@@ -490,21 +498,8 @@ sub download_prepare {
 	}
 	my $filepath = "$to/$filename";
 	
-	return $filepath;
-}
-
-sub download_getdata {
-	# Input data
-	my ($mech, $plugin, $filepath, $progress, $captcha_userreader) = @_;
-	
-	my $size;
-	my $time_start = time;
-	my $time_chunk = time;
-	my $size_downloaded = 0;
-	my $size_chunk;
-	my $speed = 0;
-	
 	# Check if file exists
+	my $size_downloaded = 0;
 	my @headers;
 	if (-e $filepath) {
 		my $action = $config->get("redownload");
@@ -521,13 +516,31 @@ sub download_getdata {
 			return 1;
 		} elsif ($action eq "resume") {
 			info("file exists, resuming");
-			push(@headers, Range => "bytes=" . (-s $filepath) . "-");
 			$size_downloaded = -s $filepath;
 		} else {
 			fatal("unrecognised action upon redownload");
 		}
 	}
 	info("file will be saved as '$filepath'");
+	
+	return ($filepath, \@headers, $size_downloaded);
+}
+
+sub download_getdata {
+	# Input data
+	my ($mech, $plugin, $filepath, $size_downloaded, $progress, $captcha_userreader) = @_;
+	
+	my $size;
+	my $time_start = time;
+	my $time_chunk = time;
+	my $size_chunk;
+	my $speed = 0;
+	
+	# Generate request header
+	my @headers;
+	if ($size_downloaded != 0) {
+		push(@headers, Range => "bytes=" . $size_downloaded . "-");
+	}
 	
 	# Get data
 	my $encoding;

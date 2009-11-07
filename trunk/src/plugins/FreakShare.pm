@@ -138,6 +138,7 @@ sub get_data_loop  {
 	# Click the final Download button
 	elsif ($self->{MECH}->content() =~ m/value=\"Download\"/ && $self->{MECH}->form_with_fields("section", "did")) {
 		my $request = $self->{MECH}->{form}->make_request;
+		$request->header($headers);
 		return $self->{MECH}->request($request, $data_processor);
 	}
 	

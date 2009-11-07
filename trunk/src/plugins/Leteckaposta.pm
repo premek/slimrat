@@ -117,7 +117,7 @@ sub get_data_loop  {
 	# Download URL
 	if ($self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
 		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download"), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download", $headers), $data_processor);
 	}
 	
 	return;

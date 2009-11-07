@@ -118,7 +118,7 @@ sub get_data_loop  {
 	if ((my ($v) = $self->{MECH}->content() =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/)
 		&& (my ($t) = $self->{MECH}->content() =~ /swfArgs.*"t"\s*:\s*"(.*?)".*/)) {
 		my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

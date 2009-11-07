@@ -148,7 +148,7 @@ sub get_data_loop  {
 	# Extract the download URL
 	elsif (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
 		$download = $download->url();
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

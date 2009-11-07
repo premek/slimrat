@@ -139,7 +139,7 @@ sub get_data_loop  {
 	# Download
 	if ($self->{MECH}->content() =~ m/\"downloadLink\"/) {
 		my $link = $self->{MECH}->find_link(url_regex => qr/\/dl\//) || die("could not find download link");
-		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url, $headers), $data_processor);
 	}
 	
 	return;
