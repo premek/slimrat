@@ -500,7 +500,6 @@ sub download_prepare {
 	
 	# Check if file exists
 	my $size_downloaded = 0;
-	my @headers;
 	if (-e $filepath) {
 		my $action = $config->get("redownload");
 		if ($action eq "overwrite") {
@@ -523,7 +522,7 @@ sub download_prepare {
 	}
 	info("file will be saved as '$filepath'");
 	
-	return ($filepath, \@headers, $size_downloaded);
+	return ($filepath, $size_downloaded);
 }
 
 sub download_getdata {
