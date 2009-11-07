@@ -254,6 +254,16 @@ $self->reload();
 }}}
 This'll reload $self->{URL} and put the contents in the current page of $self->{MECH}
 
+
+=== Status messages ===
+
+Your plugin should not use the Log package directly, which only serves as auxiliary library to provide command-line output. As (later on) the download engine will be interface independant, we don't want the plugins to output directly to the command line, but save its messages internally so each interface can request and display then appropriately.
+Instead, use the $message_processor function pointer:
+{{{
+&$message_processor("no download slots available, waiting 2 minutes");
+wait(2*60);
+}}}
+
 === Actions ===
 
 After the initial page is loaded, you will need to detect and respond to certain actions. An example of such an action might be to click a specific button (e.g. Rapidshare's FREE button):
