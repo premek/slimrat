@@ -133,6 +133,7 @@ sub get_data_loop {
 		$self->{MECH}->form_with_fields("captcha");
 		$self->{MECH}->set_fields("captcha" => $captcha_code);
 		my $request = $self->{MECH}->{form}->make_request;
+		$request->header($headers);
 		return $self->{MECH}->request($request, $data_processor);
 	}
 	

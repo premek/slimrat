@@ -122,7 +122,7 @@ sub get_data_loop  {
 	# Download URL
 	if ($self->{MECH}->content() =~ m/<(img|embed) src=\"files\/([^<]+)\/([^<]+)\.(jpeg|jpg|png|gif|bmp|tif|tiff|wmv|avi|mpg|mov|asf|swf|JPEG|JPG|PNG|GIF|BMP|TIF|TIFF|WMV|AVI|MPG|MOV|ASF|SWF)\" ><br><br>/) {
 		my $download = "http://www.filehive.com/files/$2/$3.$4";	
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

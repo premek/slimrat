@@ -136,7 +136,7 @@ sub get_data_loop  {
 	# Download URL
 	elsif( $self->{MECH}->uri() !~ $self->{URL} ) {
 	    my $download = $self->{MECH}->uri();
-	    return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+	    return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

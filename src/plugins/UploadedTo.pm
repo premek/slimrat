@@ -122,7 +122,7 @@ sub get_data_loop  {
 	# Download URL
 	elsif ($self->{MECH}->content() =~ m#<form name="download_form" method="post" action="(.+?)">#) {
 		my $download = $1;
-		my $req = HTTP::Request->new(POST => $download);
+		my $req = HTTP::Request->new(POST => $download, $headers);
 		$req->content_type('application/x-www-form-urlencoded');
 		$req->content("download_submit=Free%20Download");
 		return $self->{MECH}->request($req, $data_processor);

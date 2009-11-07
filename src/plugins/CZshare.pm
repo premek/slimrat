@@ -138,7 +138,7 @@ sub get_data_loop {
 			dump_add(data => $self->{MECH}->content());
 	
 			if ($self->{MECH}->content() =~ m#http://.+?/$id/.+?/.+?/# ) {
-				return $self->{MECH}->request(HTTP::Request->new(GET => $&), $data_processor);
+				return $self->{MECH}->request(HTTP::Request->new(GET => $&, $headers), $data_processor);
 			}
 		}
 	}
@@ -185,7 +185,7 @@ sub get_data_loop {
 	
 			# Generate request
 			my($action, $id, $ticket) = $self->{MECH}->content() =~ m#<form name="pre_download_form" action="(.+?)".+name="id" value="(\d+)".+name="ticket" value="(.+?)"#s;# <input type="submit" name="submit_btn" DISABLED value="stahnout " /> 
-				my $req = HTTP::Request->new(POST => $action);
+				my $req = HTTP::Request->new(POST => $action, $headers);
 			$req->content_type('application/x-www-form-urlencoded');
 			$req->content("id=$id&ticket=$ticket");		
 			return $self->{MECH}->request($req, $data_processor);

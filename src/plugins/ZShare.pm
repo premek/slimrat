@@ -132,7 +132,7 @@ sub get_data_loop  {
 	elsif ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
 		my $download = $1;
 		$download = join("", split("','", $download));		
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

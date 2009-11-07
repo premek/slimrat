@@ -1,4 +1,13 @@
-2009-11-05 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+2009-11-07 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins: finished resume handline.
+
+   * common (download): added an extra retry check when resuming has been
+     attempted (as some servers tend to fail upon Range requests, though
+     they advertise the range capability).
+
+
+2009-11-06 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * common (download): altered the exception handling framework to a more
      advanced alternative, based on Try::Tiny.

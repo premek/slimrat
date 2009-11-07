@@ -166,7 +166,7 @@ sub get_data {
 	my $self = shift;
 	
 	# Fetch primary page
-	$self->reload();
+	$self->fetch();
 	
 	# Main loop
 	while (1) {
@@ -175,7 +175,7 @@ sub get_data {
 		
 		# Check if the plugin actually did something
 		if (!defined($rv)) {
-			die("plugin could not match action");
+			die("plugin could not match any action");
 		}
 		
 		# Check if HTTP::Response
@@ -186,12 +186,6 @@ sub get_data {
 		# Normal loop exit, please retry
 		elsif ($rv == 1) {
 			next;
-		}
-		
-		# Error, quit it
-		elsif ($rv == 0) {
-			# In common, use try/catch or RV checking?
-			die("todo");
 		}
 		
 		# Unknown RV

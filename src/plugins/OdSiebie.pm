@@ -114,13 +114,16 @@ sub get_data_loop  {
 	my $headers = shift;
 	
 	# Click to the secondary page
-	$self->{MECH}->follow_link( text => 'Pobierz plik' );
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->find_link(text => 'Pobierz plik')) {
+		$self->{MECH}->follow_link( text => 'Pobierz plik' );
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
 	
 	# Download URL
 	if ($self->{MECH}->follow_link( text => 'kliknij tutaj')) {
 		my $download = $self->{MECH}->uri();
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

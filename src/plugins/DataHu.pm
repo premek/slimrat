@@ -124,7 +124,7 @@ sub get_data_loop {
 	if ($self->{MECH}->content() =~ m/class="download_it"><a href="(.*)" onmousedown/sm) {
 		my $download = $1;
 		die("primary page error, could not extract download link") unless $download;
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

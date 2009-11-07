@@ -168,6 +168,7 @@ sub get_data_loop  {
 	# Regular download form
         if (my $form = $self->{MECH}->form_name("downloadform")) {
 		my $request = $form->make_request;
+		$request->header($headers);
 		return $self->{MECH}->request($request, $data_processor);
 	}
 

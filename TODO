@@ -21,7 +21,6 @@
   
 * 1.1
   - Unicode character fix
-  - Download speed enhancments
   - captcha read: tesserat: convert fails sometimes, gif header corrupt (megaupload)
   - GUI can't be closed when a thread is active
   - LottaNZB style progress indication

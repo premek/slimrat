@@ -155,14 +155,14 @@ sub get_data_loop {
 	
 	# Download URL
 	elsif ($self->{MECH}->content() =~ m/"repeat"><a href="([^\"]+)">Try downloading this file again/) {
-		return $self->{MECH}->request(HTTP::Request->new(GET => $1), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $1, $headers), $data_processor);
 	}
 	
 	# Download URL after wait
 	elsif ($self->{MECH}->content() =~ m#show_url\((\d+)\)#) {
 		wait($1);
 		my ($download) = m#<div id="download_url"[^>]>\s*<form action="([^"]+)"#;
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

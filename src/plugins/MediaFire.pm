@@ -137,7 +137,7 @@ sub get_data_loop  {
 		my $download = 'http://' . $variables{"mL"} . '/' . $url_constr . 'g/' . $variables{"mH"} . '/' . $variables{"mY"};
 		
 		# Download the data
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

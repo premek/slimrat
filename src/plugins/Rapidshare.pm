@@ -125,10 +125,12 @@ sub get_data_loop  {
 	my $headers = shift;
 	
 	# Click the "Free" button
-	$self->{MECH}->form_id("ff");
-	my $res = $self->{MECH}->submit_form();
-	die("secondary page error, ", $res->status_line) unless ($res->is_success);
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->form_id("ff")) {
+		my $res = $self->{MECH}->submit_form();
+		die("secondary page error, ", $res->status_line) unless ($res->is_success);
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
 	
 	# Download limit
 	if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
@@ -170,7 +172,7 @@ sub get_data_loop  {
 	elsif ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
 		my ($download, $wait) = ($1, $2);
 		wait($wait);
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
 	return;

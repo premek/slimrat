@@ -118,7 +118,7 @@ sub get_data_loop {
 	# Download URL
 	if ($self->{MECH}->content() =~ m#onclick="top\.location='(.+?)';" value#) {
 		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => "http://www.fast-load.net$download"), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => "http://www.fast-load.net$download", $headers), $data_processor);
 	}
 	
 	return;
