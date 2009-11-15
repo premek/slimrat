@@ -37,6 +37,29 @@ a) On Debian/Ubuntu
       aptitude install libgtk2-gladexml-perl xclip libspiffy-perl # For the GUI
       aptitude install aview # For command-line captcha viewing
       aptitude install imagemagick tesseract # For automatic captcha solving
+
+NOTE: when using Debian Lenny (the current stable), some plugins won't work due
+      to libwww-mechanize-perl not being up to date enough. You can install a
+      newer version using CPAN:
+          su -
+          cpan
+          # If you haven't run cpan before, you'll need to configure a bunch of
+          #   settings. You can let CPAN configure them automatically for you.
+          # The next two commands are optional, in order to ensure you are
+          #   running the most recent CPAN module.
+          upgrade CPAN
+          reload CPAN
+          # The next command installs the newer library. It'll need a bunch of
+          #   dependancies, just install them along. Some dependancies are
+          #   optional, which you can skip (some test modules, CPAN will tell
+          #   you).
+          install WWW::Mechanize
+          # If you got an error "could not find unzip", use the following two
+          #   commands.
+          o conf unzip unzip
+          o conf commit
+      Now Perl should prefer the newer installed libraries, which'll make
+      slimrat capable of using the previously failing plugins.
       
 b) On FreeBSD
       portinstall -Pp devel/p5-Getopt-Long devel/p5-Term-ANSIColor x11-toolkits/p5-Gtk2 x11-toolkits/p5-Gtk2-GladeXML x11-toolkits/p5-Gtk2-Ex-Simple-List www/p5-LWP-UserAgent-Determined www/p5-WWW-Mechanize
