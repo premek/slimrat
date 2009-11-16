@@ -542,7 +542,7 @@ sub dump_write() {
 	# Generate a tag and temporary folder
 	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
 	$year += 1900;
-	$month++;
+	$mon++;
 	my $filename = "slimrat_dump_" . (sprintf "%04d-%02d-%02dT%02d-%02d-%02d",$year,$mon,$mday,$hour,$min,$sec);
 	my $tempfolder = tempdir ( $filename."_XXXXX", TMPDIR => 1 );
 	
