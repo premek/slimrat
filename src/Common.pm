@@ -66,7 +66,6 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 
 # Custom packages
-use Semaphore;
 use Configuration;
 use Log;
 use Plugin;
@@ -91,7 +90,7 @@ $config->set_default("speed_window", 30);
 
 # Shared data
 my $downloaders:shared = 0;
-my %rate_surplus:shared; my $s_rate_surplus = new Semaphore;
+my %rate_surplus:shared;
 
 # Threads compatibility
 our $THRCOMP = 0;
@@ -354,9 +353,10 @@ sub download {
 		error([$callstack, 1], "download failed while constructing ($error)");
 		
 		# Retry
-		if ($counter-- > 0) {
-			info("retrying $counter more times");
+		if ($counter > 0) {
+			info("attempting $counter more times");
 			wait($config->get("retry_wait"));
+			$counter--;
 			goto CONSTRUCTION;
 		}
 		
@@ -386,9 +386,10 @@ sub download {
 		error([$callstack, 1], "download failed while checking ($error)");
 		
 		# Retry
-		if ($counter-- > 0) {
-			info("retrying $counter more times");
+		if ($counter > 0) {
+			info("attempting $counter more times");
 			wait($config->get("retry_wait"));
+			$counter--;
 			goto CHECK;
 		}
 		
@@ -415,9 +416,10 @@ sub download {
 		error([$callstack, 1], "download failed while preparing ($error)");
 		
 		# Retry
-		if ($counter-- > 0) {
-			info("retrying $counter more times");
+		if ($counter > 0) {
+			info("attempting $counter more times");
 			wait($config->get("retry_wait"));
+			$counter--;
 			goto PREPARATION;
 		}
 		
@@ -447,9 +449,10 @@ sub download {
 		}
 		
 		# Retry
-		if ($counter-- > 0) {
-			info("retrying $counter more times");
+		if ($counter > 0) {
+			info("attempting $counter more times");
 			wait($config->get("retry_wait"));
+			$counter--;
 			goto GETDATA;
 		}
 		
@@ -616,13 +619,13 @@ sub download_getdata {
 			
 			# Rate control
 			if (defined(my $rate = $config->get("rate"))) {
+				lock(%rate_surplus);
+				
 				my $speed_cur = $size_chunk / $dtime_chunk;
 				my $speed_aim = $rate * 1024 / $downloaders;
-				$s_rate_surplus->down();
 				delete($rate_surplus{thread_id()});
 				$speed_aim += $rate_surplus{$_}/($downloaders-scalar(keys %rate_surplus)) foreach (keys %rate_surplus);
 				$rate_surplus{thread_id()} = $speed_aim - $speed_cur if ($speed_aim-$speed_cur > 0);
-				$s_rate_surplus->up();
 				if ($speed_cur > $speed_aim) {
 					sleep($size_chunk / $speed_aim - $dtime_chunk);
 				}
@@ -768,7 +771,6 @@ sub quit {
 	
 	# Quit all packages
 	Queue::quit();
-	Semaphore::quit();
 	Proxy::quit();
 	Log::quit();		# pre-last because it writes the dump
 	Configuration::quit();	# last as used by everything

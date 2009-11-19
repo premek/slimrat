@@ -2,6 +2,8 @@
 
    * plugins: fix for uploading.com (patch by tipingus).
 
+   * semaphore: ditching old framework in favour of perl built-ins.
+
 
 2009-11-07 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 

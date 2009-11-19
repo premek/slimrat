@@ -60,7 +60,6 @@ use Toolbox;
 use Queue;
 use Log;
 use Configuration;
-use Semaphore;
 
 # Function prototypes
 sub quit($);
@@ -87,7 +86,7 @@ my @failedlinks:shared;
 my @oklinks:shared;
 
 # Shared data
-my %data:shared; my $s_data = new Semaphore;
+my %data:shared;
 
 
 #
@@ -353,8 +352,9 @@ sub thread_progress {
 	};
 	
 	while (1) {
-		$s_data->down();
+		lock(%data);
 		my @threads = keys %data;
+		
 		if (scalar(@threads)) {
 			my $string = "Downloading " . scalar(@threads) . " file";
 			$string .= "s" if scalar(@threads) > 1;
@@ -374,7 +374,6 @@ sub thread_progress {
 			
 			progress($string); 
 		}
-		$s_data->up();
 		sleep(1);
 	}
 }
@@ -411,16 +410,15 @@ sub thread_download {
 			$link,
 			$config_cli->get("to"),
 			sub { # Progress indication
+				lock(%data);
+				
 				# No arguments = not downloading anymore
 				if (scalar(@_) == 0) {
-					$s_data->down();
 					delete($data{$id});
-					$s_data->up();
 					return;
 				}
 							
 				# Create data container
-				$s_data->down();
 				if (!defined($data{$id})) {
 					share($data{$id});
 					$data{$id} = &share({});
@@ -431,7 +429,6 @@ sub thread_download {
 				$data{$id}{total} = shift;	# filesize in bytes
 				$data{$id}{speed} = shift;	# speed in bytes per second
 				$data{$id}{eta} = shift;	# time remaining in seconds
-				$s_data->up();
 			},
 			sub { # Captcha handler
 				my $captchafile = shift;
@@ -492,12 +489,16 @@ sub thread_download {
 		$queue->advance()
 	}
 	debug("thread couldn't get any work, exiting");
-	$s_data->down();	# FIXME: does this happen ever? should be handled by progress()
-	delete($data{$id});
-	$s_data->up();
-	lock($threads);
-	$threads--;
-	cond_broadcast($threads);
+	
+	# FIXME: does this happen ever? should be handled by progress()
+	{
+		lock(%data);	
+		lock($threads);
+		
+		delete($data{$id});
+		$threads--;
+		cond_broadcast($threads);
+	}
 }
 
 

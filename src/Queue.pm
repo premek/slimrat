@@ -45,7 +45,6 @@ use Storable;
 
 # Custom packages
 use Configuration;
-use Semaphore;
 use Toolbox;
 use Log;
 
@@ -58,10 +57,10 @@ my $config = new Configuration;
 $config->set_default("file", undef);
 
 # Shared data
-my $s_file:shared = new Semaphore;	# Semaphore here manages file access
-my @queued:shared; my $s_queued:shared = new Semaphore;
-my @processed:shared; my $s_processed:shared = new Semaphore;
-my %busy:shared; my $s_busy:shared = new Semaphore;
+my $file_lock:shared;
+my @queued:shared;
+my @processed:shared;
+my %busy:shared;
 
 
 #
@@ -80,10 +79,9 @@ sub configure($) {
 sub add {
 	my $url = shift;
 	return unless $url;
+	lock(@queued);
 	
-	$s_queued->down();
 	push(@queued, $url);
-	$s_queued->up();
 }
 
 # Add an URL from the file to the queue
@@ -92,8 +90,8 @@ sub file_read {
 	return 0 unless (defined($file) && -r $file);
 	debug("reading queue file '", $file ,"'");
 	my $added = 0;
+	lock($file_lock);
 	
-	$s_file->down();
 	open(FILE, $file) || fatal("could not read queue file");
 	while (<FILE>) {
 		# Skip things we don't want
@@ -105,27 +103,23 @@ sub file_read {
 			my $url = $1;
 			
 			# Only add to queue if not processed yet and not in container either
-			$s_processed->down();
-			$s_queued->down();
-			$s_busy->down();
-			my @values = values %busy;
-			if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1) && (indexof($url, \@values) == -1)) {
-				$s_busy->up();
-				$s_queued->up();
-				$s_processed->up();
-				add($url);
-				$added = 1;
-				last;
+			{
+				lock(@processed);
+				lock(@queued);
+				lock(%busy);
+				
+				my @values = values %busy;
+				if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1) && (indexof($url, \@values) == -1)) {
+					add($url);
+					$added = 1;
+					last;
+				}
 			}
-			$s_busy->up();
-			$s_queued->up();
-			$s_processed->up();
 		} else {
 			warning("unrecognised line in queue file: '$_'");
 		}
 	}
 	close(FILE);
-	$s_file->up();
 	return $added;
 }
 
@@ -148,47 +142,48 @@ sub dump {
 
 # Restart processed downloads
 sub restart() {
-	$s_processed->down();
-	@processed = [];
-	$s_processed->up();
 	debug("resetting state of processed URLs");
+	lock(@processed);
+	
+	@processed = [];
 }
 
 # Reset the queue
 sub reset() {
-	$s_queued->down();
-	$s_processed->down();
+	lock(@queued);
+	lock(@processed);
+	
 	@queued = ();
 	@processed = ();
-	$s_processed->up();
-	$s_queued->up();
 }
 
 # Save the state of the queue object
 sub save($) {
 	my $filename = shift;
-	$s_queued->down();
-	$s_processed->down();
+	debug("saving state of queue object to '$filename'");
+	lock(@queued);
+	lock(@processed);
+	
 	my %container = (
 		queued		=>	[@queued],
 		processed	=>	[@processed]
 	);
 	$container{file} = $config->get("file");
+	
 	store(\%container, $filename) || error("could not serialize queue to '$filename'");
-	$s_queued->up();
-	$s_processed->up();
 }
 
 # Restore the state of the queue object
 sub restore {
 	my $filename = shift;
-	my %container;
 	if (-f $filename) {
+		debug("restoring state of queue object from '$filename'");
+		my %container;
 		eval { %container = %{retrieve($filename)} };
 		return error("could not reconstruct queue out of '$filename'") if ($@);
+		lock(@queued);
+		lock(@processed);
 		
-		$s_queued->down();
-		$s_processed->down();
 		if (defined($container{file})) {
 			if ($config->get("file")) {
 				warning("active instance already got a queue file defined, not overwriting");
@@ -198,8 +193,6 @@ sub restore {
 		}
 		@queued = @{$container{queued}};
 		@processed = @{$container{processed}};
-		$s_queued->up();
-		$s_processed->up();
 	}
 }
 
@@ -231,16 +224,12 @@ sub DESTROY {
 	
 	if (defined($self->{item}) && !$self->{status}) {
 		debug("found queued item without status, unblocking and merging back to main queue");
+		lock(%busy);
+		lock(@queued);	
 		
-		$self->{item} = undef;
-		$s_busy->down();
-		delete($busy{thread_id()});
-		$s_busy->up();
-		
-		$s_queued->down();
+		delete($busy{thread_id()});		
 		push(@queued, $self->{item});
 		$self->{item} = undef;
-		$s_queued->up();
 	}
 }
 
@@ -257,43 +246,45 @@ sub advance($) {
 	fatal("advance call should always be preceded by skip_* call") if ($self->{item});
 	
 	# Fetch a new item from static queue cache
-	$s_queued->down();
-	for (my $i = 0; $i <= $#queued; $i++) {
-		if (!scalar($self->{processed}) || indexof($queued[$i], $self->{processed}) == -1) {
-			$self->{item} = delete($queued[$i]);
+	{
+		lock(@queued);
 		
-			# Fix the "undef" gap delete creates (variant which preserves order)
-			# (which does not happen if "delete" deleted last element)
-			if ($i != scalar(@queued)) {
-				for my $j ($i ... $#queued-1) {
-					$queued[$j] = $queued[$j+1];
+		for (my $i = 0; $i <= $#queued; $i++) {
+			if (!scalar($self->{processed}) || indexof($queued[$i], $self->{processed}) == -1) {
+				$self->{item} = delete($queued[$i]);
+			
+				# Fix the "undef" gap delete creates (variant which preserves order)
+				# (which does not happen if "delete" deleted last element)
+				if ($i != scalar(@queued)) {
+					for my $j ($i ... $#queued-1) {
+						$queued[$j] = $queued[$j+1];
+					}
+					pop(@queued);
 				}
-				pop(@queued);
+				last;
 			}
-			last;
 		}
 	}
-	$s_queued->up();
 	
 	# Fetch a new item from reading the file
 	if (!$self->{item}) {
-		$s_queued->down();
+		lock(@queued);
+		
 		while (!$self->{item} || indexof($self->{item}, $self->{processed}) != -1) {
 			unless (file_read()) {
-				$s_queued->up();
 				debug("queue exhausted");
 				return 0;
 			}
 			$self->{item} = pop(@queued);
 			
 		}
-		$s_queued->up();
 	}
 	
 	# Mark the item as being in use
-	$s_busy->down();
-	$busy{thread_id()} = $self->{item};
-	$s_busy->up();
+	{
+		lock(%busy);
+		$busy{thread_id()} = $self->{item};
+	}
 	
 	return 1;
 }
@@ -308,9 +299,9 @@ sub skip_globally {
 	
 		# Only update if we got a file
 		my $url = $self->{item};
-		$s_file->down();
 		my $file = $config->get("file");
 		if (defined($file) && -r $file) {
+			lock($file_lock);
 			open (FILE, $file);
 			open (FILE2, ">".$file.".temp");
 			while(<FILE>) {
@@ -324,36 +315,32 @@ sub skip_globally {
 			unlink $file;
 			rename $file.".temp", $file;
 		}
-		$s_file->up();
 	}
 	
-	# Move the queued item to the "processed" array
-	$s_processed->down();
-	push(@processed, $self->{item});	
-	$s_processed->up();
-	
-	# Reset the item
-	$self->{item} = undef;
-	$s_busy->down();
-	delete($busy{thread_id()});
-	$s_busy->up();
+	# Mark the item as "processed"
+	{
+		lock(@processed);
+		lock(%busy);
+		
+		push(@processed, $self->{item});
+		delete($busy{thread_id()});
+		$self->{item} = undef;	
+	}
 }
 
 # Skip to the next url
 sub skip_locally($) {
-	my ($self) = @_;	
+	my ($self) = @_;
+	lock(@queued);
+	lock(%busy);
 	
 	# Move the queued item to the "queued" array, and to the local "processed" array
-	$s_queued->down();
-	unshift(@queued, $self->{item});	
-	$s_queued->up();
+	unshift(@queued, $self->{item});
 	push(@{$self->{processed}}, $self->{item});
 	
 	# Reset the item
 	$self->{item} = undef;
-	$s_busy->down();
 	delete($busy{thread_id()});
-	$s_busy->up();
 }
 
 # Return
