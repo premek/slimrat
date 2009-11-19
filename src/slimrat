@@ -352,7 +352,6 @@ sub thread_progress {
 	};
 	
 	while (1) {
-		lock(%data);
 		my @threads = keys %data;
 		
 		if (scalar(@threads)) {
@@ -362,10 +361,13 @@ sub thread_progress {
 			my $speed = 0;
 			my $eta_min = 0;
 			my $eta = 0;
-			foreach my $thread (@threads) {
-				$speed += $data{$thread}{speed};
-				$eta += $data{$thread}{eta};
-				$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+			{
+				lock(%data);
+				foreach my $thread (@threads) {
+					$speed += $data{$thread}{speed};
+					$eta += $data{$thread}{eta};
+					$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+				}
 			}
 			
 			$string .= " at " . bytes_readable($speed) . "/s";
