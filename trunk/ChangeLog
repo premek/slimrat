@@ -1,3 +1,8 @@
+2009-11-19 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * plugins: fix for uploading.com (patch by tipingus).
+
+
 2009-11-07 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * plugins: finished resume handline.
