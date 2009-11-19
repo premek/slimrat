@@ -72,9 +72,11 @@ sub new {
 	$self->{MECH} = $_[3];	
 	bless($self);
 	
-	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
-	dump_add(data => $self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
+	# Fetch the language switch page which gives us a "lang=1" cookie (1 => english)
+	$self->{MECH}->post('http://uploading.com/general/select_language/', { language => 1});
+
+
+	$self->{PRIMARY} = $self->fetch();
 
 	return $self;
 }
@@ -88,7 +90,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m#class="big_ico".*^\s+<h2>(.+?)</h2><br/>#sm);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#class="c_1".*^\s+<h2>(.+?)</h2><br/>#sm);
 }
 
 # Filesize
@@ -130,33 +132,28 @@ sub get_data_loop  {
 	}
 	
 	# Ajax-based download form
-	# FIXME: remove internal looping, and do as "return 1" to loop forever
 	if ($self->{MECH}->content() =~ m/get_link\(\);/) {
 
-		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{file_id:\s*(\d+),/) {
+		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{.*file_id:\s*(\d+),/) {
 			die("could not find request download id");
 		} 
 
 		my $file_id = $1;
 
-		my $loop = 3;
-		while ($loop >= 0) {
-			my $time_id = time()*1000;
+		my $time_id = time()*1000;
 
-			my $req = HTTP::Request->new(POST => "http://uploading.com/files/get/?JsHttpRequest=${time_id}0-xml");
-			$req->content_type('application/octet-stream; charset=UTF-8');
-			$req->content("file_id=$file_id&action=get_link&pass=");
-			my $res = $self->{MECH}->request($req);
-			die("page 3 error, ", $res->status_line) unless ($res->is_success);
+		my $req = HTTP::Request->new(POST => "http://uploading.com/files/get/?JsHttpRequest=${time_id}0-xml");
+		$req->content_type('application/octet-stream; charset=UTF-8');
+		$req->content("file_id=$file_id&action=get_link&pass=");
+		my $res = $self->{MECH}->request($req);
+		die("page 3 error, ", $res->status_line) unless ($res->is_success);
 
-			if ($self->{MECH}->content() =~ m/Please wait/) {
-			  wait(60);
-			} elsif ($self->{MECH}->content() =~ m/\"answer\".*\"link\".*http/) {
-			  last;
-			}
-			$loop--;
+		if ($self->{MECH}->content() =~ m/Please wait/) {
+		  wait(60);
+		} elsif ($self->{MECH}->content() !~ m/\"answer\".*\"link\".*http/) {
+		  return 1;
 		}
-
+		
 		unless ($self->{MECH}->content() =~ m,(http:\\/\\/[^"]+),) {
 			die("could not find request download url");
 	        }
