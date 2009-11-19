@@ -46,7 +46,6 @@ use threads::shared;
 use Log;
 use Configuration;
 use Toolbox;
-use Semaphore;
 
 # Write nicely
 use strict;
@@ -62,7 +61,7 @@ $config->set_default("order", "linear");
 $config->set_default("delete", 0);
 
 # Shared data
-my @proxies:shared; my $s_proxies:shared = new Semaphore;
+my @proxies:shared;
 
 
 #
@@ -84,6 +83,7 @@ sub file_read() {
 	my $file = $config->get("file");
 	return 0 unless (defined($file) && -r $file);
 	debug("reading proxy file '", $file, "'");
+	lock(@proxies);
 
 	open(FILE, $config->get("file")) || fatal("could not read proxy file");
 	while (<FILE>) {
@@ -112,9 +112,7 @@ sub file_read() {
 			push(@{$proxy->{protocols}}, $_) foreach (@protocols);
 			$proxy->{downloads} = 0;
 			
-			$s_proxies->down();
 			push(@proxies, $proxy);
-			$s_proxies->up();
 		} else {
 			warning("unrecognised line in proxy file: '$_'");
 		}
@@ -152,9 +150,10 @@ sub DESTROY {
 	return unless $self->{proxy};
 	
 	# Preserve current proxy
-	$s_proxies->down();
-	push(@proxies, $self->{proxy});
-	$s_proxies->up();
+	{
+		lock(@proxies);
+		push(@proxies, $self->{proxy});
+	}
 	
 	$self->SUPER::DESTROY if $self->can("SUPER::DESTROY");
 }
@@ -162,10 +161,8 @@ sub DESTROY {
 # Advance
 sub advance {
 	my ($self, $link) = @_;
-	
-	# No need to do anything if no proxies available
 	return 1 unless (scalar(@proxies));
-	$s_proxies->down();
+	lock(@proxies);
 	
 	# Check limits and cycle if needed
 	if (defined($self->{proxy})) {
@@ -181,21 +178,17 @@ sub advance {
 		# Pick an initial proxy if we haven't got one yet
 		$self->cycle(0);
 	}
-	$s_proxies->up();
 	
 	# Check for protocol match
 	if ($link =~ /^(.+):\/\//) {
 		my $protocol = $1;
-		$s_proxies->down();
 		my $limit = scalar(@proxies);
 		while (scalar(@proxies) && indexof($protocol, $self->{proxy}->{protocols}) == -1) {
 			$self->cycle(0);
 			if (--$limit < 0) {
-				$s_proxies->up();
 				return error("could not find proxy matching current protocol '$protocol'");
 			}
 		}
-		$s_proxies->up();
 	} else {
 		warning("could not deduce protocol, proxies might not work correctly");
 	}
@@ -211,21 +204,19 @@ sub advance {
 # Cycle
 sub cycle {
 	my ($self, $limits_reached) = @_;
+	lock(@proxies);
 	
 	# Place current proxy at end
 	if (defined($self->{proxy})) {
-		$s_proxies->down();
 		if ($limits_reached) {
 			$self->{proxy}->{downloads} = 0;
 			push(@proxies, $self->{proxy}) unless $config->get("delete");
 		} else {
 			push(@proxies, $self->{proxy});
 		}
-		$s_proxies->up();
 	}
 	
 	# Pick next proxy
-	$s_proxies->down();
 	if ($config->get("order") eq "random") {
 		my $index = rand(scalar(@proxies));
 		$self->{proxy} = delete($proxies[$index]);
@@ -238,10 +229,8 @@ sub cycle {
 	} elsif ($config->get("order") eq "linear") {
 		$self->{proxy} = shift(@proxies);
 	} else {
-		$s_proxies->up();
 		return error("unrecognized proxy order '", $config->get("order"), "'");
 	}
-	$s_proxies->up();
 	
 	$self->set();
 }

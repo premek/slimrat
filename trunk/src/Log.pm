@@ -49,7 +49,6 @@ use File::Basename;
 
 # Custom packages
 use Toolbox;
-use Semaphore;
 use Configuration;
 
 # Export functionality
@@ -71,7 +70,7 @@ $config->set_default("dump_folder", "/tmp");
 $config->set_default("show_thread", 0);
 
 # Shared data
-my @dumps:shared; my $s_dumps:shared = new Semaphore;
+my @dumps:shared;
 my $dump_output:shared = "";
 
 # Progress length variable
@@ -512,6 +511,7 @@ sub quit() {
 sub dump_add {
 	my %information = @_;
 	return unless ($config->get("verbosity") >= 5);
+	lock(@dumps);
 	
 	# Fill some possible gaps
 	$information{data} = "" unless ($information{data});	# Replace potential undef to avoid warn()
@@ -530,14 +530,13 @@ sub dump_add {
 	$dump->{time} = time;
 	debug("adding ", $dump->{type}, " dump ", (scalar(@dumps)+1));
 	callstack(1);	# Strip "sub dump_add"
-	$s_dumps->down();
 	push @dumps, $dump;
-	$s_dumps->up();
 }
 
 # Write the dumped data
 sub dump_write() {
 	return unless ($config->get("verbosity") >= 5);
+	lock(@dumps);
 	
 	# Generate a tag and temporary folder
 	my ($sec,$min,$hour,$mday,$mon,$year) = localtime;
@@ -553,7 +552,6 @@ sub dump_write() {
 	debug("dumping " . scalar(@dumps) . " file(s) to disk in temporary folder '$tempfolder'");	
 	open(INFO, ">$tempfolder/info");
 	my $counter = 1;
-	$s_dumps->down();
 	foreach my $dump (@dumps) {
 		print INFO $counter, ") ", $dump->{title}, "\n";
 		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->{time}); $year+=1900;
@@ -574,7 +572,6 @@ sub dump_write() {
 		
 		$counter++;
 	}
-	$s_dumps->up();
 	close(INFO);
 	
 	# Generate archive	
