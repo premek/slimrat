@@ -111,12 +111,8 @@ sub new {
 			}
 		}
 		
-		# Configuration handling (propagate global plugin settings)
-		my $config_plugin = $config_global->section($plugin);
-		$config_plugin->merge($config);
-		
 		# Construction
-		my $object = new $plugin ($config_plugin, $url, $mech);
+		my $object = new $plugin ($config_global->section($plugin), $url, $mech);
 		return $object;
 	}
 	return 0;
@@ -299,7 +295,7 @@ sub update {
 	}	
 }
 
-# Load the plugins (dependancy check + execution)
+# Load the plugins (dependancy check and other pre-parsing code)
 sub load {
 	my $folder = shift;
 	
