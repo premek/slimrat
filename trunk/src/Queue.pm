@@ -111,7 +111,6 @@ sub file_read {
 				my @values = values %busy;
 				if ((indexof($url, \@processed) == -1) && (indexof($url, \@queued) == -1) && (indexof($url, \@values) == -1)) {
 					add($url);
-					print "Adding $url\n";
 					$added = 1;
 					last FILEREAD;
 				}
