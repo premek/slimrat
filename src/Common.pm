@@ -58,7 +58,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use POSIX 'setsid';
 use Time::HiRes qw(time);
 use URI;
-use IO::Uncompress::AnyUncompress qw(anyuncompress $AnyUncompressError) ;
+use IO::Uncompress::AnyUncompress qw(anyuncompress $AnyUncompressError);
 use File::Temp qw/tempfile/;
 
 # Find root for custom packages
