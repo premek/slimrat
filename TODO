@@ -16,6 +16,11 @@
     the actual filename in the statuspage, but only upon final request.
     How to handle resuming then?
   - UTF-8 compatibility
+  - Make plugin path configurable, support a substitution for $RealBin (~ ->
+    home, x -> $RealBin)
+    or eventual, instead of plugins, folder with all slimrat data (plugin.pm,
+    toolbox.pm, etc)
+
 
 # VERSION SPECIFIC #
   

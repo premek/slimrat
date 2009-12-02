@@ -352,29 +352,31 @@ sub thread_progress {
 	};
 	
 	while (1) {
-		my @threads = keys %data;
-		
-		if (scalar(@threads)) {
-			my $string = "Downloading " . scalar(@threads) . " file";
-			$string .= "s" if scalar(@threads) > 1;
+		{
+			lock(%data);
+			my @threads = keys %data;
 			
-			my $speed = 0;
-			my $eta_min = 0;
-			my $eta = 0;
-			{
-				lock(%data);
-				foreach my $thread (@threads) {
-					$speed += $data{$thread}{speed};
-					$eta += $data{$thread}{eta};
-					$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+			if (scalar(@threads)) {
+				my $string = "Downloading " . scalar(@threads) . " file";
+				$string .= "s" if scalar(@threads) > 1;
+				
+				my $speed = 0;
+				my $eta_min = 0;
+				my $eta = 0;
+				{
+					foreach my $thread (@threads) {
+						$speed += $data{$thread}{speed};
+						$eta += $data{$thread}{eta};
+						$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+					}
 				}
+				
+				$string .= " at " . bytes_readable($speed) . "/s";
+				$string .= ", " . seconds_readable($eta) . " remaining";
+				$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
+				
+				progress($string); 
 			}
-			
-			$string .= " at " . bytes_readable($speed) . "/s";
-			$string .= ", " . seconds_readable($eta) . " remaining";
-			$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
-			
-			progress($string); 
 		}
 		sleep(1);
 	}

@@ -127,6 +127,7 @@ sub DESTROY {
 	lock(%resources);
 	if ($resources{$plugin} >= 0) {
 		$resources{$plugin}++;
+		cond_signal(%resources);
 		debug("restoring available resources for plugin $plugin to ", $resources{$plugin});
 	}
 }
@@ -224,7 +225,9 @@ sub register {
 
 # Provide instantes
 sub provide {
+	lock(%resources);
 	$resources{(caller)[0]} = shift;
+	cond_broadcast(%resources);
 }
 
 # Get a plugin's name

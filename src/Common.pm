@@ -425,6 +425,7 @@ sub download {
 		
 		return;
 	};
+	return 1 if ($filepath == 1);
 	return -2 unless defined($result);
 	
 	
@@ -636,7 +637,7 @@ sub download_getdata {
 			if ($time_chunk+1 < time) {	# don't update too often
 				# Window handling
 				$speed_chunks{thread_id()} = [] if (!defined($speed_chunks{thread_id()}));
-				shift(@{$speed_chunks{thread_id()}}) while (scalar(@{$speed_chunks{thread_id()}}) > 0 and gettimeofday() - $speed_chunks{thread_id()}[0][0] > $config->get("speed_window"));
+				shift(@{$speed_chunks{thread_id()}}) while (scalar(@{$speed_chunks{thread_id()}}) > 1 and gettimeofday() - $speed_chunks{thread_id()}[0][0] > $config->get("speed_window"));
 				push(@{$speed_chunks{thread_id()}}, [scalar(gettimeofday()), $size_chunk]);
 				
 				# Speed calculation
