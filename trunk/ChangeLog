@@ -1,3 +1,13 @@
+2009-12-02 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+
+   * common (download): skip the download when download_prepare returns 1 (ergo
+     skip upon redownload).
+
+   * plugins (rapidshare): experimental support for premium service.
+
+   * common: various deadlock issues fixed.
+
+
 2009-11-19 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
    * plugins: fix for uploading.com (patch by tipingus).

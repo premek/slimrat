@@ -49,6 +49,7 @@ package Rapidshare;
 # Packages
 use WWW::Mechanize 1.52;
 use HTTP::Request;
+use Crypt::SSLeay;
 
 # Custom packages
 use Log;
@@ -73,6 +74,13 @@ sub new {
 	bless($self);
 	
 	$self->{CONF}->set_default("interval", 0);
+	
+	# MOVE
+	if ((my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
+		Plugin::provide(-1);
+	}
+	use HTTP::Cookies;
+	$self->{MECH}->cookie_jar(HTTP::Cookies->new);  
 	
 	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
 	# Follow: http://code.google.com/p/www-mechanize/issues/detail?id=124
@@ -124,55 +132,91 @@ sub get_data_loop  {
 	my $message_processor = shift;
 	my $headers = shift;
 	
-	# Click the "Free" button
-	if ($self->{MECH}->form_id("ff")) {
-		my $res = $self->{MECH}->submit_form();
-		die("secondary page error, ", $res->status_line) unless ($res->is_success);
-		dump_add(data => $self->{MECH}->content());
-		return 1;
-	}
 	
-	# Download limit
-	if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
-		&$message_processor("reached the download limit for free-users");
-		if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
-			wait($1*60);			
-		} else {
-			&$message_processor("could not extract wait timer");
-			wait(60);
+	#
+	# Premium download
+	#
+	
+	if ((my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {		
+		# Fetch the cookie
+		$self->{MECH}->get("https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi");
+		if ($self->{MECH}->form_with_fields("login", "password")) {
+			$self->{MECH}->set_fields("login" => $username, "password" => $password);
+			$self->{MECH}->submit();
 		}
-		$self->reload();
-		return 1;
+		else {
+			die("Could not find premium form");
+		}
+		
+		# Workaround to fix HTTP::Cookie mathinc rapidshare.com, as the cookie originated
+		# on ssl.rapidshare.com and thus got matching path ".rapidshare.com"
+		my $url = $self->{URL};
+		$url = 'http://www.' . $1 if ($url =~ m{http://(rapidshare.*)$});
+		
+		# Download the file
+		# TODO: do with Mech
+		my $request = HTTP::Request->new(GET => $url, $headers);
+		$self->{MECH}->cookie_jar->add_cookie_header($request);
+		return $self->{MECH}->request($request, $data_processor);
+		#? $self->{MEHC}->get($self->{URL}, $headers, $data_processor); ?#
 	}
 	
-	# Free user limit
-	elsif ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-		my $minutes = $1; 
-		&$message_processor("currently a lot of users are downloading files");
-		wait($minutes*60);
-		$self->reload();
-		return 1;
-	}
 	
-	# Slot availability
-	elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
-		my $minutes = $1;
-		&$message_processor("no available slots for free users");
-		wait(5*60);
-		$self->reload();
-		return 1;
-	}
+	#
+	# Free download
+	#
 	
-	# Already downloading
-	elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
-		die("already downloading a file");
-	}
-	
-	# Download
-	elsif ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
-		my ($download, $wait) = ($1, $2);
-		wait($wait);
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+	else {	
+		# Click the "Free" button
+		if ($self->{MECH}->form_id("ff")) {
+			my $res = $self->{MECH}->submit_form();
+			die("secondary page error, ", $res->status_line) unless ($res->is_success);
+			dump_add(data => $self->{MECH}->content());
+			return 1;
+		}
+		
+		# Download limit
+		if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
+			&$message_processor("reached the download limit for free-users");
+			if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
+				wait($1*60);			
+			} else {
+				&$message_processor("could not extract wait timer");
+				wait(60);
+			}
+			$self->reload();
+			return 1;
+		}
+		
+		# Free user limit
+		elsif ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
+			my $minutes = $1; 
+			&$message_processor("currently a lot of users are downloading files");
+			wait($minutes*60);
+			$self->reload();
+			return 1;
+		}
+		
+		# Slot availability
+		elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
+			my $minutes = $1;
+			&$message_processor("no available slots for free users");
+			wait(5*60);
+			$self->reload();
+			return 1;
+		}
+		
+		# Already downloading
+		elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
+			die("already downloading a file");
+		}
+		
+		# Download
+		elsif ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
+			my ($download, $wait) = ($1, $2);
+			wait($wait);
+			return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+		}
 	}
 	
 	return;
