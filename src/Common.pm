@@ -425,8 +425,8 @@ sub download {
 		
 		return;
 	};
-	return 1 if ($filepath == 1);
 	return -2 unless defined($result);
+	return 1 if ($filepath == 1);
 	
 	
 	# GET DATA #
