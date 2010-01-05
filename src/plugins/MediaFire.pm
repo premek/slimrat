@@ -99,7 +99,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/);
 	return -1 if ($self->{MECH}->uri() =~ m/error.php/);
 	return 0;
 }
@@ -115,7 +115,7 @@ sub get_data_loop  {
 	
 	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";
-	my ($qk,$pk,$r) = m/break;}  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
+	my ($qk,$pk,$r) = m/  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
 	
 	# Get the secondary page
 	my $res = $self->fetch("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
@@ -130,8 +130,8 @@ sub get_data_loop  {
 		}
 		
 		# Read and construct the "secret" part of the URL
-		my ($url_constr) = m/mL\s*\+'\/'\s*\+(.+)\+\s*'g\/'/;
-		$url_constr =~ s/(\w+)\+*/$variables{$1}/g;
+		my ($url_constr) = m/mL\s*\+'\/'\s*\+([^;]+\+)\s*'g\/'/;
+		$url_constr =~ s/(\w+)\+/$variables{$1}/g;
 		
 		# Pass the final download url
 		my $download = 'http://' . $variables{"mL"} . '/' . $url_constr . 'g/' . $variables{"mH"} . '/' . $variables{"mY"};

@@ -426,7 +426,7 @@ sub download {
 		return;
 	};
 	return -2 unless defined($result);
-	return 1 if ($filepath == 1); # FIXME
+	#return 1 if ($filepath == 1); # FIXME
 	
 	
 	# GET DATA #
@@ -439,7 +439,7 @@ sub download {
 	}	
 	catch {
 		my ($error, $callstack) = @_;
-		error([$callstack, 1], "download failed while getting getting data ($error)");
+		error([$callstack, 1], "download failed while getting data ($error)");
 		
 		# Retry without resume: some servers (rapidshare...) go nuts when requesting a
 		#   range. Don't ask me why they still advertise the RANGE capability...
@@ -575,9 +575,10 @@ sub download_getdata {
 						$size_downloaded = 0;
 					}
 				}
-				
+
 				# Get content encoding
 				$encoding = $res->header("Content-Encoding");
+
 				if ($encoding) {
 				    $encoding =~ s/^\s+//;
 				    $encoding =~ s/\s+$//;
