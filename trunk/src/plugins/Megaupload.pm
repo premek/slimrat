@@ -113,9 +113,19 @@ sub get_data_loop  {
 	my $captcha_processor = shift;
 	my $message_processor = shift;
 	my $headers = shift;
-	
+
+	# Unavailable
+	if ($self->{MECH}->content() =~ m/temporarily unavailable/) {
+		&$message_processor("The file you are trying to access is temporarily unavailable");
+		wait(60);
+		$self->reload();
+		return 1;
+	}
+
+		
 	my ($res, $captcha);
 	my $cont = $self->{MECH}->content();
+
 	do {
 		# Get captcha
 		my ($captcha_url) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
