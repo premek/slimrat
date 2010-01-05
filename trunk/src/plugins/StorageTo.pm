@@ -205,7 +205,7 @@ sub ocr_postprocess {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register("^[^/]+//(?:www.)?storage.to");
+Plugin::register("^[^/]+//(?:www\.)?storage\.to");
 
 
 #

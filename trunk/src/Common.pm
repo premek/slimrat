@@ -426,7 +426,7 @@ sub download {
 		return;
 	};
 	return -2 unless defined($result);
-	return 1 if ($filepath == 1);
+	return 1 if ($filepath == 1); # FIXME
 	
 	
 	# GET DATA #

@@ -197,9 +197,16 @@ sub get_data_loop  {
 			return 1;
 		}
 		
+		# Overloaded
+		elsif ($self->{MECH}->content() =~ m/overloaded/) {
+			&$message_processor("rapidshare overloaded");
+			wait(10);
+			$self->reload();
+			return 1;
+		}
+
 		# Slot availability
 		elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
-			my $minutes = $1;
 			&$message_processor("no available slots for free users");
 			wait(5*60);
 			$self->reload();
