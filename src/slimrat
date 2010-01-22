@@ -528,7 +528,7 @@ sub quit($) {
 
 =head1 NAME
 
-slimrat-cli
+slimrat - Command-line utility for downloading from filehosters
 
 =head1 VERSION
 

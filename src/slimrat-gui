@@ -631,7 +631,7 @@ sub thread_download {
 
 =head1 NAME
 
-slimrat-gui
+slimrat-gui - Graphical utility for downloading from filehosters
 
 =head1 VERSION
 
