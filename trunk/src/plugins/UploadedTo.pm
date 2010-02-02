@@ -136,6 +136,6 @@ sub get_data_loop  {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register("^[^/]+//(uploaded.to(/file)?|ul.to)/");
+Plugin::register("^[^/]+//(up(loaded)?.to(/file)?|ul.to)/");
 
 1;

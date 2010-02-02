@@ -88,7 +88,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1."\.flv" if ($self->{PRIMARY}->decoded_content =~ m/<title>YouTube - ([^<]+)<\/title>/);
+	return $1."\.flv" if ($self->{PRIMARY}->decoded_content =~ m/'VIDEO_TITLE': '(.*?)'/);
 }
 
 # Filesize
@@ -100,8 +100,8 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<div class="errorBox">/);
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/var swfArgs/);
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<div id="error-box"/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/SWF_ARGS/);
 	return 0;
 }
 

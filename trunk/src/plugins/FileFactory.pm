@@ -86,7 +86,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<span href="" class="last">(.+)<\/span>/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<span class="last">(.*?)<\/span>/);
 	return 0;
 }
 
