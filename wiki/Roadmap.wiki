@@ -7,24 +7,15 @@ This wiki page features the development roadmap, and stuff which has to be resol
 = Overview =
 
 || *Type* || *Version* || *Date* ||
-|| Bugfix || 0.9.5.5 || 2009/09/.. ||
-|| Major || 1.0 || 2009/09-10-11 ||
+|| Bugfix || 1.1 || 2010/02/.. ||
+|| Major || 2.0 || 2010/04-05-06 ||
 
 = Detailed overview =
 
-== 0.9.5.5 ==
+== 1.1 ==
 
 A bugfix-only release, ironing out any reported and backported fixes, and ensuring all download plugins are working again.
 
-== 1.0 ==
+== 2.0 ==
 
-The next major release (previously 0.9.6), featuring:
- * Captcha support (with OCR functionality)
- * Improved logging
- * Extensive debugging support, providing valuable information to developers in a user-friendly (easy to upload etc) format
- * Download multithreading
- * Rate control
- * Proxy support
- * Renewed plugin model, reducing overhead bandwidth usage
- * Graceful dependancy checking (i.e. slimrat won't die horribly if some thing's missing)
- * No wget dependancy, downloads handled internally
+The next major release, for which the core code will be rewritten. This will feature a separation from the downloader and the interface. More on this later, as the plans are still laid out.
