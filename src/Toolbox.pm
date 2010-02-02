@@ -128,8 +128,8 @@ sub readable2bytes {
 	s/\s+//g;
 	s/(\d+),(\d+)/$1.$2/;
 	my %mul = (K=>2**10, M=>2**20, G=>2**30);
-	if    (/(\d+(?:\.\d+)?)([KMG])B?/i) { return $1 * $mul{uc($2)} }
-	elsif (/(\d+(?:\.\d+)?)B?/i)        { return $1 }
+	if    (/(\d+(?:\.\d+)?)([KMG])(Byte|B)?/i) { return $1 * $mul{uc($2)} }
+	elsif (/(\d+(?:\.\d+)?)(Byte|B)?/i)        { return $1 }
 	else {return 0}
 }
 

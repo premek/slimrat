@@ -84,15 +84,15 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/You requested: ([^(]+) \(/);
+	
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<input type="hidden" id="sharedtabsfileinfo1-fn" value="(.*?)">/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/You requested: [^(]+ \(([^)]+)\)/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<input type="hidden" id="sharedtabsfileinfo1-fs" value="(.*?)">/);
 }
 
 # Check if the link is alive

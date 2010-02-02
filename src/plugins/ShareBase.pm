@@ -85,14 +85,14 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Download: <\/span><span[^>]*>([^<]+) <\/span>\(/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<a class="a2"[^>]*>(.*?)<\/a>/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/Download: <\/span><span[^>]*>[^<]+ <\/span>\(([^)]+)\)<\/td>/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<strong>([\d,BKMG]+)<\/strong>/);
 }
 
 # Check if the link is alive
@@ -103,7 +103,7 @@ sub check {
 	return -1 if(m/The download doesnt exist/);
 	return -1 if(m/Der Download existiert nicht/);
 	return -1 if(m/Upload Now !/);
-	return 1  if(m/Download Now !/);
+	return 1  if(m/Starting File-Download/);
 	return 0;
 }
 

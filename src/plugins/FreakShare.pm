@@ -89,14 +89,14 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content(charset => "utf8") =~ m/<h1.*?>(.*?)<\/h1>/);	# WORKAROUND
+	return $1 if ($self->{PRIMARY}->decoded_content(charset => "utf8") =~ m/<h1.*?>(.*?) - (.*?)<\/h1>/);	# WORKAROUND
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 	
-	return -1;
+	return readable2bytes($2) if ($self->{PRIMARY}->decoded_content(charset => "utf8") =~ m/<h1.*?>(.*?) - (.*?)<\/h1>/);	# WORKAROUND
 }
 
 # Check if the link is alive
