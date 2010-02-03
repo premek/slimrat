@@ -153,6 +153,7 @@ sub get_data_loop {
 		if ($self->{MECH}->content() =~ m#vyčerpána maximální kapacita FREE downloadů#) {
 			&$message_processor("no free slots available");
 			wait(60);
+			$self->reload();
 			return 1;
 		}
 		
