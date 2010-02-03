@@ -125,6 +125,14 @@ sub get_data_loop  {
 		dump_add(data => $self->{MECH}->content());
 		return 1;
 	}
+	
+	# Daily download limit
+	if($self->{MECH}->content() =~ /daily download limit/i) {
+		&$message_processor("reached daily download limit, retrying in 3600 seconds");
+		wait(3600);
+		$self->reload();
+		return 1;
+	}
 
 	# Wait timer
 	if ($self->{MECH}->content() =~ m/setTimeout\('.+', (\d+)\)/) {

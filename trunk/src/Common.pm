@@ -612,7 +612,7 @@ sub download_getdata {
 			}
 			
 			# Write the data
-			print FILE $_[0];
+			syswrite(FILE, $_[0]);
 			
 			# Counters		
 			$size_chunk += length($_[0]);
