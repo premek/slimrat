@@ -117,10 +117,12 @@ sub get_data_loop {
 	# Click the button
 	$self->{MECH}->form_number(0);
 	$self->{MECH}->submit_form();
+	dump_add(data => $self->{MECH}->content());
+
 	
 	# Download URL
 	if ($self->{MECH}->content =~ m/<br>Link: <a href=([^>]+)><b>/s) {
-		my $download = $1;
+		my $download = "http://fastshare.org$1";
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	

@@ -117,6 +117,27 @@ sub get_data_loop  {
 	my $headers = shift;
 	
 	# Click the button to the secondary page
+
+	$self->{MECH}->form_with_fields("free");
+	$self->{MECH}->click();
+	dump_add(data => $self->{MECH}->content());
+
+	$self->{MECH}->content() =~ m/nCountDown = (\d+?);/;
+	wait($1);
+
+	$self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;
+#	$self->{MECH}->post($self->{URL}, [ 'asi' => $1 , $1 => 'Download Now !' ] );
+	return $self->{MECH}->request(HTTP::Request->new('POST', $self->{URL}, $headers, "asi=$1&$1=Download Now !"), $data_processor);
+
+
+#	$self->{MECH}->form_name("formular");
+#	$self->{MECH}->click();
+#	$self->{MECH}->submit_form();
+#	dump_add(data => $self->{MECH}->content());
+
+#
+=com
+
 	if ($self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s) {
 		my $asi = $1;
 		my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
@@ -140,6 +161,7 @@ sub get_data_loop  {
 	}
 	
 	return;
+=cut
 }
 
 

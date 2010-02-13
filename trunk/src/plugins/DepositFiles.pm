@@ -113,7 +113,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/does not exist/);
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/Download the file/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/Download the file|will become available/);
 	return 0;
 }
 
@@ -141,6 +141,13 @@ sub get_data_loop {
 	# No free slots
 	elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
 		die("all downloading slots for your country are busy");
+	}
+	
+	elsif ($self->{MECH}->content() =~ m/file is not available/s) {
+		&$message_processor("File is temporarily not available");
+		wait(60);
+		$self->reload();
+		return 1;
 	}
 	
 	# Wait timer

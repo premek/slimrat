@@ -78,7 +78,7 @@ sub new {
 	dump_add(data => $self->{MECH}->content());
 	
 	$self->{URL_AUX} = $self->{URL};
-        $self->{URL_AUX} =~ s/\/get\//\/getlink\//; 
+	$self->{URL_AUX} =~ s/\/get\//\/getlink\//; 
 	
 	$self->{AUX} = $self->{MECH}->get($self-> {URL_AUX});
 	die("primary page error, ", $self->{AUX}->status_line) unless ($self->{AUX}->is_success);
@@ -109,16 +109,18 @@ sub get_filesize {
 # Check if the link is alive
 sub check {
 	my $self = shift;
-	
+
 	# Construct hashmap
-        my $jsHashMap  = getHashMap($self->{AUX}->decoded_content);
-        
-        # Check the state of the link                 
-        if ($jsHashMap->{state} eq "ok" || $jsHashMap->{state} eq "wait") {
-                return 1;                                                  
-        }                                                
-        # TODO: RV -1
-        return 0;
+	my $jsHashMap  = getHashMap($self->{AUX}->decoded_content);
+
+	# Check the state of the link                 
+	if ($jsHashMap->{state} eq "ok" || $jsHashMap->{state} eq "wait") {
+		return 1;                                                  
+	} elsif ($jsHashMap->{state} eq "failed"){
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 # Download data
@@ -131,7 +133,7 @@ sub get_data_loop  {
 	my $headers = shift;
 	
 	# Fetch primary page
-	$self->load($self-> {URL_AUX});	# TODO: fix
+	$self->{MECH}->get($self->{URL_AUX});
 	
 	# Construct hashmap
 	my $jsHashMap  = getHashMap($self->{MECH}->content());
@@ -142,7 +144,7 @@ sub get_data_loop  {
 			wait($wait-$wait_max_sec, 0);
 			$wait -= $wait_max_sec
 		}
-		wait($wait, 1);
+		wait($wait, 0);
 		
 		# Check link state
 		if ($jsHashMap->{state} eq "wait") {

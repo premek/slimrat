@@ -105,6 +105,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->code == 404);
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m#file is not found#);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#File download#);
 	return 0;
 }
@@ -142,17 +143,18 @@ sub get_data_loop  {
 	# Ajax-based download form
 	if ($self->{MECH}->content() =~ m/get_link\(\);/) {
 
-		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{.*file_id:\s*(\d+),/) {
+		unless ($self->{MECH}->content() =~ m/do_request\('files',\s*'get',\s*{.*?file_id:\s*(\d+),\s*code:\s*"(.*?)",/) {
 			die("could not find request download id");
 		} 
 
 		my $file_id = $1;
+		my $code = $2;
 
 		my $time_id = time()*1000;
 
 		my $req = HTTP::Request->new(POST => "http://uploading.com/files/get/?JsHttpRequest=${time_id}0-xml");
 		$req->content_type('application/octet-stream; charset=UTF-8');
-		$req->content("file_id=$file_id&action=get_link&pass=");
+		$req->content("file_id=$file_id&code=$code&action=get_link&pass=");
 		my $res = $self->{MECH}->request($req);
 		die("page 3 error, ", $res->status_line) unless ($res->is_success);
 
@@ -162,7 +164,7 @@ sub get_data_loop  {
 		  return 1;
 		}
 		
-		unless ($self->{MECH}->content() =~ m,(http:\\/\\/[^"]+),) {
+		unless ($self->{MECH}->content() =~ m#(http:\\/\\/[^"]+)#) {
 			die("could not find request download url");
 	        }
 		my $download = $1;

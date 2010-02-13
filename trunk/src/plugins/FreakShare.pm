@@ -122,7 +122,7 @@ sub get_data_loop  {
 	$self->{MECH}->update_html($res->decoded_content(charset => "utf8"));	# WORKAROUND
 
 	# Wait timer
-	if ($self->{MECH}->content() =~ m/var time = ([\d\.]+)/) {
+	if ($self->{MECH}->content() =~ m/var time = ([\d\.]+)/ and $1>0) {
 		wait($1);
 	}
 	

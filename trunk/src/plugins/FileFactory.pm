@@ -125,7 +125,7 @@ sub get_data_loop  {
 	}
 	
 	# Countdown
-	if ($self->{MECH}->content() =~ m/<span id="countdown".+?>(\d+)<\/span>/) {
+	if ($self->{MECH}->content() =~ m/<span id="countdown".*?>(\d+)<\/span>/) {
 		wait($1, 0);
 	}
 	
@@ -133,13 +133,35 @@ sub get_data_loop  {
 	if ($self->{MECH}->content() =~ m/currently no free download slots/) {
 		&$message_processor("no free download slots");
 		wait(60);
+		$self->reload();
 		return 1;
 	}
 	
 	# Download
 	if ($self->{MECH}->content() =~ m/\"downloadLink\"/) {
 		my $link = $self->{MECH}->find_link(url_regex => qr/\/dl\//) || die("could not find download link");
-		return $self->{MECH}->request(HTTP::Request->new(GET => $link->url, $headers), $data_processor);
+
+		#return $self->{MECH}->request(HTTP::Request->new(GET => $link->url, $headers), $data_processor);
+		# TODO: move checking of content type to Common.pm?
+		my $html = 0;
+		my $resp = $self->{MECH}->request(HTTP::Request->new(GET => $link->url, $headers), 
+				sub{
+				my($data,$resp) = @_;
+				if($resp->header("Content-Type")  =~ /html/i){
+				$html = 1;
+				return;
+				}
+				&$data_processor(@_);
+				}
+				);
+		if($html){
+			&$message_processor("received html instead of real download, retrying in 60 seconds");
+			wait(60);
+			$self->fetch();
+			return 1;
+		} else{
+			return $resp;
+		}
 	}
 	
 	return;
