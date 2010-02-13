@@ -69,7 +69,7 @@ sub new {
 	$self->{CONF} = $_[1];
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];	
-	$self->{URL} =~ s#/video/#/download/#;
+	$self->{URL} =~ s#/(video|audio|image|flash)/#/download/#;
 	bless($self);
 	
 	$self->{PRIMARY} = $self->fetch();
@@ -123,19 +123,16 @@ sub get_data_loop  {
 		return 1;
 	}
 	
-	# We will not wait before download because javascript is encoded 
-	# so we dont know how many seconds we have to wait (and because we dont like waiting)
-	# But it is *probably* this number:
-	#(my $wait) = $self->{MECH}->content() =~ m#||here|(\d+)|class|#; 
-	
 	# Download URL
 	elsif ($self->{MECH}->content() =~ m#var link_enc=new Array\('((.',')*.)'\);#) {
-		my $download = $1;
-		$download = join("", split("','", $download));		
+		my $download = join("", split("','", $1));
+
+		$self->{MECH}->content() =~ m#\|\|here\|(\d+)\|class\|#; 
+		wait($1);
+
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
-	return;
 }
 
 # Amount of resources
