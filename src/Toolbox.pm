@@ -144,15 +144,16 @@ sub thread_id {
 # $1: seconds to wait
 # $2: this wait can be skipped if true
 sub wait {
-	my $wait = shift or return;
-	return if (shift and $config->get("skip_waits")); # XXX config file not readed?
+	my $wait = shift || return;
+	return if (shift and $config->get("skip_waits"));
 	require Log;
-	Log::info(sprintf("Waiting ".seconds_readable($wait)));
+	Log::info("Waiting ".seconds_readable($wait));
 	#sleep($wait);
 	# TODO: sleep() postpones SIG_INT till end of sleep
 	while ($wait) {
-		$wait -= 1;
+		$wait--;
 		sleep(1);
+		Log::progress("Waiting ".seconds_readable($wait));
 	}
 }
 

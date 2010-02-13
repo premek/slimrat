@@ -146,7 +146,7 @@ sub get_data_loop  {
 
 	# Wait
 	if ($res->decoded_content =~ m#count=(\d+);#) {
-		wait($1, 1);
+		wait($1, 0);
 	}
 
 	# Get download url

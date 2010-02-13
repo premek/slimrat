@@ -102,8 +102,7 @@ sub get_filesize {
 # Check if the link is alive
 sub check {
 	my $self = shift;
-
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m#<span class="nadpis">Download</span>#);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m#<span class="nadpis">Download</span>|vyčerpána maximální kapacita FREE downloadů#);
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/error/i);
 	return 0;
 }

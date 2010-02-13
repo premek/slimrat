@@ -115,8 +115,8 @@ sub get_data_loop  {
 	my $headers = shift;
 	
 	# Download video
-	if ((my ($v) = $self->{MECH}->content() =~ /swfArgs.*"video_id"\s*:\s*"(.*?)".*/)
-		&& (my ($t) = $self->{MECH}->content() =~ /swfArgs.*"t"\s*:\s*"(.*?)".*/)) {
+	if ((my ($v) = $self->{MECH}->content() =~ /SWF_ARGS.*"video_id"\s*:\s*"(.*?)".*/)
+		&& (my ($t) = $self->{MECH}->content() =~ /SWF_ARGS.*"t"\s*:\s*"(.*?)".*/)) {
 		my $download = "http://www.youtube.com/get_video?video_id=$v&t=$t";
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}

@@ -98,7 +98,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return -1 if ($self->{PRIMARY}->decoded_content =~ m#File doesn't exist#);
+	return -1 if ($self->{MECH}->uri() =~ m#error_fileremoved#);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#Free Download#);
 	return 0;
 }

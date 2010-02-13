@@ -593,10 +593,11 @@ sub download_getdata {
 				
 				# Save length and print
 				$size = $res->content_length;
-				if ($size)
-				{
+				if ($size) {
 					$size += $size_downloaded;
 					info("filesize: ", bytes_readable($size));
+				} elsif (my $sizebyplugin = $plugin->get_filesize) {
+					info("filesize: ~".bytes_readable($sizebyplugin));
 				} else {
 					info("filesize unknown");
 				}
@@ -715,7 +716,7 @@ sub download_getdata {
 			$captcha_value = &$captcha_userreader($captcha_file) unless $captcha_value;
 			
 			die("no captcha entered") unless $captcha_value;
-			debug("final captcha value: $captcha_value");
+			debug("final captcha value: '$captcha_value'");
 			return $captcha_value;
 		},
 		
@@ -723,7 +724,7 @@ sub download_getdata {
 		# TODO: global message processor, also available in download_init|check|prepare?
 		sub {
 			# TODO: save per-thread/per-download messages internally
-			info("Plugin message: ", @_);
+			info($plugin->get_name." plugin: ", @_);
 		},
 		
 		# Custom headers

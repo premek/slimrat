@@ -76,7 +76,8 @@ sub new {
 	$self->{CONF}->set_default("interval", 0);
 	
 	# MOVE
-	if ((my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
+	if ($self->{CONF}->defines("username") && $self->{CONF}->get("password") &&
+			(my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
 		Plugin::provide(-1);
 	}
 	use HTTP::Cookies;
@@ -137,7 +138,8 @@ sub get_data_loop  {
 	# Premium download
 	#
 	
-	if ((my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {		
+	if ($self->{CONF}->defines("username") && $self->{CONF}->get("password") &&
+			(my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
 		# Fetch the cookie
 		$self->{MECH}->get("https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi");
 		if ($self->{MECH}->form_with_fields("login", "password")) {
@@ -199,7 +201,7 @@ sub get_data_loop  {
 		
 		# Overloaded
 		elsif ($self->{MECH}->content() =~ m/overloaded/) {
-			&$message_processor("rapidshare overloaded");
+			&$message_processor("RapidShare is overloaded");
 			wait(10);
 			$self->reload();
 			return 1;

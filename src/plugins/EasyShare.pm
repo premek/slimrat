@@ -95,6 +95,7 @@ sub get_filesize {
 
 # Check if the link is alive
 sub check {
+
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/msg-err/);
@@ -112,7 +113,7 @@ sub get_data_loop {
 	my $headers = shift;
 
 	# Wait timer
-	if ($self->{MECH}->content() =~ m/Wait (\d+) seconds/) {
+	if ($self->{MECH}->content() =~ m/Wait (\d+) seconds/ and $1>0 ) {
 		wait($1);
 		$self->reload();
 		# Normally the form gets filled in by some Javascript, but upon reload
@@ -121,8 +122,10 @@ sub get_data_loop {
 		return 1;
 	}
 	
+	$self->{MECH}->form_with_fields("captcha");
+
 	# Get captcha
-	elsif (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
+	if (my $captcha = $self->{MECH}->find_image(url_regex => qr/kaptchacluster/i)) {
 		my $captcha_data = $self->{MECH}->get($captcha->url_abs())->content();
 		$self->{MECH}->back();
 		
@@ -130,14 +133,13 @@ sub get_data_loop {
 		my $captcha_code = &$captcha_processor($captcha_data, "jpeg");
 		
 		# Submit captcha form (TODO: a way to check if the captcha is correct, an is_html on the response?)
-		$self->{MECH}->form_with_fields("captcha");
 		$self->{MECH}->set_fields("captcha" => $captcha_code);
-		my $request = $self->{MECH}->{form}->make_request;
-		$request->header($headers);
-		return $self->{MECH}->request($request, $data_processor);
 	}
+
+	my $request = $self->{MECH}->{form}->make_request;
+	$request->header($headers);
+	return $self->{MECH}->request($request, $data_processor);
 	
-	return;
 }
 
 # Amount of resources

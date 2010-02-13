@@ -1,7 +1,6 @@
-# slimrat - OdSiebie plugin
+# slimrat - Uloz.to plugin
 #
-# Copyright (c) 2009 Yunnan
-# Copyright (c) 2009 Tim Besard
+# Copyright (c) 2010 Přemek Vyhnal
 #
 # This file is part of slimrat, an open-source Perl scripted
 # command line and GUI utility for downloading files from
@@ -29,8 +28,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 # Authors:
-#    Yunnan <www.yunnan.tk>
-#    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#    Přemek Vyhnal <premysl.vyhnal gmail com>
 #
 # Plugin details:
 ##   BUILD 1
@@ -41,7 +39,7 @@
 #
 
 # Package name
-package OdSiebie;
+package UlozTo;
 
 # Extend Plugin
 @ISA = qw(Plugin);
@@ -71,36 +69,39 @@ sub new {
 	$self->{MECH} = $_[3];
 	bless($self);
 	
-	$self->{PRIMARY} = $self->fetch();
-	
+	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
+	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
+	dump_add(data => $self->{MECH}->content());
+
 	return $self;
 }
 
 # Plugin name
 sub get_name {
-	return "OdSiebie";
+	return "UlozTo";
 }
 
 # Filename
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Pobierasz plik: ([^<]+)<\/div>/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b></h3>#);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<dt>Rozmiar pliku:<\/dt>\s*<dd> ([^<]+)<\/dd>/s);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b> <br />#);
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
 	
-	return -1 if ($self->{MECH}->uri() =~ m/upload.html/);
-	return 1  if($self->{MECH}->content() =~ m/Pobierz plik/);
+	$_ = $self->{PRIMARY}->decoded_content;
+	return -1 if (m#error404#);
+	return 1 if(m#<img id="captcha"#);
 	return 0;
 }
 
@@ -112,20 +113,15 @@ sub get_data_loop  {
 	my $captcha_processor = shift;
 	my $message_processor = shift;
 	my $headers = shift;
-	
-	# Click to the secondary page
-	if ($self->{MECH}->find_link(text => 'Pobierz plik')) {
-		$self->{MECH}->follow_link( text => 'Pobierz plik' );
-		dump_add(data => $self->{MECH}->content());
-		return 1;
+
+	if (my $form = $self->{MECH}->form_name("dwn")) {
+		$self->{MECH}->field("captcha_nb",2505);
+		$self->{MECH}->field("captcha_user","tJmk"); # ;)
+		my $request = $form->make_request;
+		$request->header($headers);
+		return $self->{MECH}->request($request, $data_processor);
 	}
-	
-	# Download URL
-	if ($self->{MECH}->follow_link( text => 'kliknij tutaj')) {
-		my $download = $self->{MECH}->uri();
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
-	}
-	
+		
 	return;
 }
 
@@ -133,7 +129,6 @@ sub get_data_loop  {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register("^[^/]+//(?:www.)?odsiebie.com");
+Plugin::register("^[^/]+//((.*?)\.)?(uloz.to|ulozto.sk|ulozto.net|vipfile.pl)/");
 
 1;
-
