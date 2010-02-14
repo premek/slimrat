@@ -215,6 +215,7 @@ if (defined(my $address = $config_cli->get("address"))) {
 # Fork in background
 if ($config_cli->get("daemon")) {
 	info("forking in background");
+	info("files are downloaded to the root directory by default in daemon mode. You probably want to use the --to option") if($config_cli->get("to") eq ".");
 	daemonize();
 	print "\n\n";
 }
