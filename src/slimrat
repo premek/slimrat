@@ -363,15 +363,20 @@ sub thread_progress {
 				my $speed = 0;
 				my $eta_min = 0;
 				my $eta = 0;
+				my $total = 0;
+				my $done = 0;
 				{
 					foreach my $thread (@threads) {
 						$speed += $data{$thread}{speed};
 						$eta += $data{$thread}{eta};
 						$eta_min = $data{$thread}{eta} if (!$eta_min || $eta_min > $data{$thread}{eta});
+						$total += $data{$thread}{total};
+						$done += $data{$thread}{done};
 					}
 				}
 				
-				$string .= " at " . bytes_readable($speed) . "/s";
+				$string .= ", " . bytes_readable($speed) . "/s";
+				$string .= ", " . int(100*$done/$total) . "%";
 				$string .= ", " . seconds_readable($eta) . " remaining";
 				$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
 				

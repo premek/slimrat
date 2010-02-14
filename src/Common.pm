@@ -500,6 +500,7 @@ sub download_prepare {
 	} elsif ($config->get("escape_filenames")) {
 		$filename =~ s/([^a-zA-Z0-9_\.\-\+\~])/_/g; 
 	}
+	$filename =~ s/\//_/g;
 	my $filepath = "$to/$filename";
 	
 	# Check if file exists

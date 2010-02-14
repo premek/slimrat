@@ -153,7 +153,8 @@ sub wait {
 	while ($wait) {
 		$wait--;
 		sleep(1);
-		Log::progress("Waiting ".seconds_readable($wait));
+		#Log::progress("Waiting ".seconds_readable($wait));
+		#hm, it doesnt work if more than one file is downloaded. But im really missing this feature
 	}
 }
 
