@@ -48,6 +48,7 @@ package ShareBase;
 
 # Packages
 use WWW::Mechanize;
+use URI::Escape;
 
 # Custom packages
 use Log;
@@ -126,42 +127,22 @@ sub get_data_loop  {
 	wait($1);
 
 	$self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s;
-#	$self->{MECH}->post($self->{URL}, [ 'asi' => $1 , $1 => 'Download Now !' ] );
-	return $self->{MECH}->request(HTTP::Request->new('POST', $self->{URL}, $headers, "asi=$1&$1=Download Now !"), $data_processor);
+	my $req = HTTP::Request->new('POST', $self->{URL}, $headers);
+	$req->content_type('application/x-www-form-urlencoded');
+	$req->content("asi=$1&$1=".uri_escape("Download Now !"));
+	return $self->{MECH}->request($req, $data_processor);
 
-
-#	$self->{MECH}->form_name("formular");
-#	$self->{MECH}->click();
-#	$self->{MECH}->submit_form();
-#	dump_add(data => $self->{MECH}->content());
-
-#
-=com
-
-	if ($self->{MECH}->content() =~ m/name="asi" value="([^\"]+)">/s) {
-		my $asi = $1;
-		my $res = $self->{MECH}->post($self->{URL}, [ 'asi' => $asi , $asi => 'Download Now !' ] );
-		die("secondary page error, ", $res->status_line) unless ($res->is_success);
-		dump_add(data => $self->{MECH}->content());
-		return 1;
-	}
 	
-	# Wait timer
-	elsif( $self->{MECH}->content() =~ m/Du musst noch <strong>([0-9]+)min/ ) {
-	    info("reached the download limit for free-users (300 MB)");
-	    wait(($1+1)*60);
-	    $self->reload();
-	    return 1;
-	}
-	
-	# Download URL
-	elsif( $self->{MECH}->uri() !~ $self->{URL} ) {
-	    my $download = $self->{MECH}->uri();
-	    return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
-	}
-	
-	return;
-=cut
+	 Wait timer
+#    elsif( $self->{MECH}->content() =~ m/Du musst noch <strong>([0-9]+)min/ ) {
+#        info("reached the download limit for free-users (300 MB)");
+#        wait(($1+1)*60);
+#        $self->reload();
+#        return 1;
+#    }
+
+#    return;
+
 }
 
 
