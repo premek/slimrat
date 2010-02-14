@@ -2,44 +2,58 @@
 #labels Phase-QA
 
 =Plugin tests=
-==v. 0.9.5==
-last update: 2009-07-29
+==v. 1.0==
+last update: 2009-02-14
 
-|| *Plugin*          |||||| *Test*                                              ||
-||                   || *One 100kB file*   || *Larger file* || *Lot of traffic* ||
-|| DataHu            || OK                             || ? || ? ||
-|| DepositFiles      || OK                             || ? || ? ||
-|| EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
-|| FastLoad          || OK                             || ? || ? ||
-|| FastShare         || OK                             || ? || ? ||
-|| HotFile           || OK                             || ? || ? ||
-|| Leteckaposta      || OK                             || ? || ? ||
-|| MediaFire         || OK                             || ? || ? ||
-|| Megaupload        || OK                             || ? || ? ||
-|| OdSiebie          || OK                             || ? || ? ||
-|| Rapidshare        || OK                             || ? || ? ||
-|| ShareBase         || OK                             || ? || ? ||
-|| UploadedTo        || OK                             || ? || ? ||
-|| YouTube           || OK                             || ? || ? ||
+|| *Plugin*          || *Status*   || 
+|| CZshare  || ? ||
+|| DataHu  || ? ||
+|| DepositFiles  || ? ||
+|| EasyShare  || ? ||
+|| FastLoad  || ? ||
+|| FastShare  || ? ||
+|| FileFactory  || ? ||
+|| FileHive  || ? ||
+|| FreakShare  || ? ||
+|| HotFile  || ? ||
+|| Leteckaposta  || ? ||
+|| MediaFire  || ? ||
+|| Megaupload  || ? ||
+|| OdSiebie  || ? ||
+|| Rapidshare  || ? ||
+|| RomHustler  || ? ||
+|| ShareBase  || ? ||
+|| UploadedTo  || ? ||
+|| Uploading  || ? ||
+|| YouTube  || ? ||
+|| ZShare  || ? ||
 
 ==svn==
-last update: 2009-07-29
+last update: 2010-02-14
 
-|| *Plugin*          |||||| *Test*                                              ||
-||                   || *One 100kB file*   || *Larger file* || *Lot of traffic* ||
-|| DataHu            || OK                             || ? || ? ||
-|| DepositFiles      || OK                             || ? || ? ||
-|| EasyShare         || <font color="red">FAIL</font>  || ? || ? ||
-|| FastLoad          || OK                             || ? || ? ||
-|| FastShare         || OK                             || ? || ? ||
-|| FileFactory       || OK                             || ? || ? ||
-|| HotFile           || OK                             || ? || ? ||
-|| Leteckaposta      || OK                             || ? || ? ||
-|| MediaFire         || OK                             || ? || ? ||
-|| Megaupload        || OK                             || ? || ? ||
-|| OdSiebie          || OK                             || ? || ? ||
-|| Rapidshare        || OK                             || ? || ? ||
-|| ShareBase         || OK                             || ? || ? ||
-|| UploadedTo        || OK                             || ? || ? ||
-|| Uploading         || OK                             || ? || ? ||
-|| YouTube           || OK                             || ? || ? ||
+|| *Plugin*           || *Download one 100kB file*      || 
+|| CZshare.pm         || OK                             ||
+|| DataHu.pm          || OK                             ||
+|| DepositFiles.pm    || OK                             ||
+|| Direct.pm          || OK                             ||
+|| EasyShare.pm       || OK                             ||
+|| FastLoad.pm        || OK                             ||
+|| FastShare.pm       || OK                             ||
+|| FileFactory.pm     || OK                             ||
+|| FileHive.pm        || OK                             ||
+|| FreakShare.pm      || OK                             ||
+|| HotFile.pm         || OK (captcha not implemented)   ||
+|| Leteckaposta.pm    || OK                             ||
+|| MediaFire.pm       || OK                             ||
+|| Megaupload.pm      || OK                             ||
+|| Rapidshare.pm      || OK                             ||
+|| RomHustler.pm      || OK                             ||
+|| ShareBase.pm       || OK                             ||
+|| StorageTo.pm       || OK                             ||
+|| UlozTo.pm          || OK                             ||
+|| UploadedTo.pm      || OK                             ||
+|| Uploading.pm       || OK                             ||
+|| YouTube.pm         || OK                             ||
+|| ZShare.pm          || OK                             ||
+
+- some plugins may fail downloading bigger files or more than one file. Please use the Issue tracker to report this.
