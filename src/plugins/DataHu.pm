@@ -32,9 +32,6 @@
 #    Gabor Bognar <wade at wade dot hu>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
-# Plugin details:
-##   BUILD 1
-#
 
 #
 # Configuration

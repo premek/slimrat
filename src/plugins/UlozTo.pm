@@ -30,9 +30,6 @@
 # Authors:
 #    Přemek Vyhnal <premysl.vyhnal gmail com>
 #
-# Plugin details:
-##   BUILD 1
-#
 
 #
 # Configuration

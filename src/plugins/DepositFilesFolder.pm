@@ -32,9 +32,6 @@
 #    Přemek Vyhnal <premysl.vyhnal gmail com> 
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
 #
-# Plugin details:
-##   BUILD 1
-#
 
 #
 # Configuration

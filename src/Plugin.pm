@@ -261,20 +261,15 @@ sub load {
 			elsif (m/^##\s*(\w+)\s+(.+)/) {
 				$plugin_info{$1} = $2;			
 			}
-		}
+		} 
 		close(PLUGIN);
-		if (!defined($plugin_info{BUILD})) {
-			error("plugin '", basename($plugin), "' did not specify build number");
-			next;
-		}
 		$plugin_info{PATH} = $plugin;
 		
-		# Check versions
-		if (!defined($details{basename($plugin)})) {
-			$details{basename($plugin)} = \%plugin_info;
-		} elsif ($details{basename($plugin)}{BUILD} < $plugin_info{BUILD}) {
-			debug("replacing plugin '", basename($plugin), "' with newer version");
-			delete($details{basename($plugin)});
+		# Check if plugin isn't registered yet
+		if (defined($details{basename($plugin)})) {
+			error("plugin '", basename($plugin), "' loaded twice");
+			next;
+		} else {
 			$details{basename($plugin)} = \%plugin_info;
 		}
 		

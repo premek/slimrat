@@ -156,9 +156,7 @@ if ($options{"kill"}) {
 }
 
 # Mode (e.g. what slimrat should do)
-usage("cannot combine --check with --update option") if ($options{"check"} && $options{"update"});
 $config_cli->set("mode", "check") if ($options{"check"});
-$config_cli->set("mode", "update") if ($options{"update"});
 
 # Options we might use later on
 $config_cli->set("list", $options{"list"});
@@ -227,21 +225,12 @@ if ($config_cli->get("daemon")) {
 
 info("slimrat started (noninteractive command-line interface)");
 
-#
-# Update
-#
-
-if ($config_cli->get("mode") eq "update") {
-	info("updating plugins");
-	quit(Plugin::update());
-}
-
 
 #
 # Check
 #
 
-elsif ($config_cli->get("mode") eq "check") {
+if ($config_cli->get("mode") eq "check") {
 	info("checking URLs");
 	my $dead_links = 0;
 	

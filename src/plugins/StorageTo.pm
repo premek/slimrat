@@ -30,9 +30,6 @@
 # Authors:
 #    Tim Besard <premysl.vyhnal gmail com>
 #
-# Plugin details:
-##   BUILD 1
-#
 
 #
 # Configuration
