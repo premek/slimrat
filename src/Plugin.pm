@@ -71,9 +71,6 @@ my $config_global = new Configuration;
 
 # Base configuration
 my $config = new Configuration;
-#$config->set_default("update_server", "http://slimrat.googlecode.com/svn/tags/1.0/src/plugins");	# FIXME: change version to Slimrat::$VERSION when slimrat contains core functionality
-$config->set_default("update_server", "http://slimrat.googlecode.com/svn/trunk/src/plugins");
-$config->set_default("update_cache", $ENV{HOME}."/.slimrat/updates");
 $config->section("all")->set_default("retry_count", 5);
 $config->section("all")->set_default("retry_timer", 60);
 
@@ -239,63 +236,6 @@ sub get_package {
 		}
 	}
 	return "Direct";
-}
-
-# Update the plugins
-sub update {
-	# Get BUILDS file from update server
-	my $builds = get($config->get("update_server") . "/BUILDS");
-	if ($builds) {
-		# Read builds
-		dump_add(title => "updater build list", data => $builds, type => "log");
-		my %builds;
-		$builds{$1} = $2 while ($builds =~ /^\s*([^#].*?)\s+(\d+)/gm);
-				
-		# Compare builds
-		my $updates = 0;
-		foreach my $plugin (keys %details) {
-			if (!defined $builds{$plugin}) {
-				warning("update server does not provide resources for plugin '$plugin'");
-				next;
-			}
-			if (!defined($details{$plugin}) || $builds{$plugin} > $details{$plugin}{BUILD}) {
-				$updates++;
-				info("downloading update for $plugin");
-				
-				# Download and install update
-				my $update = get($config->get("update_server") . "/$plugin");
-				if (! $update) {
-					error("could not update plugin '$plugin' (error fetching update)");
-					next;
-				}
-				elsif ($update =~ m/^##\s*BUILD\s+(.+)/m) {
-					dump_add(title => "update '$plugin'", data => $update, type => "pm");
-					if ($1 != $builds{$plugin}) {
-						error("could not update plugin '$plugin' (serverside build number mismatches)");
-						next;
-					}
-					
-					open UPDATE, ">" . $config->get("update_cache") . "/$plugin";
-					if (!-w UPDATE) {
-						error("could not update plugin '$plugin' (plugin file not writable)");
-						next;
-					}
-					print UPDATE $update;
-					close UPDATE;
-					info("updated plugin '$plugin'");
-				}
-				else {
-					dump_add(title => "update '$plugin' (corrupt)", data => $update, type => "pm");
-					error("could not update plugin '$plugin', (update corrupt)");
-					next;
-				}
-			}
-		}
-		
-		info("everything up to date already") if (!$updates);
-	} else {
-		return error("could not update plugins (error fetching builds list)");
-	}	
 }
 
 # Load the plugins (dependancy check and other pre-parsing code)
