@@ -36,9 +36,6 @@
 #    use decoded_content with the charset addition. See the
 #    WORKAROUND tags, and see if they can be removed later on.
 #
-# Plugin details:
-##   BUILD 1
-#
 
 #
 # Configuration
