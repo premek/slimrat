@@ -201,15 +201,8 @@ sub configure {
 	$config_global->merge($complement);
 	$config->merge($config_global->section("plugin"));
 	
-	$config->path_abs("update_cache");
-	
 	# Load plugins
 	load("$RealBin/plugins");
-	if (-d $config->get("update_cache")) {
-		load($config->get("update_cache"))
-	} else {
-		mkdir $config->get("update_cache") || warning("could not create update cache folder, updating plugins will not work");
-	}
 	execute();
 	fatal("no plugins loaded") unless ((scalar keys %plugins) || (scalar grep /plugins\/Direct\.pm$/, keys %INC)); # Direct doesnt register, so it isnt in %plugins
 	debug("loaded " . keys(%plugins) . " plugins (", join(", ", sort values %plugins), ")");
