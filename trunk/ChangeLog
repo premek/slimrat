@@ -2,6 +2,8 @@
 
     * slimrat: updated help messages.
 
+    * plugins: whacked out update functionality, we aren't using it right now.
+
 
 2009-02-13  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
