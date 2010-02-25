@@ -110,8 +110,7 @@ GetOptions (
 		"kill|k",
 		"debug",
 		"quiet|q",
-		"config=s",
-		"update"
+		"config=s"
 );
 
 # Initialise global configuration
@@ -551,9 +550,12 @@ slimrat - Command-line utility for downloading from filehosters
 
 =head1 OPTIONS
 
+WARNING: command-line parameters have priority over their configuration-file
+         counterparts.
+
 =over 8
 
-=item B<--help>
+=item B<--help>, B<-h>, B<-?>
 
   Prints a summary how to use the client.
 
@@ -561,34 +563,44 @@ slimrat - Command-line utility for downloading from filehosters
 
   Prints a manual how to use the client.
 
-=item B<--daemon>
+=item B<--daemon>, B<-d>
 
   Makes slimrat work in the background, by properly forking and redirecting
   the output to a specified logfile. Only one file can be backgrounded at a
   time, to support multiple instances you'll need to specify differend
   state files to save the instances PID in.
+  
+  Maps to the 'daemon' key in the configuration file.
 
-=item B<--kill>
+=item B<--kill>, B<-k>
 
   Kills a single active client, by looking up the PID in a predefined state file.
 
-=item B<--list>
+=item B<--list FILE>, B<-l FILE>
 
   Uses the given file as a queue-file containing URLs.
+  
+  Maps to the 'list' key in the configuration file, queue section.
+  
+  Maps to the 'list' key in the configuration file.
 
-=item B<--check>
+=item B<--check>, B<-c>
 
   Do not download the loaded URLs, just check them.
 
 =item B<--to>
 
   Specifies the target directory for the downloaded files.
+  
+  Maps to the 'to' key in the configuration file.
 
 =item B<--address>
 
   Makes the download client bind to a specific address.
+  
+  Maps to the 'address' key in the configuration file.
 
-=item B<--config>
+=item B<--config FILE>
 
   Load custom configuration file.
 
@@ -598,10 +610,20 @@ slimrat - Command-line utility for downloading from filehosters
   of an additional dump archive.
   WARNING: do not use this option by default, as it keeps a whole lot of extra information
            in memory (including _all_ downloaded items).
+  
+  Maps to a value of '5' for the key 'verbosity' in the configuration file, log
+  section.
 
-=item B<--quiet>
+=item B<--quiet>, B<-q>
 
   Makes slimrat less verbose, only displaying errors and warnings.
+  
+  Maps to a value of '2' for the key 'verbosity' in the configuration file, log
+  section.
+
+=item B<--to FOLDER>, B<-t FOLDER>
+
+  Where to download the files to.
 
 =back
 

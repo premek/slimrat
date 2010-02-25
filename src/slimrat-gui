@@ -648,9 +648,12 @@ slimrat-gui - Graphical utility for downloading from filehosters
 
 =head1 OPTIONS
 
+WARNING: command-line parameters have priority over their configuration-file
+         counterparts.
+
 =over 8
 
-=item B<--help>
+=item B<--help>, B<-h>, B<-?>
 
   Prints a summary how to use the client.
 
@@ -658,7 +661,7 @@ slimrat-gui - Graphical utility for downloading from filehosters
 
   Prints a manual how to use the client.
 
-=item B<--config>
+=item B<--config FILE>
 
   Load custom configuration file.
 
@@ -668,10 +671,16 @@ slimrat-gui - Graphical utility for downloading from filehosters
   of an additional dump archive.
   WARNING: do not use this option by default, as it keeps a whole lot of extra information
            in memory (including _all_ downloaded items).
+  
+  Maps to a value of '5' for the key 'verbosity' in the configuration file, log
+  section.
 
-=item B<--quiet>
+=item B<--quiet>, B<-q>
 
   Makes slimrat less verbose, only displaying errors and warnings.
+  
+  Maps to a value of '2' for the key 'verbosity' in the configuration file, log
+  section.
 
 =back
 
