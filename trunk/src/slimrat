@@ -127,6 +127,7 @@ $config_cli->set_default("to", ".");
 $config_cli->set_default("threads", 1);
 $config_cli->set_default("image_viewer", "asciiview -kbddriver stdin -driver stdout %s");
 $config_cli->set_default("daemon", 0);
+$config_cli->set_default("list", undef);
 $config_cli->merge($config->section("cli"));
 
 # Give the usage or manual
@@ -159,7 +160,7 @@ if ($options{"kill"}) {
 $config_cli->set("mode", "check") if ($options{"check"});
 
 # Options we might use later on
-$config_cli->set("list", $options{"list"});
+$config_cli->set("list", $options{"list"}) if ($options{"list"});
 $config_cli->set("daemon", 1) if ($options{"daemon"});
 $config_cli->set("address", $options{"address"}) if ($options{"address"});
 $config_cli->set("to", $options{"to"}) if ($options{"to"});
@@ -186,7 +187,7 @@ $config->section("log")->set("show_thread", 1) if ($config_cli->get("threads") >
 
 # Check if we got input files
 if ($config_cli->get("mode") eq "check" || $config_cli->get("mode") eq "download") {
-	if (!scalar @ARGV && !$config_cli->get("list")) {
+	if (!scalar @ARGV && !defined($config_cli->get("list")) && !defined($config->section("queue")->get("file"))) {
 		usage("no input URLs");
 	}
 }
@@ -200,6 +201,7 @@ while ($_ = shift) { # clear @ARGV to be able to read input from user with <> la
 	Queue::add($_);
 }
 if (defined($config_cli->get("list")) && $config_cli->get("list") eq "-") {
+	debug("reading URL's from STDIN");
 	chomp and Queue::add($_) while (<>);
 }
 
@@ -567,11 +569,10 @@ WARNING: command-line parameters have priority over their configuration-file
 
 =item B<--list FILE>, B<-l FILE>
 
-  Uses the given file as a queue-file containing URLs.
+  Uses the given file as a queue-file containing URLs. When using '-', slimrat
+  will read URL's from STDIN (useful with pipes).
   
   Maps to the 'list' key in the configuration file, queue section.
-  
-  Maps to the 'list' key in the configuration file.
 
 =item B<--check>, B<-c>
 
