@@ -87,12 +87,12 @@ sub add {
 # Add an URL from the file to the queue
 sub file_read {
 	my $file = $config->get("file");
-	return 0 unless (defined($file) && -r $file);
-	debug("reading queue file '", $file ,"'");
+	fatal("could not read queue file '$file'") unless (defined($file) && -r $file);
 	my $added = 0;
 	lock($file_lock);
 	
-	open(FILE, $file) || fatal("could not read queue file");
+	debug("reading queue file '", $file ,"'");
+	open(FILE, $file);
 	FILEREAD: while (<FILE>) {
 		# Skip things we don't want
 		next if /^#/;		# Skip comments
