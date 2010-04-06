@@ -46,7 +46,7 @@ package Rapidshare;
 # Packages
 use WWW::Mechanize 1.52;
 use HTTP::Request;
-use Crypt::SSLeay;
+#use Crypt::SSLeay;
 
 # Custom packages
 use Log;
@@ -199,7 +199,7 @@ sub get_data_loop  {
 		# Overloaded
 		elsif ($self->{MECH}->content() =~ m/overloaded/) {
 			&$message_processor("RapidShare is overloaded");
-			wait(10);
+			wait(5);
 			$self->reload();
 			return 1;
 		}

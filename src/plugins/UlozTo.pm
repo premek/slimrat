@@ -112,8 +112,14 @@ sub get_data_loop  {
 	my $headers = shift;
 
 	if (my $form = $self->{MECH}->form_name("dwn")) {
-		$self->{MECH}->field("captcha_nb",2505);
-		$self->{MECH}->field("captcha_user","tJmk"); # ;)
+
+		my $captcha_num = 3799;
+		my $captcha = &$captcha_processor($self->{MECH}->get("http://img.uloz.to/captcha/$captcha_num.png")->decoded_content, "png");
+		$self->{MECH}->back();
+
+		$self->{MECH}->field("captcha_nb", $captcha_num);
+		#$self->{MECH}->field("captcha_user","tJmk"); # ;)
+		$self->{MECH}->field("captcha_user",$captcha);
 		my $request = $form->make_request;
 		$request->header($headers);
 		return $self->{MECH}->request($request, $data_processor);
@@ -121,6 +127,14 @@ sub get_data_loop  {
 		
 	return;
 }
+
+sub ocr_postprocess {
+	my ($self, $captcha) = @_;
+	$_ = $captcha;
+	return if $captcha !~ /^\w{4}$/;
+}
+
+
 
 # Amount of resources
 Plugin::provide(1);
