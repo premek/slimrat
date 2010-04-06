@@ -84,14 +84,14 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Downloading <b>(.+?)<\/b>/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<strong>Downloading:</strong>\s*(.+?)\s*<#);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/Downloading [^|]*| (.+?)<\/span/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<span>\|</span> <strong>(.+?)</strong>#);
 }
 
 # Check if the link is alive

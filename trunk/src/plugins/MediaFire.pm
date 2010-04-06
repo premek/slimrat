@@ -112,7 +112,10 @@ sub get_data_loop  {
 	
 	# Extract secondary page
 	$_ = $self->{MECH}->content()."\n";
-	my ($qk,$pk,$r) = m/  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm;
+	my ($qk,$pk,$r);
+	unless(($qk,$pk,$r) = m/  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/sm){
+		die("cannot extract secondary page");
+	}
 	
 	# Get the secondary page
 	my $res = $self->fetch("http://www.mediafire.com/dynamic/download.php?qk=$qk&pk=$pk&r=$r");
