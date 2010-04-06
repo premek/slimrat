@@ -708,7 +708,8 @@ sub download_getdata {
 				# Postprocess
 				if ($plugin->can("ocr_postprocess")) {
 					$captcha_value = $plugin->ocr_postprocess($captcha_value);
-					debug("captcha after post-processing: '$captcha_value'");
+					debug("captcha after post-processing: '".($captcha_value?$captcha_value:"")."'");
+					if (!$captcha_value) {goto USER}
 				}
 			}
 			

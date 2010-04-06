@@ -192,6 +192,62 @@ sub get_data_loop {
 	return;
 }
 
+
+
+# Preprocess captcha image
+sub ocr_preprocess {
+	my ($self, $captcha_file) = @_;
+	
+	# Remove the image background
+	system("convert $captcha_file -fuzz 40% -fill white -opaque \"rgb(255,100,22)\" -resize 200%x100%  -colorspace Gray -threshold 5% $captcha_file"); 
+}
+
+# Postprocess captcha value
+sub ocr_postprocess {
+	my ($self, $captcha_value) = @_;
+	$_ = $captcha_value;
+
+	
+	# Fix common errors
+
+	s/B/8/g;
+	s/D/0/g;
+	s/E/6/g;
+	#s/¤/4/g; # FIXME
+	s/il/4/g	if(length > 6);
+	s/fl/4/g	if(length > 6);
+	s/f1/4/g	if(length > 6);
+	s/I1/b/g	if(length > 6); # or h?
+	s/\)\(/8/g;
+	s/\|1/p/g;
+	s/\[:/c/g	if(length > 6);
+	s/[Il]{2}/0/g	if(length > 6);
+	s/I\]/0/g	if(length > 6);
+	s/K</k/g	if(length > 6);
+	s/li/6/g	if(length > 6);
+
+	# some more to check
+	#]| p
+	#|] p
+	#| l
+	#1: c
+	#i1 4
+	#Q 4
+	#ii 3
+
+	#a e
+	#u o
+	#n p
+	#h b
+		
+		
+	# Replace uppercase letters with lowercase
+	$_ = lc($_);
+
+	return $_;
+}
+
+
 # Amount of resources
 Plugin::provide(-1);
 
