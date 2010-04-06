@@ -87,7 +87,7 @@ sub add {
 # Add an URL from the file to the queue
 sub file_read {
 	my $file = $config->get("file");
-	fatal("could not read queue file '$file'") unless (defined($file) && -r $file);
+	return 0 unless (defined($file) && -r $file);
 	my $added = 0;
 	lock($file_lock);
 	
@@ -423,7 +423,7 @@ URL's make sure they have been added before the file() call.
 =head2 Queue::file_read()
 
 Read a single URL from the file. Comments and already processed or enqueued URLs will be
-skipped.
+skipped. Returns 0 if no URL can be read.
 
 =head2 Queue::dump()
 
