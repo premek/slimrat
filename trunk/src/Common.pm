@@ -597,8 +597,8 @@ sub download_getdata {
 				if ($size) {
 					$size += $size_downloaded;
 					info("filesize: ", bytes_readable($size));
-				} elsif (my $sizebyplugin = $plugin->get_filesize) {
-					info("filesize: ~".bytes_readable($sizebyplugin));
+				#} elsif (my $sizebyplugin = $plugin->get_filesize) {
+				#	info("filesize: ~".bytes_readable($sizebyplugin));
 				} else {
 					info("filesize unknown");
 				}
