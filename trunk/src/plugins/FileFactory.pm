@@ -122,7 +122,7 @@ sub get_data_loop  {
 	}
 	
 	# Countdown
-	if ($self->{MECH}->content() =~ m/<span id="countdown".*?>(\d+)<\/span>/) {
+	if ($self->{MECH}->content() =~ m/<span (?:id|class)="countdown".*?>(\d+)<\/span>/) {
 		wait($1, 0);
 	}
 	
