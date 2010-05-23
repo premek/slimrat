@@ -667,6 +667,7 @@ sub download_getdata {
 		sub {
 			my $captcha_data = shift;
 			my $captcha_type = shift;
+			my $disable_ocr = shift;
 			my $captcha_value;		
 			dump_add(title => "captcha image", data => $captcha_data, type => $captcha_type);
 			
@@ -676,7 +677,7 @@ sub download_getdata {
 			close($fh);
 			
 			# OCR
-			if ($config->get("ocr") && $ocrcounter++ < 5) {
+			if ($config->get("ocr") && $ocrcounter++ < 5 && !$disable_ocr) {
 				# Preprocess
 				if ($plugin->can("ocr_preprocess")) {
 					$plugin->ocr_preprocess($captcha_file);
