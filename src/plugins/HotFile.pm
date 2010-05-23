@@ -84,7 +84,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<strong>Downloading:</strong>\s*(.+?)\s*<#);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#</strong>\s*(.+?)\s*<span>\|</span>#);
 }
 
 # Filesize
@@ -98,11 +98,8 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return -1  if ($self->{PRIMARY}->decoded_content =~ m/file is either removed/); # when link is removed by uploader
-	return -1 if ($self->{PRIMARY}->code == 404); # when 2nd number in link is wrong
-	return -1 unless length $self->{PRIMARY}->decoded_content; # when 1st number in link is wrong
-	return 1  if ($self->{PRIMARY}->decoded_content =~ m/Downloading/);
-	return 0;
+	return 1  if (defined $self->{MECH}->form_name("f"));
+	return -1;
 }
 
 # Download data
@@ -127,24 +124,29 @@ sub get_data_loop  {
 		return 1;
 	}
 	
-	# Captcha
-	elsif ($self->{MECH}->content() =~ m#<img src="/(captcha\.php\?id=\d+&hash1=[0-9a-f]+)">#) {
+	# reCaptcha
+	elsif ($self->{MECH}->content() =~ m#challenge\?k=(.*?)">#) {
 		# Download captcha
-		my $captcha_url = "http://hotfile.com/$1";
+		my $captchascript = $self->{MECH}->get("http://api.recaptcha.net/challenge?k=$1")->decoded_content;
+		my ($challenge, $server) = $captchascript =~ m#challenge\s*:\s*'(.*?)'.*server\s*:\s*'(.*?)'#s;
+		my $captcha_url = $server . 'image?c=' . $challenge;
 		debug("captcha url is ", $captcha_url);
 		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-		my $captcha_value = &$captcha_processor($captcha_data, "jpeg");
+
+		my $captcha_value = &$captcha_processor($captcha_data, "jpeg", 1);
+		$self->{MECH}->back();
 		$self->{MECH}->back();
 		
 		# Submit captcha form
-		$self->{MECH}->submit_form(with_fields => {"captcha", $captcha_value});
+		$self->{MECH}->submit_form( with_fields => {
+				'recaptcha_response_field' => $captcha_value,
+				'recaptcha_challenge_field' => $challenge });
 		dump_add(data => $self->{MECH}->content());
 		return 1;
 	}
 	
 	# Extract the download URL
-	elsif (my $download = $self->{MECH}->find_link( text => 'Click here to download')) {
-		$download = $download->url();
+	elsif ((my $download) = $self->{MECH}->content() =~ m#href="(.*?)" class="click_download">#) {
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
 	
