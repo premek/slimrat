@@ -110,7 +110,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/does not exist/);
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/Download the file|will become available/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/gateway_result|Download the file|will become available/);
 	return 0;
 }
 
