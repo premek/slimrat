@@ -1,14 +1,14 @@
-Dependancies
+Dependencies
 ------------
 
 The installation instructions below only document the installation of
-slimrat itself, you might need to install optional dependancies.
+slimrat itself, you might need to install optional dependencies.
 
-Those dependancies could be configured by the package manager, or
+Those dependencies could be configured by the package manager, or
 you might need to install them yourself, especially when manually
 installing slimrat.
 
-You need to install the following dependancies using your package manager of choice:
+You need to install the following dependencies using your package manager of choice:
 
 Main
   - Perl (at least 5.8, 5.10 recommended)
@@ -48,7 +48,7 @@ NOTE: when using Debian Lenny (the current stable), some plugins won't work due
           upgrade CPAN
           reload CPAN
           # The next command installs the newer library. It'll need a bunch of
-          #   dependancies, just install them along. Some dependancies are
+          #   dependencies, just install them along. Some dependencies are
           #   optional, which you can skip (some test modules, CPAN will tell
           #   you).
           install WWW::Mechanize
@@ -111,10 +111,10 @@ b) SVN version:
 PLD linux
 ---------
 
-Currently no prebuilt RPM package is available, but the projects
+Currently no prebuilt RPM package is available, but the project's
 CVS repository contains a SPEC file to generate one.
 
-1) Initialise the folder structure
+1) Initialize the folder structure
 
 Do this by issuing the command
    builder --init-rpm-dir
@@ -171,11 +171,11 @@ Windows
 
 NOTE: slimrat has not been tested for use at non-Unix based operation
       system, so many features (including the GUI) might not work. If you
-      come across issues, we'd be happy to fix them so please fill apropriate
+      come across issues, we'd be happy to fix them so please fill appropriate
       bug reports.
 
 Unpack the tarball at a place you want to, you can use Winrar to open the archive.
-You will need to install the dependancies usign CPAN, or if available using the
+You will need to install the dependencies usign CPAN, or if available using the
 package manager of the Perl distribution you are using (ie. "PPM" when using 
 ActiveState Perl).
 
