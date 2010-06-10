@@ -112,16 +112,20 @@ sub get_data_loop  {
 	my $headers = shift;
 
 	if (my $form = $self->{MECH}->form_name("dwn")) {
+		if($self->{MECH}->content() !~ m#src="http://img\.uloz\.to/captcha/(\d+)\.png"#){
+			die "cannot find captcha";
+		}
 
-		my $captcha_num = 3799;
-		my $captcha = &$captcha_processor($self->{MECH}->get("http://img.uloz.to/captcha/$captcha_num.png")->decoded_content, "png");
+		my $captcha_num = $1;
+		my $captcha = &$captcha_processor($self->{MECH}->get("http://img.uloz.to/captcha/$captcha_num.png")->decoded_content, "png",1);
+
 		$self->{MECH}->back();
 
-		$self->{MECH}->field("captcha_nb", $captcha_num);
-		#$self->{MECH}->field("captcha_user","tJmk"); # ;)
-		$self->{MECH}->field("captcha_user",$captcha);
-		my $request = $form->make_request;
+		$self->{MECH}->form_with_fields("captcha_user");
+		$self->{MECH}->set_fields("captcha_user" => $captcha);
+		my $request = $self->{MECH}->{form}->make_request;
 		$request->header($headers);
+
 		return $self->{MECH}->request($request, $data_processor);
 	}
 		
