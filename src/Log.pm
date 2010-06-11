@@ -556,7 +556,7 @@ sub dump_write() {
 		print INFO $counter, ") ", $dump->{title}, "\n";
 		my ($sec,$min,$hour,$mday,$mon,$year) = localtime($dump->{time}); $year+=1900;
 		print INFO "\t- Created at ", (sprintf "%04d-%02d-%02d %02d:%02d:%02d",$year,$mon,$mday,$hour,$min,$sec), "\n";
-		my $filename = $counter . "." . $dump->{type};
+		my $filename =  sprintf("%04d.%s", $counter, $dump->{type});
 		print INFO "\t- Extra information: " . $dump->{extra} . "\n" if $dump->{extra};
 		print INFO "\t- Saved as: $filename\n";
 		print INFO "\n";
