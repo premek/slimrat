@@ -560,6 +560,8 @@ WARNING: command-line parameters have priority over their configuration-file
   the output to a specified logfile. Only one file can be backgrounded at a
   time, to support multiple instances you'll need to specify differend
   state files to save the instances PID in.
+
+  Plugins which uses CAPTCHA cannot be used in daemon mode.
   
   Maps to the 'daemon' key in the configuration file.
 

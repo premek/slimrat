@@ -1,17 +1,24 @@
-2009-02-27 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+2010-07-23  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: megaupload Free membership -  Shorter waiting time
+
+	* something in last months
+
+
+2010-02-27 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: slight manpage fixes, and some default configuration key
       addition.
 
 
-2009-02-25 Tim Besard <tim-dot-besard-at-gmail-dot-com>
+2010-02-25 Tim Besard <tim-dot-besard-at-gmail-dot-com>
 
     * slimrat: updated help messages.
 
     * plugins: whacked out update functionality, we aren't using it right now.
 
 
-2009-02-13  Přemek Vyhnal  <premysl.vyhnal gmail com>
+2010-02-13  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: added Uloz.to
 

@@ -97,6 +97,7 @@ sub check {
 	my $self = shift;
 	
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m/  cu\('(\w+)','(\w+)','(\w+)'\);  if\(fu/);
+	return -1 if ($self->{PRIMARY}->decoded_content =~ m/value="upload"/);
 	return -1 if ($self->{MECH}->uri() =~ m/error.php/);
 	return 0;
 }

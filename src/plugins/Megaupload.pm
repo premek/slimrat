@@ -66,9 +66,21 @@ sub new {
 	$self->{MECH} = $_[3];
 	bless($self);
 	
+	$self->{CONF}->set_default("username", undef);
+	$self->{CONF}->set_default("password", undef);
+
+
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
 	dump_add(data => $self->{MECH}->content());
+
+	if(defined($self->{CONF}->get("username")) and defined($self->{CONF}->get("password"))) {
+		debug("login as ", $self->{CONF}->get("username"));		
+		$self->{MECH}->post('http://www.megaupload.com', {'login'=>1,
+				'username'=> $self->{CONF}->get("username"),
+				'password'=> $self->{CONF}->get("password")
+				});
+	}
 
 	return $self;
 }
