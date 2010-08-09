@@ -137,27 +137,21 @@ sub get_data_loop  {
 	
 	if ($self->{CONF}->defines("username") && $self->{CONF}->get("password") &&
 			(my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
-		# Fetch the cookie
-		$self->{MECH}->get("https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi");
-		if ($self->{MECH}->form_with_fields("login", "password")) {
-			$self->{MECH}->set_fields("login" => $username, "password" => $password);
-			$self->{MECH}->submit();
-		}
-		else {
-			die("Could not find premium form");
-		}
-		
-		# Workaround to fix HTTP::Cookie mathinc rapidshare.com, as the cookie originated
-		# on ssl.rapidshare.com and thus got matching path ".rapidshare.com"
-		my $url = $self->{URL};
-		$url = 'http://www.' . $1 if ($url =~ m{http://(rapidshare.*)$});
-		
-		# Download the file
-		# TODO: do with Mech
-		my $request = HTTP::Request->new(GET => $url, $headers);
-		$self->{MECH}->cookie_jar->add_cookie_header($request);
+	    # Click the "Premium" button
+	    $self->{MECH}->form_number(1);
+	    $self->{MECH}->submit();
+	    # Enter username and password
+	    $self->{MECH}->form_with_fields("accountid");
+	    $self->{MECH}->field("accountid",$username);
+	    $self->{MECH}->field("password",$password);
+	    $self->{MECH}->submit();
+	    if($self->{MECH}->form_with_fields("dl.start")){
+		# Click download button
+		my $request = $self->{MECH}->form_with_fields("dl.start")->click();
 		return $self->{MECH}->request($request, $data_processor);
-		#? $self->{MEHC}->get($self->{URL}, $headers, $data_processor); ?#
+	    } else{
+		die "Login failed";
+	    }
 	}
 	
 	
