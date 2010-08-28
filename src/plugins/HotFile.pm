@@ -99,6 +99,8 @@ sub check {
 	my $self = shift;
 	
 	return 1  if (defined $self->{MECH}->form_name("f"));
+#	&lang=en
+#This file is either removed due to copyright claim or is deleted by the uploader.
 	return -1;
 }
 
@@ -125,7 +127,7 @@ sub get_data_loop  {
 	}
 	
 	# reCaptcha
-	elsif ($self->{MECH}->content() =~ m#challenge\?k=(.*?)">#) {
+	elsif ($self->{MECH}->content() =~ m#challenge\?k=(.*?)"#) {
 		# Download captcha
 		my $captchascript = $self->{MECH}->get("http://api.recaptcha.net/challenge?k=$1")->decoded_content;
 		my ($challenge, $server) = $captchascript =~ m#challenge\s*:\s*'(.*?)'.*server\s*:\s*'(.*?)'#s;
@@ -153,57 +155,6 @@ sub get_data_loop  {
 	return;
 }
 
-# Preprocess captcha image
-sub ocr_preprocess {
-	my ($self, $captcha_file) = @_;
-	
-	# Remove the image background
-	system("convert $captcha_file -fuzz 37% -fill black -opaque \"rgb(209,209,209)\" -fuzz 0% -fill white -opaque black -fill black +opaque white $captcha_file"); 
-}
-
-# Postprocess captcha value
-sub ocr_postprocess {
-	my ($self, $captcha_value) = @_;
-	$_ = $captcha_value;
-	
-	# Fix common errors
-	s/q/a/;
-	s/8/a/;
-	s/¤/a/;
-	s/°/a/;
-	s/.;/a/;
-	s/2/e/;
-	s/é/e/;
-	s/@/e/;
-	s/5/e/;
-	s/9/e/;
-	s/©/e/;
-	s/¢/e/;
-	s/\&/e/;
-	s/;/e/;
-	s/€/e/;
-	s/Q/g/;
-	s/\\/i/;
-	s/:/l/;
-	s/\|/l/;
-	s/0/o/;
-	s/$/s/;
-	s/\?/t/;
-	s/\+/t/;
-	s/\'I\‘/t/;
-	
-	# Clean clutter, remove whitespaces
-	s/.//;
-	s/-//;
-	s/ //;
-	
-	# Replace uppercase letters with lowercase
-	$_ = lc($_);
-	
-	# TODO: spellcheck
-	
-	return $_;
-}
 
 # Amount of resources
 Plugin::provide(1);
