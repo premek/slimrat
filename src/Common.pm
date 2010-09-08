@@ -363,9 +363,10 @@ sub download {
 		return;
 	};
 	return -2 unless defined($result);
-		
+
 	# Return -3 if the caller requested to manage insufficient resources hisself
 	# FIXME: yeah this sucks, I know
+	# FIXME: check this negative return codes
 	if ($no_lock && $plugin == -1) {
 		return -3;
 	}
@@ -472,9 +473,10 @@ sub download_init {
 	# Load plugin
 	my $plugin = Plugin->new($link, $mech, $no_lock);
 	
+	# XXX -3 or -1 ???
 	# Return -3 if the caller requested to manage insufficient resources hisself	
 	if ($no_lock && $plugin == -1) {
-		return -3;
+		return -1;
 	}
 	
 	# Get plugin name
@@ -597,8 +599,8 @@ sub download_getdata {
 				if ($size) {
 					$size += $size_downloaded;
 					info("filesize: ", bytes_readable($size));
-				#} elsif (my $sizebyplugin = $plugin->get_filesize) {
-				#	info("filesize: ~".bytes_readable($sizebyplugin));
+				} elsif (my $sizebyplugin = $plugin->get_filesize) {
+					info("filesize: ~".bytes_readable($sizebyplugin));
 				} else {
 					info("filesize unknown");
 				}
