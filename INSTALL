@@ -80,26 +80,16 @@ You can install Slimrat from AUR:
 Gentoo
 ------
 
-1) Install layman and autounmask
+1) Install autounmask
 
 Run the following commands if you haven't installed them already:
-   emerge layman autounmask
+   emerge autounmask
 
 
-2) Add the "kde-testing" overlay
-
-Run the following command to add the "kde-testing" overlay, in which
-slimrat resides:
-   layman -a kde-testing
-
-NOTE: for more information about overlays, have a look at the Gentoo
-      documentation (http://www.gentoo.org/proj/en/overlays/userguide.xml)
-
-
-3) Install slimrat
+2) Install slimrat
 
 a) Stable version:
-   autounmask net-misc/slimrat-0.9.55
+   autounmask net-misc/slimrat-1.0
    emerge slimrat
 
 b) SVN version:
