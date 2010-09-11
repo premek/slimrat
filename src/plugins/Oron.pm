@@ -139,8 +139,9 @@ sub get_data_loop  {
 	}
 	
 	# Wait timer
-	elsif (($self->{MECH}->content() =~ m#wait ((\d+) minutes, )?(\d+) seconds#)) {
-		wait($2*60 + $3);
+	elsif ((my $min, my $sec) = ($self->{MECH}->content() =~ m#wait (?:(\d+) minutes, )?(\d+) seconds#)) {
+		$min = 0 unless defined $min;
+		wait($min*60 + $sec);
 		$self->reload();
 		return 1;
 	}

@@ -1,4 +1,4 @@
-# slimrat - Uloz.to plugin
+# slimrat - FileSonic.com plugin
 #
 # Copyright (c) 2010 Přemek Vyhnal
 #
@@ -36,7 +36,7 @@
 #
 
 # Package name
-package UlozTo;
+package FileSonic; # ex- sharingmatrix.com
 
 # Extend Plugin
 @ISA = qw(Plugin);
@@ -75,21 +75,22 @@ sub new {
 
 # Plugin name
 sub get_name {
-	return "UlozTo";
+	return "FileSonic";
 }
 
 # Filename
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b></h3>#);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<title>Download (.*?) for free#);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
+	my $size;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b> <br />#);
+	return readable2bytes($size) if (($size) = $self->{PRIMARY}->decoded_content =~ m#<span class="size">(.*?)</span>#);
 }
 
 # Check if the link is alive
@@ -97,8 +98,8 @@ sub check {
 	my $self = shift;
 	
 	$_ = $self->{PRIMARY}->decoded_content;
-	return -1 if (m#error404#);
-	return 1 if(m#<img id="captcha"#);
+	return -1 if (m#Error 9005#); # Not found (in all languages)
+	return 1 if(m#/download-free/#);
 	return 0;
 }
 
@@ -111,48 +112,21 @@ sub get_data_loop  {
 	my $message_processor = shift;
 	my $headers = shift;
 
-	if (my $form = $self->{MECH}->form_name("dwn")) {
-		if($self->{MECH}->content() !~ m#src="http://img\.uloz\.to/captcha/(\d+)\.png"#){
-			die "cannot find captcha";
-		}
 
-		my $captcha_num = $1;
-		my $captcha = &$captcha_processor($self->{MECH}->get("http://img.uloz.to/captcha/$captcha_num.png")->decoded_content, "png",1);
+	(my $id) = $self->{URL} =~ m#/file/(\d+)/#;
+	$self->{MECH}->get("http://www.filesonic.com/download-free/$id");
+	dump_add(data => $self->{MECH}->content());
 
-		$self->{MECH}->back();
+	(my $download) = $self->{MECH}->content() =~ m#downloadUrl = "(.+?)";#;
+	
+	return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 
-		$self->{MECH}->form_with_fields("captcha_user");
-		$self->{MECH}->set_fields("captcha_user" => $captcha);
-		my $request = $self->{MECH}->{form}->make_request;
-		$request->header($headers);
-                
-                my $resp = $self->{MECH}->request($request, $data_processor);
-	        debug( $resp->as_string);
-                
-                #when we get HTML page, then something is wrong ... 
-                if ($resp->header('content_type') eq 'text/html'){
-                    $self->reload();                                                                                                                                                                                 
-                    return 1;   
-                }
-		return $self->{MECH}->request($request, $data_processor);
-	}
-		
-	return;
 }
-
-sub ocr_postprocess {
-	my ($self, $captcha) = @_;
-	$_ = $captcha;
-	return if $captcha !~ /^\w{4}$/;
-        return $_;
-}
-
-
 
 # Amount of resources
-Plugin::provide(1);
+Plugin::provide(-1);
 
 # Register the plugin
-Plugin::register("^[^/]+//((.*?)\.)?(uloz.to|ulozto.sk|ulozto.net|vipfile.pl)/");
+Plugin::register("^[^/]+//((.*?)\.)?(filesonic|sharingmatrix).com/");
 
 1;

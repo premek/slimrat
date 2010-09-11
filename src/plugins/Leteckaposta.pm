@@ -1,6 +1,6 @@
 # slimrat - Leteckaposta plugin
 #
-# Copyright (c) 2008 Přemek Vyhnal
+# Copyright (c) 2010 Přemek Vyhnal
 # Copyright (c) 2009 Tim Besard
 #
 # This file is part of slimrat, an open-source Perl scripted
@@ -67,6 +67,8 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	bless($self);
+
+	$self->{URL} =~ s#leteckaposta\.cz#sharegadget.com#;
 	
 	$self->{PRIMARY} = $self->fetch();
 	
@@ -114,7 +116,7 @@ sub get_data_loop  {
 	# Download URL
 	if ($self->{MECH}->content() =~ m#href='([^']+)' class='download-link'>.+?</a>#) {
 		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => "http://leteckaposta.cz$download", $headers), $data_processor);
+		return $self->{MECH}->request(HTTP::Request->new(GET => "http://sharegadget.com$download", $headers), $data_processor);
 	}
 	
 	return;
@@ -124,6 +126,6 @@ sub get_data_loop  {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register( "^[^/]+//(?:www.)?leteckaposta.cz");
+Plugin::register( "^[^/]+//(?:www.)?(sharegadget|leteckaposta).cz");
 
 1;

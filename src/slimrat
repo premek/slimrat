@@ -61,12 +61,12 @@ use Queue;
 use Log;
 use Configuration;
 
-# Function prototypes
-sub quit($);
-
 # Write nicely
 use strict;
 use warnings;
+
+# Function prototypes
+sub quit($);
 
 
 #
@@ -257,13 +257,14 @@ if ($config_cli->get("mode") eq "check") {
 			status($link, 0, "plugin failure");
 		} else {
 			my $status = $plugin->check();
+			my $extra;
 			if ($status < 0) {
 				status($link, $status, "file is dead");
 			} elsif ($status == 0) {
 				status($link, $status, "plugin failure (could not distinguish whether file is up or down)");
 			} elsif ($status > 0) {
 				my $size = $plugin->get_filesize();
-				my $extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
+				$extra = ($plugin->get_filename()||"unknown filename") . ", " .  ($size ? bytes_readable($size) : "unknown filesize") if ($status>0);
 				status($link, $status, $extra);
 				$alive++
 			}
@@ -367,7 +368,9 @@ sub thread_progress {
 				}
 				
 				$string .= ", " . bytes_readable($speed) . "/s";
-				$string .= ", " . int(100*$done/$total) . "%";
+				if($total>0) {
+					$string .= ", " . int(100*$done/$total) . "%";
+				}
 				$string .= ", " . seconds_readable($eta) . " remaining";
 				$string .= " (" . seconds_readable($eta_min) . " until next)" if ($eta_min != $eta);
 				
