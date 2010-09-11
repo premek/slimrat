@@ -687,17 +687,16 @@ sub download_getdata {
 				
 				# Convert to tiff format
 				my $captcha_file_ocr = $captcha_file;
-				if ($captcha_type ne "tif") {	# FIXME: can't "tiff" get passed?
-					my (undef, $captcha_converted) = tempfile(SUFFIX => ".tif");
-					my $extra = "-alpha off -compress none";	# Tesseract is picky
-					debug("converting captcha from $captcha_type:$captcha_file to tif:$captcha_converted");
-					`convert $extra $captcha_type:$captcha_file tif:$captcha_converted`;
-					if ($?) {
-						error("could not convert captcha from given format '$captcha_type' to needed format 'tif', bailing out");
-						goto USER;
-					}
-					$captcha_file_ocr = $captcha_converted;
+				my (undef, $captcha_converted) = tempfile(SUFFIX => ".bmp");
+				my $extra = "-alpha off -compress none";	# Tesseract is picky
+				debug("converting captcha from $captcha_file to $captcha_converted");
+				`convert $extra $captcha_type:$captcha_file bmp:$captcha_converted`;
+				if ($?) {
+					error("could not convert captcha from given format '$captcha_type' to needed format, bailing out");
+					goto USER;
 				}
+				$captcha_file_ocr = $captcha_converted;
+				
 				
 				# Apply OCR
 				$captcha_value = `tesseract $captcha_file_ocr /tmp/slimrat-captcha > /dev/null 2>&1; cat /tmp/slimrat-captcha.txt; rm /tmp/slimrat-captcha.txt`;
