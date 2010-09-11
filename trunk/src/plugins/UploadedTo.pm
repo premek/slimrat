@@ -96,6 +96,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{MECH}->uri() =~ m#error_fileremoved#);
+	return 0 if ($self->{MECH}->uri() =~ m#error#);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m#Free Download#);
 	return 0;
 }
