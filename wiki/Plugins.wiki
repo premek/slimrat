@@ -2,34 +2,42 @@
 #labels Phase-QA
 
 =Plugin tests=
-==v. 1.0==
-last update: 2009-02-14
+==v. 1.1 (beta)==
+last update: 2010-09-17
 
 || *Plugin*          || *Status*   || 
-|| CZshare  || ? ||
-|| DataHu  || ? ||
-|| DepositFiles  || ? ||
-|| EasyShare  || ? ||
-|| FastLoad  || ? ||
-|| FastShare  || ? ||
-|| FileFactory  || ? ||
-|| FileHive  || ? ||
-|| FreakShare  || ? ||
-|| HotFile  || ? ||
+|| CZshare  || OK ||
+|| DataHu  || OK ||
+|| DepositFiles  || OK ||
+|| EasyShare  || FIXME ||
+|| FastLoad  || dead? ||
+|| FastShare  || OK ||
+|| FileFactory  || OK ||
+|| FileHive  || OK ||
+|| FileSonic || OK ||
+|| FreakShare  || FIXME ||
+|| HotFile  || OK ||
 || Leteckaposta  || ? ||
-|| MediaFire  || ? ||
-|| Megaupload  || ? ||
-|| OdSiebie  || ? ||
-|| Rapidshare  || ? ||
-|| RomHustler  || ? ||
-|| ShareBase  || ? ||
-|| UploadedTo  || ? ||
-|| Uploading  || ? ||
-|| YouTube  || ? ||
-|| ZShare  || ? ||
+|| MediaFire  || -NO- ||
+|| Megaupload  || OK ||
+|| Oron  || OK ||
+|| Rapidshare  || OK ||
+|| RomHustler  || OK ||
+|| ShareBase  || FIXME ||
+|| StorageTo  || OK  ||
+|| TwoShared || OK ||
+|| UlozTo || OK, FIXME ||
+|| UploadedTo  || OK ||
+|| Uploading  || FIXME ||
+|| UserShare  || OK ||
+|| YouTube  || FIXME ||
+|| ZShare  || OK ||
 
 ==svn==
-last update: 2010-02-14
+update: 2010-09-17 : same as v1.1
+
+
+update: 2010-02-14
 
 || *Plugin*           || *Download one 100kB file*      || 
 || CZshare.pm         || OK                             ||
