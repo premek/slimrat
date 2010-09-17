@@ -91,7 +91,7 @@ sub get_filename {
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/Velikost souboru: ([^<]+)<\/p>/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<br \/> File size: ([^<]+)<\/p>/);
 }
 
 # Check if the link is alive

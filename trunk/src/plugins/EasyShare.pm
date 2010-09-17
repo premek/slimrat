@@ -80,14 +80,14 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/You are requesting ([^<]+) \(/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#You are requesting:</span>\s+(.+?)\s+#);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 	
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/You are requesting [^<]+ \(([^)]+)\)/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#You are requesting:</span>\s+.+?\s+<span class="txtgray">\((.+?)\)<#);
 }
 
 # Check if the link is alive
