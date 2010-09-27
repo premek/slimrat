@@ -44,9 +44,7 @@ package Rapidshare;
 @ISA = qw(Plugin);
 
 # Packages
-use WWW::Mechanize 1.52;
 use HTTP::Request;
-#use Crypt::SSLeay;
 
 # Custom packages
 use Log;
@@ -66,32 +64,45 @@ use warnings;
 sub new {
 	my $self  = {};
 	$self->{CONF} = $_[1];
-	$self->{URL} = $_[2];
+	my ($fileid, $filename) = $_[2] =~ m/files\/(.+?)\/(.*)$/;
 	$self->{MECH} = $_[3];
 	bless($self);
 	
-	$self->{CONF}->set_default("interval", 0);
-	
-	# MOVE
-	if ($self->{CONF}->defines("username") && $self->{CONF}->get("password") &&
-			(my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
+	$self->{LOGIN} = 0;
+	$self->{PASSWORD} = 0;
+	if ($self->{CONF}->defines("username") && $self->{CONF}->defines("password") &&
+			($self->{LOGIN} = $self->{CONF}->get("username")) && ($self->{PASSWORD} = $self->{CONF}->get("password"))) {
 		Plugin::provide(-1);
 	}
-	use HTTP::Cookies;
-	$self->{MECH}->cookie_jar(HTTP::Cookies->new);  
-	
-	# Workaround to fix Rapidshare's empty content-type, which makes forms() fail
-	# Follow: http://code.google.com/p/www-mechanize/issues/detail?id=124
-	my $req = new HTTP::Request("GET", $self->{URL});
-	$self->{PRIMARY} = $self->{MECH}->request($req);
-	$self->{PRIMARY}->content_type('text/html');
-	$self->{MECH}->_update_page($req, $self->{PRIMARY});
-	
-	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success);
-	dump_add(data => $self->{MECH}->content());
+
+
+	# Reply fields:	
+	#	1:File ID
+	#	2:Filename
+	#	3:Size (in bytes. If size is 0, this file does not exist.)
+	#	4:Server ID
+	#	5:Status integer, which can have the following numeric values:
+	#		0=File not found
+	#		1=File OK (Anonymous downloading)
+	#		3=Server down
+	#		4=File marked as illegal
+	#		5=Anonymous file locked, because it has more than 10 downloads already
+	#		50+n=File OK (TrafficShare direct download type "n" without any logging.)
+	#		100+n=File OK (TrafficShare direct download type "n" with logging. Read our privacy policy to see what is logged.)
+	#	6:Short host (Use the short host to get the best download mirror: http://rs$serverid$shorthost.rapidshare.com/files/$fileid/$filename)
+	#	7:md5 (See parameter incmd5 in parameter description above.)
+
+	my $checkfiles = $self->api("checkfiles_v1",{
+				"files"=>$fileid,
+				"filenames"=>$filename
+			});
+	($self->{FILEID},$self->{FILENAME},$self->{SIZE},$self->{SERVERID},$self->{STATUS},$self->{SHORTHOST},$self->{MD5}) =
+		$checkfiles =~ m/^(.+?),(.+?),(.+?),(.+?),(.+?),(.+?),(.+?)$/;
 
 	return $self;
 }
+
+
 
 # Plugin name
 sub get_name {
@@ -102,125 +113,166 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+\/([^<]+) </);
+	return $self->{FILENAME};
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 	
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/<p class="downloadlink">http:\/\/[^<]+ <font[^>]*>\| ([^<]+)<\/font/);
+	return $self->{SIZE};
 }
 
 # Check if the link is alive
 sub check {
 	my $self = shift;
+	my $s = $self->{STATUS};
 
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/form id="ff" action/);
-	return -1 if ($self->{PRIMARY}->decoded_content =~ m/<h1>Error<\/h1>/i);
-	return 0;
+	if($s>=100){$s-=100}
+	elsif($s>=50){$s-=50}
+
+	return -1 if $s == 0;
+	return 1 if $s == 1;
+	return 0 if $s == 3; # ?
+	return -1 if $s == 4;
+	return -1 if $s == 5;
+
 }
 
 # Download data
 sub get_data_loop  {
-	# Input data
+# Input data
 	my $self = shift;
 	my $data_processor = shift;
 	my $captcha_processor = shift;
 	my $message_processor = shift;
 	my $headers = shift;
-	
-	
-	#
-	# Premium download
-	#
-	
-	if ($self->{CONF}->defines("username") && $self->{CONF}->get("password") &&
-			(my $username = $self->{CONF}->get("username")) && (my $password = $self->{CONF}->get("password"))) {
-	    # Click the "Premium" button
-	    $self->{MECH}->form_number(1);
-	    $self->{MECH}->submit();
-	    # Enter username and password
-	    $self->{MECH}->form_with_fields("accountid");
-	    $self->{MECH}->field("accountid",$username);
-	    $self->{MECH}->field("password",$password);
-	    $self->{MECH}->submit();
-	    if($self->{MECH}->form_with_fields("dl.start")){
-		# Click download button
-		my $request = $self->{MECH}->form_with_fields("dl.start")->click();
-		return $self->{MECH}->request($request, $data_processor);
-	    } else{
-		die "Login failed";
-	    }
-	}
-	
-	
-	#
-	# Free download
-	#
-	
-	else {	
-		# Click the "Free" button
-		if ($self->{MECH}->form_id("ff")) {
-			my $res = $self->{MECH}->submit_form();
-			die("secondary page error, ", $res->status_line) unless ($res->is_success);
-			dump_add(data => $self->{MECH}->content());
-			return 1;
-		}
-		
-		# Download limit
-		if ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
-			&$message_processor("reached the download limit for free-users");
-			if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
-				wait($1*60);			
-			} else {
-				&$message_processor("could not extract wait timer");
-				wait(60);
-			}
-			$self->reload();
-			return 1;
-		}
-		
-		# Free user limit
-		elsif ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes or become/) {
-			my $minutes = $1; 
-			&$message_processor("currently a lot of users are downloading files");
-			wait($minutes*60);
-			$self->reload();
-			return 1;
-		}
-		
-		# Overloaded
-		elsif ($self->{MECH}->content() =~ m/overloaded/) {
-			&$message_processor("RapidShare is overloaded");
-			wait(5);
-			$self->reload();
-			return 1;
-		}
 
-		# Slot availability
-		elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
-			&$message_processor("no available slots for free users");
-			wait(5*60);
-			$self->reload();
-			return 1;
-		}
-		
-		# Already downloading
-		elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
-			die("already downloading a file");
-		}
-		
-		# Download
-		elsif ($self->{MECH}->content() =~ m/form name="dlf" action="([^"]+)".*var c=(\d+);/sm) {
-			my ($download, $wait) = ($1, $2);
-			wait($wait);
-			return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
-		}
+
+
+	# DL:$hostname,$dlauth,$countdown,$md5hex
+	$self->api("download_v1", {
+			"fileid"=>$self->{FILEID},
+			"filename"=>$self->{FILENAME},
+			"try"=>1,
+			"login"=> $self->{LOGIN},
+			"password"=>$self->{PASSWORD}
+			});
+
+	if($self->{MECH}->content() =~ /^ERROR: You need to wait (\d+) seconds/){
+		wait($1);
+		$self->reload();
+		return 1;
 	}
-	
+
+	# Download limit
+	# FIXME is this used?
+	elsif ($self->{MECH}->content() =~ m/reached the download limit for free-users/) {
+		&$message_processor("reached the download limit for free-users");
+		if ($self->{MECH}->content() =~ m/Or try again in about (\d+) minutes/sm) {
+			wait($1*60);			
+		} else {
+			&$message_processor("could not extract wait timer");
+			wait(60);
+		}
+		$self->reload();
+		return 1;
+	}
+
+	# Free user limit
+	# FIXME is this used?
+	elsif ($self->{MECH}->content() =~ m/Currently a lot of users are downloading files\.  Please try again in (\d+) minutes/) {
+		my $minutes = $1; 
+		&$message_processor("currently a lot of users are downloading files");
+		wait($minutes*60);
+		$self->reload();
+		return 1;
+	}
+
+	# Overloaded
+	# FIXME is this used?
+	elsif ($self->{MECH}->content() =~ m/overloaded/) {
+		&$message_processor("RapidShare is overloaded");
+		wait(15);
+		$self->reload();
+		return 1;
+	}
+
+	# Slot availability
+	# FIXME is this used?
+	elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
+		&$message_processor("no available slots for free users");
+		wait(5*60);
+		$self->reload();
+		return 1;
+	}
+
+	# Already downloading
+	# FIXME is this used?
+	elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
+		&$message_processor("already downloading a file");
+		wait(2*60);
+		$self->reload();
+		return 1;
+	}
+
+
+	# Another error
+	elsif ($self->{MECH}->content() =~ /^ERROR: (.*)$/){
+		die	($1);
+	}
+
+	# Download
+	elsif ( ($self->{HOSTNAME},$self->{DLAUTH},$self->{COUNTDOWN},$self->{MD5}) =
+			$self->{MECH}->content() =~ m/^DL:(.+?),(.+?),(.+?),(.+?)$/) {
+
+		wait($self->{COUNTDOWN});
+
+		my $download = "http://".$self->{HOSTNAME}."/cgi-bin/rsapi.cgi?sub=download_v1".
+			"&fileid=".$self->{FILEID}.
+			"&filename=".$self->{FILENAME}.
+			"&dlauth=".$self->{DLAUTH}.
+			"&login=".$self->{LOGIN}.
+			"&password=".$self->{PASSWORD};
+
+		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+
+	}
+
 	return;
 }
+
+
+
+## call RS api subroutine
+# http://images.rapidshare.com/apidoc.txt
+# param string subroutine
+# param hashref parameters
+# return server response
+sub api{
+	my $self = shift;	
+	my $sub = shift; # string
+	my $params = shift; # hash ref: {"k"=>"v","kk"=>"vv"}
+
+	# I love you, RapidShare!
+	my $url = "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=$sub";
+	while ( my ($key, $value) = each(%{$params}) ) {
+		$url.="&$key=".$value;
+    }
+#	debug($url);
+	
+	my $resp = $self->{MECH}->get($url);
+	die("API call error, ", $resp->status_line) unless ($resp->is_success);
+
+	dump_add(data => $self->{MECH}->content());
+
+
+	return $self->{MECH}->content();
+}
+
+
+
+
 
 # Amount of resources
 Plugin::provide(1);

@@ -111,6 +111,7 @@ sub check {
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/does not exist/);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m/gateway_result|Download the file|will become available/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/slots for your country are busy/);
 	return 0;
 }
 
@@ -137,7 +138,10 @@ sub get_data_loop {
 	
 	# No free slots
 	elsif ($self->{MECH}->content() =~ m/slots for your country are busy/) {
-		die("all downloading slots for your country are busy");
+		&$message_processor("All downloading slots for your country are busy");
+		wait(30);
+		$self->reload();
+		return 1;
 	}
 	
 	elsif ($self->{MECH}->content() =~ m/file is not available/s) {
