@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
+<!--*- mode: xml -*-->
+<glade-interface>
+  <widget class="GtkWindow" id="mainWindow">
+    <property name="visible">True</property>
+    <property name="title" translatable="yes">slimrat</property>
+    <property name="default_width">750</property>
+    <property name="default_height">300</property>
+    <signal name="key_press_event" handler="key_press"/>
+    <signal name="destroy" handler="on_mainWindow_destroy"/>
+    <signal name="key_release_event" handler="key_release"/>
+    <child>
+      <widget class="GtkVBox" id="vbox1">
+        <property name="visible">True</property>
+        <child>
+          <widget class="GtkToolbar" id="toolbar">
+            <property name="visible">True</property>
+            <property name="toolbar_style">GTK_TOOLBAR_ICONS</property>
+            <child>
+              <widget class="GtkToolItem" id="toolitem1">
+                <property name="visible">True</property>
+                <child>
+                  <widget class="GtkFileChooserButton" id="downto">
+                    <property name="visible">True</property>
+                    <property name="tooltip" translatable="yes">Download to…</property>
+                    <property name="spacing">4</property>
+                    <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
+                    <property name="preview_widget_active">False</property>
+                    <property name="title" translatable="yes">Download to...</property>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToggleToolButton" id="btnStart1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Start downloading</property>
+                <property name="label" translatable="yes">Download all</property>
+                <property name="stock_id">gtk-media-play</property>
+                <signal name="clicked" handler="on_btnStart1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnCheck">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Check selected links</property>
+                <property name="label" translatable="yes">Check</property>
+                <property name="stock_id">gtk-apply</property>
+                <signal name="clicked" handler="on_btnCheck_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSeparatorToolItem" id="sep1">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnAddClip">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Add links from clipboard [Ctrl+V]</property>
+                <property name="stock_id">gtk-paste</property>
+                <signal name="clicked" handler="on_btnAddClip_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnAdd1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Add link(s) [Insert]</property>
+                <property name="stock_id">gtk-add</property>
+                <signal name="clicked" handler="on_btnAdd1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnRemove1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Remove selected [Del]</property>
+                <property name="stock_id">gtk-remove</property>
+                <signal name="clicked" handler="on_btnRemove1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnRemoveAll">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Remove all</property>
+                <property name="stock_id">gtk-clear</property>
+                <signal name="clicked" handler="on_btnRemoveAll_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSeparatorToolItem" id="sep2">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnBeg1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Move to top</property>
+                <property name="stock_id">gtk-goto-top</property>
+                <signal name="clicked" handler="on_btnBeg1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnUp1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Move up</property>
+                <property name="stock_id">gtk-go-up</property>
+                <signal name="clicked" handler="on_btnUp1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnDown1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Move down</property>
+                <property name="stock_id">gtk-go-down</property>
+                <signal name="clicked" handler="on_btnDown1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnEnd1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Move to bottom</property>
+                <property name="stock_id">gtk-goto-bottom</property>
+                <signal name="clicked" handler="on_btnEnd1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSeparatorToolItem" id="sep3">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnHide1">
+                <property name="tooltip" translatable="yes">Hide window</property>
+                <property name="label" translatable="yes">Hide</property>
+                <property name="stock_id">gtk-close</property>
+                <signal name="clicked" handler="on_btnHide1_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkToolButton" id="btnQuit1">
+                <property name="visible">True</property>
+                <property name="tooltip" translatable="yes">Quit</property>
+                <property name="stock_id">gtk-quit</property>
+                <signal name="clicked" handler="gtk_main_quit"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="mainwin">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <property name="shadow_type">GTK_SHADOW_IN</property>
+            <child>
+              <placeholder/>
+            </child>
+          </widget>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkStatusbar" id="statusbar">
+            <property name="visible">True</property>
+            <property name="spacing">2</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkDialog" id="addDialog">
+    <property name="visible">True</property>
+    <property name="title" translatable="yes">Add links</property>
+    <property name="modal">True</property>
+    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
+    <property name="default_width">500</property>
+    <property name="default_height">130</property>
+    <property name="icon_name">stock_post-message</property>
+    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="skip_taskbar_hint">True</property>
+    <property name="has_separator">False</property>
+    <signal name="key_press_event" handler="on_addDialog_key_press_event"/>
+    <signal name="key_release_event" handler="on_addDialog_key_release_event"/>
+    <child internal-child="vbox">
+      <widget class="GtkVBox" id="dialog-vbox3">
+        <property name="visible">True</property>
+        <child>
+          <widget class="GtkLabel" id="label1">
+            <property name="visible">True</property>
+            <property name="xalign">0</property>
+            <property name="xpad">5</property>
+            <property name="ypad">5</property>
+            <property name="label" translatable="yes">Insert links to download (1 per line):</property>
+            <property name="ellipsize">PANGO_ELLIPSIZE_END</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow2">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="border_width">3</property>
+            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <child>
+              <widget class="GtkTextView" id="addLinks">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="left_margin">2</property>
+                <property name="right_margin">2</property>
+                <property name="accepts_tab">False</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <widget class="GtkHButtonBox" id="dialog-action_area3">
+            <property name="visible">True</property>
+            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <child>
+              <widget class="GtkButton" id="addCancelBtn">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="label">gtk-cancel</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">-6</property>
+                <signal name="clicked" handler="on_addCancelBtn_clicked"/>
+              </widget>
+            </child>
+            <child>
+              <widget class="GtkButton" id="addOkBtn">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="label">gtk-ok</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">-5</property>
+                <signal name="clicked" handler="on_addOkBtn_clicked"/>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">GTK_PACK_END</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkDialog" id="captchaDialog">
+    <property name="visible">True</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes">Captcha</property>
+    <property name="modal">True</property>
+    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
+    <property name="icon_name">stock_post-message</property>
+    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="skip_taskbar_hint">True</property>
+    <property name="urgency_hint">True</property>
+    <child internal-child="vbox">
+      <widget class="GtkVBox" id="dialog-vbox2">
+        <property name="visible">True</property>
+        <property name="spacing">2</property>
+        <child>
+          <widget class="GtkImage" id="captchaImage">
+            <property name="visible">True</property>
+            <property name="stock">gtk-missing-image</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkHBox" id="hbox1">
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkLabel" id="captchaLabel">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="xpad">2</property>
+                <property name="label" translatable="yes">Captcha: </property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkEntry" id="captchaTxt">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <widget class="GtkHButtonBox" id="dialog-action_area2">
+            <property name="visible">True</property>
+            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <child>
+              <widget class="GtkButton" id="captchaBtnCancel">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">gtk-cancel</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">0</property>
+              </widget>
+            </child>
+            <child>
+              <widget class="GtkButton" id="captchaBtnOk">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">gtk-ok</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">0</property>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">GTK_PACK_END</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+</glade-interface>

@@ -1,0 +1,20 @@
+# Sample proxy list for slimrat
+#
+# Should reside in ~/.slimrat/proxies when relying on automatic loading.
+
+# The full proxy specification consists out of two parts:
+#   - the URI
+#   - the protocol specification
+http://a.b.c.d:1234	http,ftp
+
+# When the protocols are omitted, by default the "http" protocol is used
+http://a.b.c.d:1234
+
+# Similarly, when not specifying the type of proxy in the URI, slimrat
+# will use it as an HTTP proxy
+a.b.c.d:1234	http,ftp
+
+# SOCKS is supported too (in combination with e.g. TOR), but needs
+# the cpan module LWP::Protocol::socks
+socks://localhost:9050	http,https
+
