@@ -91,7 +91,8 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/File name: <b[^>]*>([^<]+)<\/b>/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/File name: <b title="([^<]+)">[^>]*<\/b>/);
+
 }
 
 # Filesize
@@ -110,7 +111,7 @@ sub check {
 	my $self = shift;
 	
 	return -1 if ($self->{PRIMARY}->decoded_content =~ m/does not exist/);
-	return 1 if ($self->{PRIMARY}->decoded_content =~ m/gateway_result|Download the file|will become available/);
+	return 1 if ($self->{PRIMARY}->decoded_content =~ m/gateway_result|File Download|will become available/);
 	return 1 if ($self->{PRIMARY}->decoded_content =~ m/slots for your country are busy/);
 	return 0;
 }

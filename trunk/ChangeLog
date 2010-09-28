@@ -1,3 +1,9 @@
+2010-09-28  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: Rapidshare rewritten (Rapidshare API used)
+
+    * plugins: Depositfiles fixed, thanks to SkazochNik
+
 2010-09-16  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: Updated/fixed
