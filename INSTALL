@@ -28,6 +28,12 @@ GUI
   - Gtk2::GladeXML
   - Gtk2::SimpleList
 
+Some plugins needs extra perl modules. Install them from your package manager or via CPAN. 
+You don't need them installed if you dont want to use that plugins.
+  - URI::Escape
+  - WWW::Mechanize 1.52 (newer version)
+  - JSON::PP
+
 Some examples using package managers:
 
 a) On Debian/Ubuntu
