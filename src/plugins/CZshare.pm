@@ -68,8 +68,8 @@ sub new {
 	$self->{MECH} = $_[3];	
 	bless($self);
 	
-	$self->{CONF}->set_default("login", undef);
-	$self->{CONF}->set_default("pass", undef);
+	$self->{CONF}->set_default("username", undef);
+	$self->{CONF}->set_default("password", undef);
 
 	
 	$self->{PRIMARY} = $self->fetch();
@@ -117,7 +117,7 @@ sub get_data_loop {
 	# "PROFI" download
 	#
 	
-	if(defined($self->{CONF}->get("login")) and defined($self->{CONF}->get("pass"))) {
+	if(defined($self->{CONF}->get("username")) and defined($self->{CONF}->get("password"))) {
 		# Download URL
 		if ((my ($id) = $self->{MECH}->content() =~ m#<input type="hidden" name="id" value="(.+?)" />#)
 			&& (my ($file) = $self->{MECH}->content() =~ m#<input type="hidden" name="file" value="(.+?)" />#)) {
@@ -125,8 +125,8 @@ sub get_data_loop {
 			# hm, why Im not able to do this with Mechanize?
 			my $res = $self->{MECH}->post("http://czshare.com/prihlasit.php", {
 				prihlasit=>1,
-				jmeno=>$self->{CONF}->get("login"),
-				heslo=>$self->{CONF}->get("pass"),
+				jmeno=>$self->{CONF}->get("username"),
+				heslo=>$self->{CONF}->get("password"),
 				id=>$id,
 				file=>$file,
 			});

@@ -60,6 +60,7 @@ use Time::HiRes qw(time);
 use URI;
 use IO::Uncompress::AnyUncompress qw(anyuncompress $AnyUncompressError);
 use File::Temp qw/tempfile/;
+use WWW::Mechanize;
 
 # Find root for custom packages
 use FindBin qw($RealBin);
@@ -460,6 +461,7 @@ sub download {
 		
 		return;
 	};
+
 	return -2 unless defined($result);
 	
 	# Close file
