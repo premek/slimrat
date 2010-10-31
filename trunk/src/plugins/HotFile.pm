@@ -31,6 +31,7 @@
 # Authors:
 #    Yunnan <www.yunnan.tk>
 #    Tim Besard <tim-dot-besard-at-gmail-dot-com>
+#    Přemek <premysl.vyhnal at gmail>
 #
 
 #
@@ -67,7 +68,15 @@ sub new {
 	$self->{URL} = $_[2];
 	$self->{MECH} = $_[3];
 	bless($self);	
-	
+		
+	$self->{CONF}->set_default("username", undef);
+	$self->{CONF}->set_default("password", undef);
+
+	if(defined($self->{CONF}->get("username")) and defined($self->{CONF}->get("password"))) {
+		Plugin::provide(-1);
+	} 
+
+
 	$self->{PRIMARY} = $self->{MECH}->get($self->{URL});
 	die("primary page error, ", $self->{PRIMARY}->status_line) unless ($self->{PRIMARY}->is_success || $self->{PRIMARY}->code == 404);
 	dump_add(data => $self->{MECH}->content()) if ($self->{PRIMARY}->is_success);
@@ -112,6 +121,25 @@ sub get_data_loop  {
 	my $captcha_processor = shift;
 	my $message_processor = shift;
 	my $headers = shift;
+
+
+
+	#
+	# Premium download
+	#
+	
+	if(defined($self->{CONF}->get("username")) and defined($self->{CONF}->get("password"))) {
+
+		$self->{MECH}->submit_form( with_fields => { 
+				user => $self->{CONF}->get("username"),
+				pass => $self->{CONF}->get("password") });
+		dump_add(data => $self->{MECH}->content());
+		return $self->{MECH}->request(HTTP::Request->new(GET => $self->{URL}, $headers), $data_processor);
+	}
+
+	#
+	# FREE download
+	#
 
 	# Wait timer
 	if ((my ($wait1) = $self->{MECH}->content() =~ m#timerend\=d\.getTime\(\)\+(\d+);\s*document\.getElementById\(\'dwltmr\'\)#)
@@ -158,6 +186,7 @@ sub get_data_loop  {
 
 # Amount of resources
 Plugin::provide(1);
+
 
 # Register the plugin
 Plugin::register("^[^/]+//(?:www.)?hotfile.com");

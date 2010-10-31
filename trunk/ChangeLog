@@ -1,3 +1,9 @@
+2010-10-31  Přemek Vyhnal  <premysl.vyhnal gmail com>
+
+    * plugins: Hotfile - added premium account support, thanks to pietrek
+
+    * plugins: CzShare - changed config keys for profi account
+	
 2010-09-28  Přemek Vyhnal  <premysl.vyhnal gmail com>
 
     * plugins: Rapidshare rewritten (Rapidshare API used)
