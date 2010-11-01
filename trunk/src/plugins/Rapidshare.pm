@@ -164,6 +164,17 @@ sub get_data_loop  {
 		$self->reload();
 		return 1;
 	}
+	
+	# Already downloading
+	elsif ($self->{MECH}->content() =~ m/ERROR: You need RapidPro to download more files from your IP address/) {
+		&$message_processor("already downloading a file");
+		wait(2*60);
+		$self->reload();
+		return 1;
+	}
+
+
+
 
 	# Download limit
 	# FIXME is this used?
@@ -207,18 +218,10 @@ sub get_data_loop  {
 		return 1;
 	}
 
-	# Already downloading
-	# FIXME is this used?
-	elsif ($self->{MECH}->content() =~ m/already downloading a file/) {
-		&$message_processor("already downloading a file");
-		wait(2*60);
-		$self->reload();
-		return 1;
-	}
 
 
 	# Another error
-	elsif ($self->{MECH}->content() =~ /^ERROR: (.*)$/){
+	elsif ($self->{MECH}->content() =~ /ERROR: (.*)/){
 		die	($1);
 	}
 
