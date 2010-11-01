@@ -172,6 +172,14 @@ sub get_data_loop  {
 		$self->reload();
 		return 1;
 	}
+	
+	# Slot availability
+	elsif ($self->{MECH}->content() =~ m/All free download slots are full/) {
+		&$message_processor("All free download slots are full");
+		wait(2*60);
+		$self->reload();
+		return 1;
+	}
 
 
 
@@ -205,15 +213,6 @@ sub get_data_loop  {
 	elsif ($self->{MECH}->content() =~ m/overloaded/) {
 		&$message_processor("RapidShare is overloaded");
 		wait(15);
-		$self->reload();
-		return 1;
-	}
-
-	# Slot availability
-	# FIXME is this used?
-	elsif ($self->{MECH}->content() =~ m/no more download slots available for free users right now/) {
-		&$message_processor("no available slots for free users");
-		wait(5*60);
 		$self->reload();
 		return 1;
 	}
