@@ -181,6 +181,13 @@ sub get_data_loop  {
 		return 1;
 	}
 
+	# Flooding
+	elsif ($self->{MECH}->content() =~ m/Please stop flooding our download servers/) {
+		&$message_processor("Rapidshare feels flooded");
+		wait(2*60);
+		$self->reload();
+		return 1;
+	}
 
 
 
