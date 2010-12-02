@@ -94,14 +94,14 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m/Filename:<\/font> <font[^>]*>([^<]+)<\/font/);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m/"down_txt2">([^<]+)/);
 }
 
 # Filesize
 sub get_filesize {
 	my $self = shift;
 
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/File size:<\/font> <font[^>]*>([^<]+)<\/font/);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m/File size:<\/strong>\s*([^<]+)/);
 }
 
 # Check if the link is alive
@@ -110,7 +110,7 @@ sub check {
 	
 	$_ = $self->{PRIMARY}->decoded_content;
 	return -1 if (m#link you have clicked is not available|This file has expired#);
-	return 1 if(m#gencap\.php#);
+	return 1 if(m#id="downloadlink"|filepassword#);	
 	return 0;
 }
 
@@ -131,35 +131,9 @@ sub get_data_loop  {
 		return 1;
 	}
 
-		
-	my ($res, $captcha);
-	my $cont = $self->{MECH}->content();
-
-	do {
-		# Get captcha
-		my ($captcha_url) = $cont =~ m#Enter this.*?src="(http://.*?/gencap.php\?.*?.gif)#ms;
-		die("can't get captcha image") unless ($captcha_url);
-		
-		# Download captcha
-		debug("captcha url is ", $captcha_url);
-		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-		$captcha = &$captcha_processor($captcha_data, "gif");
-		$self->{MECH}->back();
-
-		# Submit captcha form
-		$res = $self->{MECH}->submit_form( with_fields => { captcha => $captcha });
-		return 0 unless ($res->is_success);
-		dump_add(data => $self->{MECH}->content());
-		$cont = $self->{MECH}->content();
-	} while ($res->decoded_content !~ m#downloadlink#);
-
-	# Wait
-	if ($res->decoded_content =~ m#count=(\d+);#) {
-		wait($1, 0);
-	}
 
 	# Get download url
-	if ($res->decoded_content =~ m#downloadlink"><a href="(.*?)"#) {
+	if ($self->{MECH}->content() =~ m#(?<=href=")([^"]+)(?=" class="down_butt1")#) {
 		my $download = $1;
 		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
 	}
@@ -167,44 +141,6 @@ sub get_data_loop  {
 	return;
 }
 
-# Postprocess captcha value
-sub ocr_postprocess {
-	my ($self, $captcha) = @_;
-	$_ = $captcha;
-	
-	# Whole string replacements
-	s/</C/g;
-	s/\(/C/g;
-	s/\)/D/g;
-	s/V1(.+)/D$1/g;
-	s/l1/D/g;
-	s/\\\.\\/H/g;
-	s/N\\/M/g;
-	s/V\\/M/g;
-	s/VI/M/g;
-	s/;\\l\\/M/g;
-	s/O/Q/g;
-	s/\$/S/g;
-	s/'I/T/g;
-	s/`\|/T/g;
-	s/'\\'/T/g;
-	s/7\`/T/g;
-	s/'N/TV/g;
-	s/\\l/V/g;
-	s/\\N/W/g;
-	s/ //g;
-	
-	# First three char replacements
-	s/(.{0,2})4/$1A/g;
-	
-	# Fourth char replacements
-	s/L$/1/;
-	s/\?$/2/;
-	s/A$/4/;
-	s/\/$/4/;
-	
-	return $_;
-}
 
 # Amount of resources
 Plugin::provide(1);
