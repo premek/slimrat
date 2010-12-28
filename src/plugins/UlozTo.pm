@@ -81,8 +81,7 @@ sub get_name {
 # Filename
 sub get_filename {
 	my $self = shift;
-
-	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b></h3>#);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<a.*?>(.*?)</a></h2>#);
 }
 
 # Filesize
@@ -153,6 +152,6 @@ sub ocr_postprocess {
 Plugin::provide(1);
 
 # Register the plugin
-Plugin::register("^[^/]+//((.*?)\.)?(uloz.to|ulozto.sk|ulozto.net|vipfile.pl)/");
+Plugin::register("^[^/]+//((.*?)\.)?(ulozto.cz|uloz.to|ulozto.sk|ulozto.net|vipfile.pl)/");
 
 1;
