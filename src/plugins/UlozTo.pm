@@ -97,7 +97,7 @@ sub check {
 	
 	$_ = $self->{PRIMARY}->decoded_content;
 	return -1 if (m#error404#);
-	return 1 if(m#<img id="captcha"#);
+	return 1 if(m#<img.*?alt="Captcha"#);
 	return 0;
 }
 
@@ -125,15 +125,14 @@ sub get_data_loop  {
 		my $request = $self->{MECH}->{form}->make_request;
 		$request->header($headers);
                 
-                my $resp = $self->{MECH}->request($request, $data_processor);
-	        debug( $resp->as_string);
-                
-                #when we get HTML page, then something is wrong ... 
-                if ($resp->header('content_type') eq 'text/html'){
-                    $self->reload();                                                                                                                                                                                 
-                    return 1;   
-                }
-		return $self->{MECH}->request($request, $data_processor);
+		my $resp = $self->{MECH}->request($request, $data_processor);
+
+		#when we get HTML page, then something is wrong ... 
+		if ($resp->header('content_type') eq 'text/html'){
+			$self->reload();                                                                                                                                                                                 
+			return 1;   
+		}
+		return $resp;
 	}
 		
 	return;
