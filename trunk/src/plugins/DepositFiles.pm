@@ -76,6 +76,15 @@ sub new {
 	# Fetch the language switch page which gives us a "lang_current=en" cookie
 	$self->{MECH}->get('http://depositfiles.com/en/switch_lang.php?lang=en');
 
+
+	if ($self->{CONF}->defines("username") && $self->{CONF}->defines("password") &&
+	    ($self->{LOGIN} = $self->{CONF}->get("username")) &&
+	    ($self->{PASSWORD} = $self->{CONF}->get("password"))) {
+		# Login
+		$self->{MECH}->post('http://depositfiles.com/en/login.php',
+			{ login => $self->{LOGIN}, password => $self->{PASSWORD}, go => 1 });
+		Plugin::provide(-1);
+	}
 	
 	$self->{PRIMARY} = $self->fetch();
 	
