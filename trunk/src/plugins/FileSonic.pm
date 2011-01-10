@@ -98,8 +98,8 @@ sub check {
 	my $self = shift;
 	
 	$_ = $self->{PRIMARY}->decoded_content;
-	return -1 if (m#Error 9005#); # Not found (in all languages)
-	return 1 if(m#/download-free/#);
+	return -1 if (m#<input type="hidden" name="linkId" value="" />#); # empty id
+	return 1 if(m#<p class="fileInfo filename">#);
 	return 0;
 }
 
@@ -113,13 +113,56 @@ sub get_data_loop  {
 	my $headers = shift;
 
 
-	(my $id) = $self->{URL} =~ m#/file/(\d+)/#;
-	$self->{MECH}->get("http://www.filesonic.com/download-free/$id");
-	dump_add(data => $self->{MECH}->content());
+	if ($self->{MECH}->content() =~ m#<a href="(http://s\d+\.filesonic\.com/download/.+?)">#) {
+		return $self->{MECH}->request(HTTP::Request->new(GET => $1, $headers), $data_processor);
+	}
 
-	(my $download) = $self->{MECH}->content() =~ m#downloadUrl = "(.+?)";#;
+	# reCaptcha
+	elsif ($self->{MECH}->content() =~ m#Recaptcha\.create\("(.*?)"#) {
+		# Download captcha
+		my $captchascript = $self->{MECH}->get("http://api.recaptcha.net/challenge?k=$1")->decoded_content;
+		dump_add(data => $self->{MECH}->content());
+
+		my ($challenge, $server) = $captchascript =~ m#challenge\s*:\s*'(.*?)'.*server\s*:\s*'(.*?)'#s;
+		my $captcha_url = $server . 'image?c=' . $challenge;
+		debug("captcha url is ", $captcha_url);
+		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
+
+		my $captcha_value = &$captcha_processor($captcha_data, "jpeg", 1);
+		$self->{MECH}->back();
+		$self->{MECH}->back();
+		
+		# Submit captcha form
+		$self->{MECH}->add_header( 'X-Requested-With'=>'XMLHttpRequest' );
+		$self->{MECH}->post($self->{URL}."?start=1", {
+				'recaptcha_response_field' => $captcha_value,
+				'recaptcha_challenge_field' => $challenge
+				});
+		$self->{MECH}->add_header( 'X-Requested-With'=>undef );
+
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
 	
-	return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+	elsif ($self->{MECH}->content() =~ m#countDownDelay = (\d+)#) {
+		wait($1);
+		$self->reload();		
+		return 1;
+	}
+
+	else {
+
+#		(my $id) = $self->{URL} =~ m#/file/(\d+)/#;
+		$self->{MECH}->add_header( 'X-Requested-With'=>'XMLHttpRequest' );
+		$self->{MECH}->post($self->{URL}."?start=1");
+		$self->{MECH}->add_header( 'X-Requested-With'=>undef );
+#		$self->{MECH}->post("$id?start=1");
+		dump_add(data => $self->{MECH}->content());
+		return 1;
+	}
+
+	return;
+
 
 }
 
