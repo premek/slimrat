@@ -49,6 +49,8 @@ use Log;
 use Toolbox;
 use Configuration;
 
+use ReCaptcha;
+
 # Write nicely
 use strict;
 use warnings;
@@ -119,24 +121,13 @@ sub get_data_loop  {
 
 	# reCaptcha
 	elsif ($self->{MECH}->content() =~ m#Recaptcha\.create\("(.*?)"#) {
-		# Download captcha
-		my $captchascript = $self->{MECH}->get("http://api.recaptcha.net/challenge?k=$1")->decoded_content;
-		dump_add(data => $self->{MECH}->content());
-
-		my ($challenge, $server) = $captchascript =~ m#challenge\s*:\s*'(.*?)'.*server\s*:\s*'(.*?)'#s;
-		my $captcha_url = $server . 'image?c=' . $challenge;
-		debug("captcha url is ", $captcha_url);
-		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-
-		my $captcha_value = &$captcha_processor($captcha_data, "jpeg", 1);
-		$self->{MECH}->back();
-		$self->{MECH}->back();
+		my $recaptcha = ReCaptcha->new($self->{MECH}, $captcha_processor, $1);
 		
-		# Submit captcha form
+		# nonstandard submit, not using ReCaptcha->submit()
 		$self->{MECH}->add_header( 'X-Requested-With'=>'XMLHttpRequest' );
 		$self->{MECH}->post($self->{URL}."?start=1", {
-				'recaptcha_response_field' => $captcha_value,
-				'recaptcha_challenge_field' => $challenge
+				'recaptcha_response_field' => $recaptcha->get_value(),
+				'recaptcha_challenge_field' => $recaptcha->get_challenge()
 				});
 		$self->{MECH}->add_header( 'X-Requested-With'=>undef );
 
@@ -152,11 +143,9 @@ sub get_data_loop  {
 
 	else {
 
-#		(my $id) = $self->{URL} =~ m#/file/(\d+)/#;
 		$self->{MECH}->add_header( 'X-Requested-With'=>'XMLHttpRequest' );
 		$self->{MECH}->post($self->{URL}."?start=1");
 		$self->{MECH}->add_header( 'X-Requested-With'=>undef );
-#		$self->{MECH}->post("$id?start=1");
 		dump_add(data => $self->{MECH}->content());
 		return 1;
 	}
