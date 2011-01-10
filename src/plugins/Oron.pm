@@ -49,6 +49,8 @@ use Log;
 use Toolbox;
 use Configuration;
 
+use ReCaptcha;
+
 # Write nicely
 use strict;
 use warnings;
@@ -119,22 +121,8 @@ sub get_data_loop  {
 
 	# reCaptcha
 	elsif ($self->{MECH}->content() =~ m#challenge\?k=(.*?)"#) {
-		# Download captcha
-		my $captchascript = $self->{MECH}->get("http://api.recaptcha.net/challenge?k=$1")->decoded_content;
-		my ($challenge, $server) = $captchascript =~ m#challenge\s*:\s*'(.*?)'.*server\s*:\s*'(.*?)'#s;
-		my $captcha_url = $server . 'image?c=' . $challenge;
-		debug("captcha url is ", $captcha_url);
-		my $captcha_data = $self->{MECH}->get($captcha_url)->decoded_content;
-
-		my $captcha_value = &$captcha_processor($captcha_data, "jpeg", 1);
-		$self->{MECH}->back();
-		$self->{MECH}->back();
-		
-		# Submit captcha form
-		$self->{MECH}->submit_form( with_fields => {
-				'recaptcha_response_field' => $captcha_value,
-				'recaptcha_challenge_field' => $challenge });
-		dump_add(data => $self->{MECH}->content());
+		my $recaptcha = ReCaptcha->new($self->{MECH}, $captcha_processor, $1);
+		$recaptcha->submit();
 		return 1;
 	}
 	
