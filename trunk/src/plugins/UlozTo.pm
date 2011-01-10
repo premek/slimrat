@@ -82,6 +82,7 @@ sub get_name {
 sub get_filename {
 	my $self = shift;
 	return $1 if ($self->{PRIMARY}->decoded_content =~ m#<a.*?>(.*?)</a></h2>#);
+	return $1 if ($self->{PRIMARY}->decoded_content =~ m#;t=(.*?)"#);
 }
 
 # Filesize
@@ -89,6 +90,7 @@ sub get_filesize {
 	my $self = shift;
 
 	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b> <br />#);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#class="info_velikost" .*?><div>(.*?)<#);
 }
 
 # Check if the link is alive
