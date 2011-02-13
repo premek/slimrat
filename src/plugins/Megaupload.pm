@@ -136,9 +136,15 @@ sub get_data_loop  {
 	}
 
 	# Get download url
-	if ($self->{MECH}->content() =~ m#(?<=href=")([^"]+)(?=" class="down_butt1")#) {
-		my $download = $1;
-		return $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+	if (my ($download) = $self->{MECH}->content() =~ m#(?<=href=")([^"]+)(?=" class="down_butt1")#) {
+		my $response = $self->{MECH}->request(HTTP::Request->new(GET => $download, $headers), $data_processor);
+		if ($response->code == 503){
+			&$message_processor("Download limit exceeded");
+			wait(15*60);
+			$self->reload();
+		}else{
+			return $response;
+		}
 	}
 	
 	return;
