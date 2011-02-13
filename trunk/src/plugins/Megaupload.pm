@@ -131,6 +131,9 @@ sub get_data_loop  {
 		return 1;
 	}
 
+	if (my ($wait_time) = $self->{MECH}->content() =~ /(?<=count=)(\d+)/) {
+		wait($wait_time+1);
+	}
 
 	# Get download url
 	if ($self->{MECH}->content() =~ m#(?<=href=")([^"]+)(?=" class="down_butt1")#) {
