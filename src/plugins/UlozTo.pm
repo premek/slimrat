@@ -90,7 +90,7 @@ sub get_filesize {
 	my $self = shift;
 
 	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#<b>(.*?)</b> <br />#);
-	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#class="info_velikost" .*?><div>(.*?)<#);
+	return readable2bytes($1) if ($self->{PRIMARY}->decoded_content =~ m#class="info_velikost" .*?>\s*<div>\s*(?:[\d:]+ \| )?(.*?)\s*<#sm);
 }
 
 # Check if the link is alive
