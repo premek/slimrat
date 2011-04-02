@@ -85,7 +85,7 @@ sub new {
 	$self->{MECH}->back();
 	$self->{MECH}->back();
 
-	$self->{VALUE} = &$captcha_processor($img_data, "jpeg", 0);
+	$self->{VALUE} = &$captcha_processor($img_data, "jpeg", 1); # disable OCR
 
 	return $self;
 }
