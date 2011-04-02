@@ -137,7 +137,11 @@ sub get_data_loop  {
 	
 	elsif ($self->{MECH}->content() =~ m#countDownDelay = (\d+)#) {
 		wait($1);
-		$self->reload();		
+		my($tm, $tm_hash) = $self->{MECH}->content() =~ m#id='tm'.*?value='(\d+)' />.*id='tm_hash'.*?value='(.+?)'#s;
+		$self->{MECH}->post($self->{URL}."?start=1", {
+				'tm' => $tm,
+				'tm_hash' => $tm_hash});
+		dump_add(data => $self->{MECH}->content());
 		return 1;
 	}
 
