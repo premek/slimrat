@@ -100,7 +100,7 @@ sub get_filesize {
 sub check {
 	my $self = shift;
 	
-	return 1  if (defined $self->{MECH}->form_with_fields( ("method_free") ));
+	return 1 if (defined $self->{MECH}->form_with_fields( ("method_free") ));
 	return -1;
 }
 
@@ -127,9 +127,11 @@ sub get_data_loop  {
 	}
 	
 	# Wait timer
-	elsif ((my $min, my $sec) = ($self->{MECH}->content() =~ m#wait (?:(\d+) minutes, )?(\d+) seconds#)) {
+
+	elsif (my ($hour, $min, $sec) = ($self->{MECH}->content() =~ m#wait (?:(\d+) hours?, )?(?:(\d+) minutes?, )?(\d+) seconds?#)) {
+		$hour = 0 unless defined $hour;
 		$min = 0 unless defined $min;
-		wait($min*60 + $sec);
+		wait($hour*60*60 + $min*60 + $sec);
 		$self->reload();
 		return 1;
 	}
