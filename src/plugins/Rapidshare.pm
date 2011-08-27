@@ -92,7 +92,7 @@ sub new {
 	#	6:Short host (Use the short host to get the best download mirror: http://rs$serverid$shorthost.rapidshare.com/files/$fileid/$filename)
 	#	7:md5 (See parameter incmd5 in parameter description above.)
 
-	my $checkfiles = $self->api("checkfiles_v1",{
+	my $checkfiles = $self->api("checkfiles",{
 				"files"=>$fileid,
 				"filenames"=>$filename
 			});
@@ -151,7 +151,7 @@ sub get_data_loop  {
 
 
 	# DL:$hostname,$dlauth,$countdown,$md5hex
-	$self->api("download_v1", {
+	$self->api("download", {
 			"fileid"=>$self->{FILEID},
 			"filename"=>$self->{FILENAME},
 			"try"=>1,
@@ -237,7 +237,7 @@ sub get_data_loop  {
 
 		wait($self->{COUNTDOWN});
 
-		my $download = "http://".$self->{HOSTNAME}."/cgi-bin/rsapi.cgi?sub=download_v1".
+		my $download = "http://".$self->{HOSTNAME}."/cgi-bin/rsapi.cgi?sub=download".
 			"&fileid=".$self->{FILEID}.
 			"&filename=".$self->{FILENAME}.
 			"&dlauth=".$self->{DLAUTH}.
